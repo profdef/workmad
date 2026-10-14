@@ -38,7 +38,8 @@
     if (top) top.outerHTML =
       (API.isDemo ? '<div class="demo-banner">Mode demo: data hanya tersimpan di browser ini. Kunci admin <b>admin123</b>. Isi <span class="mono">API_URL</span> di assets/config.js untuk produksi.</div>' : "") +
       '<header class="topbar"><div class="container">' +
-        '<a class="brand" href="index.html"><img class="logo" src="' + O.icon + '" alt="publichealth.id"><span>Pelatihan MAD-R<small>' + esc(O.name) + " · " + esc(T.batch) + "</small></span></a>" +
+        '<a class="brand" href="index.html"><img class="brand-logo" src="' + O.logoDark + '" alt="publichealth.id — ' + esc(O.motto) + '">' +
+          '<span class="brand-text">Pelatihan MAD-R<small>' + esc(T.batch) + "</small></span></a>" +
         "<nav>" + nav + right + "</nav>" +
       "</div></header>";
     const foot = document.getElementById("footer");

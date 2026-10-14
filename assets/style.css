@@ -290,7 +290,17 @@ dialog .dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px
 }
 
 /* ---------- Penyelenggara: publichealth.id ---------- */
-.brand img.logo { width: 34px; height: 34px; border-radius: 50%; background: none; box-shadow: 0 0 14px rgba(239,68,68,.35); }
+/* Logo publichealth.id utuh (dengan moto) di header */
+.brand img.brand-logo { height: 40px; width: auto; display: block; flex: none; }
+.brand .brand-text { padding-left: 12px; border-left: 1px solid var(--border-soft); line-height: 1.25; }
+@media (max-width: 900px) { .brand .brand-text { display: none; } }
+@media (max-width: 520px) {
+  .brand img.brand-logo { height: 30px; }
+  .topbar .container { gap: 8px; }
+  .topbar nav { gap: 5px; }
+  .topbar nav .btn { padding: 6px 11px; font-size: 12.5px; }
+}
+@media (max-width: 360px) { .brand img.brand-logo { height: 26px; } }
 .organizer { display: inline-flex; align-items: center; gap: 14px; margin-top: 16px; padding: 10px 16px; border-radius: 14px;
   background: var(--surface); border: 1px solid var(--border-soft); text-decoration: none; transition: border-color .15s; }
 .organizer:hover { border-color: rgba(239,68,68,.6); }
