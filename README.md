@@ -136,7 +136,8 @@ git remote add origin https://github.com/profdef/workmad.git
 git push -u origin main
 ```
 Di GitHub: **Settings → Pages → Source: Deploy from a branch → main / (root) → Save**.
-Situs aktif di `https://profdef.github.io/workmad/`, dashboard di `…/workmad/admin.html`. Pastikan `CONFIG.SITE_URL` di `Code.gs` sama.
+Situs aktif di **`https://pelatihan.publichealth.id/`** (file `CNAME` di repo ini; alamat lama `profdef.github.io/workmad/`
+otomatis dialihkan). Dashboard di `…/admin.html`. Pastikan `CONFIG.SITE_URL` di `Code.gs` sama.
 
 ## Langkah 6 — Uji coba produksi sebelum promosi
 
@@ -152,7 +153,7 @@ Situs aktif di `https://profdef.github.io/workmad/`, dashboard di `…/workmad/a
 Perubahan sudah disiapkan di repo `~/Github/phid`, branch **`menu-pelatihan`** (belum digabung ke `main`):
 - Menu navbar **Pelatihan** (EN: *Training*) → halaman `id/pelatihan.qmd` / `en/training.qmd` (hero, tombol Daftar, Konfirmasi Pembayaran, Portal Peserta, Cek Sertifikat).
 - Banner pelatihan di beranda `id/index.qmd` & `en/index.qmd`, tautan *Pelatihan* di footer, gambar `images/pelatihan-mad-r.jpg`.
-- Alamat aplikasi diatur sekali di `_quarto.yml`: `training-url: "https://profdef.github.io/workmad/"`.
+- Alamat aplikasi diatur sekali di `_quarto.yml`: `training-url: "https://pelatihan.publichealth.id/"`.
 
 Uji coba lokal:
 ```bash
@@ -166,9 +167,9 @@ cd ~/Github/phid && git checkout main && git merge menu-pelatihan && git push
 ```
 GitHub Actions di repo `phid` merender & menerbitkan publichealth.id otomatis.
 
-**Opsional — subdomain `pelatihan.publichealth.id`:** di pengelola DNS tambahkan record `CNAME pelatihan → profdef.github.io`;
-di repo `workmad` buat file `CNAME` berisi `pelatihan.publichealth.id`, lalu Settings → Pages → Custom domain → *Enforce HTTPS*.
-Setelah itu ganti `training-url` (phid) dan `CONFIG.SITE_URL` (Code.gs) ke `https://pelatihan.publichealth.id/`.
+**Subdomain `pelatihan.publichealth.id`** (sudah dipasang): DNS (idwebhost) berisi record `CNAME pelatihan → profdef.github.io`;
+repo ini memuat file `CNAME` berisi `pelatihan.publichealth.id`; GitHub → Settings → Pages → *Enforce HTTPS* dicentang setelah
+sertifikat terbit. `training-url` (phid) dan `CONFIG.SITE_URL` (Code.gs) memakai `https://pelatihan.publichealth.id/`.
 
 ## Kelas pra-pelatihan GRATIS untuk pembeli buku
 

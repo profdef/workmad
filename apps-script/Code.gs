@@ -35,7 +35,7 @@ var CONFIG = {
   BOOK_DISCOUNT: 100000,
   // Status pesanan buku (aplikasi orderbuku) yang dianggap sudah membeli
   BOOK_PAID_STATUSES: ["Dibayar", "Diproses", "Dikirim", "Selesai"],      // 3 digit kode unik ditambahkan ke tagihan
-  SITE_URL: "https://profdef.github.io/workmad/", // alamat GitHub Pages (untuk tautan di email)
+  SITE_URL: "https://pelatihan.publichealth.id/", // alamat situs pelatihan (untuk tautan di email)
   PAYMENT: "Bank BNI 46 · 0214815784 · a.n. Defriman Djafri",
   ADMIN_WA: "6281310603106",
   CONTACT_EMAIL: "info@publichealth.id",    // email resmi: Reply-To & kontak di email otomatis
