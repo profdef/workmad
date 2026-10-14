@@ -5,10 +5,13 @@
    apps-script/Code.gs (bagian CONFIG) — samakan keduanya,
    karena server menghitung ulang tagihan agar tidak bisa dimanipulasi.
    ========================================================= */
+// Selalu gunakan HTTPS (kecuali uji lokal) — melindungi data login & pendaftaran
+if (location.protocol === "http:" && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) location.replace("https:" + location.href.slice(5));
+
 window.APP_CONFIG = {
   // Versi rilis — naikkan bersamaan dengan version.json setiap kali situs diperbarui,
   // agar browser peserta otomatis memuat ulang halaman versi terbaru (bukan dari cache).
-  APP_VERSION: "2026.10.14-4",
+  APP_VERSION: "2026.10.14-5",
 
   // URL Web App Google Apps Script (lihat README).
   // Biarkan kosong "" untuk MODE DEMO (data disimpan di browser saja).
