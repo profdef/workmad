@@ -132,8 +132,8 @@
         '<path d="M-4 4 H-66 A62 62 0 0 0 -4 66 Z" fill="' + W + '" opacity=".55"/><path d="M4 4 V66 A62 62 0 0 0 66 4 Z" fill="' + W + '"/>';
       // Bayangan logo berselang-seling di ruang kosong (kiri → kanan → kiri), sedikit bertumpuk dengan grafik
       o += shade(rLogo, 78, 266, 0.52, 0.11) +   // R: kiri, antara forest plot & kurva survival
-        shade(rsLogo, 182, 566, 0.5, 0.10) +      // RStudio: kanan, antara plot sebaran & kurva epidemi
-        shade(qLogo, 64, 664, 0.66, 0.10);        // Quarto: kiri, di samping kaki kurva epidemi
+        shade(qLogo, 182, 566, 0.56, 0.10) +      // Quarto: kanan, antara plot sebaran & kurva epidemi
+        shade(rsLogo, 64, 664, 0.6, 0.10);        // RStudio: kiri, di samping kaki kurva epidemi
 
       // 2) Forest plot (OR & 95% CI, efek gabungan berbentuk wajik)
       const fx = (v) => 40 + ((Math.log(v) + Math.log(4)) / (2 * Math.log(4))) * 180; // skala log 0,25–4
