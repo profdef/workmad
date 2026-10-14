@@ -57,6 +57,9 @@ r = call({ action: "confirm", id: reg.id, contact: "6281234567890", payerName: "
 ok(!r.ok && /JPG/.test(r.error), "tolak tipe file berbahaya");
 r = call({ action: "confirm", id: reg.id.toLowerCase(), contact: "6281234567890", payerName: "Siti", paidAmount: reg.total, file: img });
 ok(r.ok && r.reg.status === "Menunggu Verifikasi", "unggah bukti (cocok via WA 62…)", r);
+r = call({ action: "invoice", id: reg.id, contact: "siti@contoh.id" });
+ok(r.ok && r.doc.invoiceNo === "INV/" + reg.id && !r.doc.paid && !r.doc.receiptNo && r.doc.total === reg.total, "invoice (belum lunas) untuk pemilik");
+ok(!call({ action: "invoice", id: reg.id, contact: "orang@lain.id" }).ok, "invoice ditolak untuk kontak lain");
 r = call({ action: "status", id: reg.id, contact: "SITI@contoh.id" });
 ok(r.ok && r.reg.status === "Menunggu Verifikasi", "cek status via email");
 
@@ -76,6 +79,12 @@ ok(r.ok, "admin: lihat KTM");
 r = call({ action: "update", key: "rahasia-admin", id: reg.id, fields: { status: "Aktif" } });
 ok(r.ok && /^[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(r.reg.accessCode) && r.mailed, "aktifkan → kode akses + email", r);
 const code = r.reg.accessCode;
+ok(r.reg.receiptNo === "KW/MAD-R/2026/0001", "nomor kuitansi terbit saat diverifikasi", r.reg.receiptNo);
+r = call({ action: "invoice", id: reg.id, contact: "081234567890" });
+ok(r.ok && r.doc.paid && r.doc.receiptNo === "KW/MAD-R/2026/0001" && r.doc.paidAt && r.doc.paidAmount === reg.total, "kuitansi lunas");
+r = call({ action: "invoice", id: reg.id, key: "rahasia-admin" });
+ok(r.ok && r.doc.paid, "admin dapat mencetak kuitansi tanpa kontak");
+ok(!call({ action: "invoice", id: reg.id, key: "salah" }).ok, "kunci admin salah ditolak pada invoice");
 ok(/Kode Akses/.test(be.gas.db().mails[0].subject) && be.gas.db().mails[0].html.includes(code), "email kode akses berisi kode");
 r = call({ action: "update", key: "rahasia-admin", id: reg.id, fields: { status: "Hacker" } });
 ok(!r.ok, "tolak status tidak valid");
@@ -103,7 +112,27 @@ ok(r.ok && r.valid && r.cert.name === "Dr. Siti Rahma, M.Epid", "verifikasi sert
 r = call({ action: "verify", no: "MAD-R/2026/9999" });
 ok(r.ok && !r.valid, "sertifikat palsu tidak valid");
 r = call({ action: "login", email: "siti@contoh.id", code, silent: true });
-ok(r.ok && r.participant.certNo === "MAD-R/2026/0001", "portal melihat sertifikat");
+ok(r.ok && r.participant.certIssued && r.participant.certNo === "" && !r.participant.evalDone, "sertifikat ditahan sebelum evaluasi");
+
+console.log("Evaluasi");
+r = call({ action: "evalGet", email: "siti@contoh.id", code });
+ok(r.ok && r.answers === null && r.open, "evaluasi belum diisi");
+const ans = { nps: 9, t1: "Studi kasus surveilans", t2: "Tambah waktu praktik", t3: "Analisis spasial", t4: "Sangat bermanfaat!", pub: true };
+["a1","a2","a3","a4","a5","b1","b2","b3","b4","b5","c1","c2","c3","c4","o1"].forEach((k, i) => (ans[k] = 3 + (i % 3)));
+["s1","s2","s3","s4","s5","s6"].forEach((k, i) => (ans[k] = i === 2 ? 0 : 5));
+["k1","k2","k3","k4","k5","k6"].forEach((k) => { ans["pre_" + k] = 2; ans["post_" + k] = 4; });
+r = call({ action: "evalSubmit", email: "siti@contoh.id", code, answers: Object.assign({}, ans, { a1: 9, nps: "" }) });
+ok(!r.ok && /2 pertanyaan/.test(r.error), "tolak jawaban di luar skala / kosong", r);
+ok(!call({ action: "evalSubmit", email: "siti@contoh.id", code: "SALAH", answers: ans }).ok, "evaluasi butuh sesi valid");
+r = call({ action: "evalSubmit", email: "siti@contoh.id", code, answers: ans });
+ok(r.ok, "kirim evaluasi");
+r = call({ action: "evalSubmit", email: "siti@contoh.id", code, answers: Object.assign({}, ans, { nps: 10 }) });
+r = call({ action: "evalList", key: "rahasia-admin" });
+ok(r.ok && r.evals.length === 1 && r.evals[0].nps === 10 && r.evals[0].post_k1 === 4 && r.evals[0].pub === "Ya" && r.eligible === 1, "evaluasi diperbarui (bukan ganda) & terbaca admin", r);
+r = call({ action: "evalGet", email: "siti@contoh.id", code });
+ok(r.ok && r.answers && r.answers.t1 === "Studi kasus surveilans", "jawaban lama dapat dimuat ulang");
+r = call({ action: "login", email: "siti@contoh.id", code, silent: true });
+ok(r.ok && r.participant.evalDone && r.participant.certNo === "MAD-R/2026/0001", "portal melihat sertifikat setelah evaluasi");
 
 console.log("Ganti kode, pembatalan, kuota");
 r = call({ action: "update", key: "rahasia-admin", id: reg.id, fields: { resetCode: true } });

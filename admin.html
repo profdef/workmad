@@ -8,7 +8,7 @@
   <title>Dashboard Admin · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=1">
+  <link rel="stylesheet" href="assets/style.css?v=2">
 </head>
 <body>
   <div id="topbar"></div>
@@ -38,6 +38,11 @@
       </div>
     </div>
 
+    <div class="view-tabs">
+      <button type="button" class="on" data-view="peserta">👥 Peserta & Pembayaran</button>
+      <button type="button" data-view="eval">📊 Evaluasi Pelatihan</button>
+    </div>
+    <div id="pesertaView">
     <div class="kpis" id="kpis"></div>
     <div class="charts">
       <div class="card chart-card"><h3>Pendaftar per hari (21 hari terakhir)</h3><div id="chDaily"></div></div>
@@ -57,6 +62,18 @@
       </table>
     </div>
     <div class="small muted" id="count" style="margin-top:8px"></div>
+    </div>
+
+    <div id="evalView" class="hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <div><h2 style="margin:0">Laporan Evaluasi Pelatihan</h2><div class="small muted" id="evMeta"></div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm" type="button" id="evCsv">⬇ Ekspor CSV</button>
+          <button class="btn btn-sm" type="button" id="evPrint">🖨 Cetak laporan</button>
+        </div>
+      </div>
+      <div id="evBody"><div class="muted">Memuat…</div></div>
+    </div>
   </main>
 
   <dialog id="dlg">
@@ -65,10 +82,10 @@
   </dialog>
 
   <div id="footer"></div>
-  <script src="assets/config.js?v=1"></script>
-  <script src="assets/api.js?v=1"></script>
-  <script src="assets/common.js?v=1"></script>
-  <script src="materi/catalog.js?v=1"></script>
-  <script src="assets/admin.js?v=1"></script>
+  <script src="assets/config.js?v=2"></script>
+  <script src="assets/api.js?v=2"></script>
+  <script src="assets/common.js?v=2"></script>
+  <script src="materi/catalog.js?v=2"></script>
+  <script src="assets/admin.js?v=2"></script>
 </body>
 </html>

@@ -7,7 +7,7 @@
   <title>Sertifikat · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Great+Vibes&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=1">
+  <link rel="stylesheet" href="assets/style.css?v=2">
   <style>
     .cert-wrap { overflow-x: auto; padding: 8px 0 24px; }
     .cert {
@@ -75,9 +75,9 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=1"></script>
-  <script src="assets/api.js?v=1"></script>
-  <script src="assets/common.js?v=1"></script>
+  <script src="assets/config.js?v=2"></script>
+  <script src="assets/api.js?v=2"></script>
+  <script src="assets/common.js?v=2"></script>
   <script>
   (async function () {
     const C = APP_CONFIG, T = C.TRAINING;
@@ -127,6 +127,7 @@
       try {
         const r = await API.login(s.email, s.code, true);
         const p = r.participant;
+        if (p.certIssued && !p.certNo) { location.replace("evaluasi.html"); return; }
         if (!p.certNo) throw new Error("Sertifikat Anda belum diterbitkan.");
         $("verifyBox").classList.add("hidden");
         $("printBar").classList.remove("hidden");

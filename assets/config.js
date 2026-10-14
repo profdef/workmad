@@ -69,6 +69,46 @@ window.APP_CONFIG = {
     ["Bisakah instansi mendaftarkan beberapa peserta?", "Bisa. Setiap peserta mendaftar sendiri agar mendapat kode akses & sertifikat atas namanya. Hubungi admin untuk invoice kolektif."],
   ],
 
+  // Formulir evaluasi pelatihan (model Kirkpatrick level 1–2). Kunci butir harus sama dengan EVAL di Code.gs.
+  EVALUATION: {
+    scale: ["Sangat kurang", "Kurang", "Cukup", "Baik", "Sangat baik"],
+    sections: [
+      { id: "a", title: "Penyelenggaraan", desc: "Proses pendaftaran, pembayaran, jadwal, dan platform pelatihan.", items: [
+        ["a1", "Kejelasan informasi & kemudahan proses pendaftaran"],
+        ["a2", "Kemudahan pembayaran & kecepatan verifikasi"],
+        ["a3", "Ketepatan waktu & kesesuaian jadwal sesi"],
+        ["a4", "Kualitas penyelenggaraan sesi live (Zoom, audio, visual)"],
+        ["a5", "Kemudahan mengakses materi di Portal Peserta"] ] },
+      { id: "b", title: "Materi Pelatihan", desc: "Isi, sistematika, dan kualitas modul.", items: [
+        ["b1", "Relevansi materi dengan pekerjaan/studi saya"],
+        ["b2", "Kedalaman & kelengkapan materi"],
+        ["b3", "Sistematika & alur materi dari dasar ke lanjut"],
+        ["b4", "Kualitas slide dan contoh kode R"],
+        ["b5", "Kesesuaian dataset & studi kasus epidemiologi"] ] },
+      { id: "c", title: "Narasumber", desc: "Prof. Defriman Djafri, SKM, MKM, PhD", items: [
+        ["c1", "Penguasaan materi"],
+        ["c2", "Kejelasan penyampaian & penjelasan konsep"],
+        ["c3", "Interaksi & tanggapan terhadap pertanyaan peserta"],
+        ["c4", "Pengelolaan waktu sesi"] ] },
+      { id: "s", title: "Penilaian per Sesi", desc: "Pilih “Tidak hadir” bila Anda tidak mengikuti sesi tersebut secara live.", type: "session", items: [
+        ["s1", "Sesi 1 · Pengantar & Konsep Dasar Data"],
+        ["s2", "Sesi 2 · R, RStudio & Quarto"],
+        ["s3", "Sesi 3 · Manajemen Data di R"],
+        ["s4", "Sesi 4 · Analisis Univariat & Bivariat"],
+        ["s5", "Sesi 5 · Tabel 2×2, Ukuran Asosiasi & Multivariat"],
+        ["s6", "Sesi 6 · Studi Kasus & Laporan Otomatis Quarto"] ] },
+    ],
+    competencies: [
+      ["k1", "Merancang manajemen & tata kelola data penelitian"],
+      ["k2", "Mengimpor, membersihkan & mentransformasi data di R"],
+      ["k3", "Melakukan analisis univariat & bivariat"],
+      ["k4", "Menghitung ukuran asosiasi & regresi logistik"],
+      ["k5", "Membuat visualisasi data epidemiologi (ggplot2)"],
+      ["k6", "Menyusun laporan reproducible dengan Quarto"],
+    ],
+    competencyScale: ["Belum mampu", "Sedikit", "Cukup", "Mampu", "Sangat mampu"],
+  },
+
   PROFESSIONS: ["Mahasiswa", "Dosen", "Peneliti", "Epidemiolog", "Tenaga Kesehatan (Puskesmas/RS)", "Dinas Kesehatan", "Analis Data", "Lainnya"],
 
   PROVINCES: ["Aceh", "Sumatera Utara", "Sumatera Barat", "Riau", "Kepulauan Riau", "Jambi", "Bengkulu",

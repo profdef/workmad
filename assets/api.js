@@ -88,6 +88,11 @@
     login: (email, code, silent) => call({ action: "login", email, code, silent: !!silent }),
     forgot: (email) => call({ action: "forgot", email }),
     verify: (no) => call({ action: "verify", no }),
+    invoice: (id, contact) => call({ action: "invoice", id, contact }),
+    invoiceAdmin: (key, id) => call({ action: "invoice", id, key }),
+    evalGet() { const s = Session.get() || {}; return call({ action: "evalGet", email: s.email, code: s.code }); },
+    evalSubmit(answers) { const s = Session.get() || {}; return call({ action: "evalSubmit", email: s.email, code: s.code, answers }); },
+    evalList: (key) => call({ action: "evalList", key }),
     // Catat modul yang dibuka (tidak menunggu jawaban)
     track(slug) {
       const s = Session.get();
@@ -134,7 +139,19 @@
         if (i % 7 === 6) return; // tetap Menunggu Pembayaran
         b.call({ action: "confirm", id, contact: email, payerName: name, paidAmount: r.reg.total - (i === 4 ? 100000 : 0), file: ktm });
         if (i % 3 === 0) return; // tetap Menunggu Verifikasi
-        b.call({ action: "update", key, id, fields: { status: i % 5 === 1 ? "Lulus" : "Aktif" } });
+        const u = b.call({ action: "update", key, id, fields: { status: i % 5 === 1 ? "Lulus" : "Aktif" } });
+        if (i % 4 === 3) return; // belum mengisi evaluasi
+        // Evaluasi contoh (variasi realistis)
+        const rnd = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+        const a = { nps: [10, 9, 9, 8, 10, 7, 9, 6][i % 8], pub: i % 2 === 0,
+          t1: ["Studi kasus surveilans DBD & peta Kota Padang", "Laporan otomatis dengan Quarto", "Penjelasan regresi logistik yang runtut", "Dataset nyata dan kode siap pakai"][i % 4],
+          t2: ["Tambah durasi sesi praktik", "Rekaman sesi dibagikan lebih cepat", "Perbanyak latihan mandiri", ""][i % 4],
+          t3: ["Analisis spasial dengan R", "Analisis survival", "Meta-analisis", "Machine learning untuk epidemiologi"][i % 4],
+          t4: ["Pelatihan yang sangat aplikatif, langsung bisa dipakai di Dinkes.", "Materi runtut dari dasar sampai laporan otomatis. Recommended!", "", "Narasumber sabar dan menguasai materi."][i % 4] };
+        C.EVALUATION.sections.forEach((sec) => sec.items.forEach(([k]) => (a[k] = rnd(sec.type === "session" ? 3 : 4, 5))));
+        C.EVALUATION.competencies.forEach(([k]) => { a["pre_" + k] = rnd(1, 3); a["post_" + k] = rnd(3, 5); });
+        a.o1 = rnd(4, 5);
+        b.call({ action: "evalSubmit", email, code: u.reg.accessCode, answers: a });
       });
       b.gas.save();
     },

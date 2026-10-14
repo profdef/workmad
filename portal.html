@@ -8,7 +8,7 @@
   <title>Portal Peserta · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=1">
+  <link rel="stylesheet" href="assets/style.css?v=2">
 </head>
 <body>
   <div id="topbar"></div>
@@ -35,6 +35,7 @@
         <button type="button" class="on" data-tab="materi">📚 Materi</button>
         <button type="button" data-tab="jadwal">🗓 Jadwal & Zoom</button>
         <button type="button" data-tab="unduh">⬇ Paket Latihan</button>
+        <button type="button" data-tab="evaluasi">📝 Evaluasi</button>
         <button type="button" data-tab="sertifikat">🎓 Sertifikat</button>
         <button type="button" data-tab="profil">👤 Profil</button>
       </div>
@@ -65,6 +66,8 @@
         </div>
       </section>
 
+      <section data-pane="evaluasi" class="hidden"><div class="card" id="evalBox"></div></section>
+
       <section data-pane="sertifikat" class="hidden"><div class="card" id="certBox"></div></section>
 
       <section data-pane="profil" class="hidden"><div class="card"><dl class="kv" id="profile"></dl>
@@ -73,11 +76,11 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=1"></script>
-  <script src="assets/api.js?v=1"></script>
-  <script src="assets/common.js?v=1"></script>
-  <script src="assets/materi.js?v=1"></script>
-  <script src="materi/catalog.js?v=1"></script>
+  <script src="assets/config.js?v=2"></script>
+  <script src="assets/api.js?v=2"></script>
+  <script src="assets/common.js?v=2"></script>
+  <script src="assets/materi.js?v=2"></script>
+  <script src="materi/catalog.js?v=2"></script>
   <script>
   (async function () {
     const C = APP_CONFIG;
@@ -163,8 +166,19 @@
       b.disabled = false;
     }));
 
+    // Evaluasi
+    $("evalBox").innerHTML = '<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px">' +
+      "<h3>Evaluasi Pelatihan</h3><p class=\"muted\" style=\"margin:0\">Penilaian penyelenggaraan, materi, narasumber, tiap sesi, peningkatan kompetensi Anda (sebelum vs sesudah), dan saran. ±7 menit." +
+      (p.evalRequired ? " <b>Wajib diisi untuk mengunduh e-sertifikat.</b>" : "") + "</p></div>" +
+      (p.evalDone ? '<div><span class="badge st-lulus">✓ Sudah diisi</span><br><a class="btn btn-sm" style="margin-top:8px" href="evaluasi.html">Lihat / perbarui</a></div>'
+        : p.evalOpen ? '<a class="btn btn-primary btn-lg" href="evaluasi.html">Isi Evaluasi →</a>' : '<span class="muted small">Formulir belum dibuka</span>') + "</div>";
+    if (!p.evalDone && p.evalOpen) document.querySelector('[data-tab="evaluasi"]').insertAdjacentHTML("beforeend", ' <span class="badge st-menunggu-verifikasi">baru</span>');
+
     // Sertifikat
-    $("certBox").innerHTML = p.certNo
+    $("certBox").innerHTML = p.certIssued && !p.certNo
+      ? '<div class="success-ic">🎓</div><h2 class="center">Selamat, Anda dinyatakan lulus!</h2><p class="center muted">E-sertifikat Anda sudah terbit. Silakan isi <b>Evaluasi Pelatihan</b> terlebih dahulu untuk membuka unduhan sertifikat.</p>' +
+        '<p class="center"><a class="btn btn-primary btn-lg" href="evaluasi.html">📝 Isi Evaluasi Sekarang</a></p>'
+      : p.certNo
       ? '<div class="success-ic">🎓</div><h2 class="center">Selamat, Anda dinyatakan lulus!</h2><p class="center muted">No. sertifikat <b class="mono" style="color:#fff">' + esc(p.certNo) +
         '</b> · ' + esc(fmtDate(p.certDate + "T12:00:00+07:00")) + '</p><p class="center"><a class="btn btn-primary btn-lg" href="sertifikat.html?cetak=1">Lihat & Unduh Sertifikat</a></p>'
       : "<h3>Sertifikat belum tersedia</h3><p class=\"muted\">E-sertifikat (" + p.jp + " JP) terbit setelah Anda mengikuti sesi live dan menyelesaikan tugas akhir. " +
@@ -172,7 +186,9 @@
 
     // Profil
     $("profile").innerHTML = [["No. pendaftaran", p.id], ["Nama", p.name], ["Email", p.email], ["Instansi", p.institution], ["Kategori", p.category]]
-      .map(([k, v]) => "<dt>" + k + "</dt><dd>" + esc(v) + "</dd>").join("") + "<dt>Status</dt><dd>" + statusBadge(p.status) + "</dd>";
+      .map(([k, v]) => "<dt>" + k + "</dt><dd>" + esc(v) + "</dd>").join("") + "<dt>Status</dt><dd>" + statusBadge(p.status) + "</dd>" +
+      '<dt>Pembayaran</dt><dd><button class="btn btn-sm" type="button" id="docBtn">🧾 Cetak kuitansi pembayaran</button></dd>';
+    $("docBtn").addEventListener("click", () => { sessionStorage.setItem("mad_doc", JSON.stringify({ id: p.id, contact: p.email })); location.href = "invoice.html"; });
     $("waFix").href = "https://wa.me/" + C.ADMIN_WA + "?text=" + encodeURIComponent("Halo Admin, saya " + p.name + " (" + p.id + ") ingin memperbaiki data: ");
   })();
   </script>

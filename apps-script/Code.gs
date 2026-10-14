@@ -38,6 +38,9 @@ var CONFIG = {
   CERT_JP: 18,
   PROOF_MAX_MB: 5,
   PROOF_FOLDER: "Bukti Pembayaran Pelatihan MAD-R",
+  RECEIPT_PREFIX: "KW/MAD-R/2026/",          // nomor kuitansi (terbit saat pembayaran diverifikasi)
+  EVAL_OPEN: true,                            // formulir evaluasi dapat diisi peserta Aktif/Lulus
+  EVAL_REQUIRED_FOR_CERT: true,               // sertifikat baru dapat diunduh setelah evaluasi diisi
   SEND_EMAIL: true,     // kirim email tagihan & kode akses ke peserta
   NOTIFY_EMAIL: ""      // email admin untuk notifikasi pendaftaran/bukti baru ("" = mati)
 };
@@ -46,9 +49,27 @@ var SHEET_NAME = "Peserta";
 var HEADERS = ["id", "createdAt", "status", "name", "email", "phone", "gender", "institution", "profession",
   "category", "province", "city", "source", "note", "price", "uniqueCode", "total",
   "payerName", "paidAmount", "proofAt", "proofUrl", "proofFileId", "ktmFileId",
-  "accessCode", "activatedAt", "lastLogin", "loginCount", "progress", "certNo", "certDate", "adminNote"];
+  "accessCode", "activatedAt", "lastLogin", "loginCount", "progress", "certNo", "certDate", "adminNote",
+  "receiptNo", "evalAt"];
 var STATUSES = ["Menunggu Pembayaran", "Menunggu Verifikasi", "Aktif", "Lulus", "Dibatalkan"];
 var ACTIVE = ["Aktif", "Lulus"];
+
+// Butir evaluasi (samakan kunci dengan EVALUATION di assets/config.js)
+var EVAL_SHEET = "Evaluasi";
+var EVAL = {
+  likert: ["a1", "a2", "a3", "a4", "a5", "b1", "b2", "b3", "b4", "b5", "c1", "c2", "c3", "c4", "o1"], // 1–5
+  session: ["s1", "s2", "s3", "s4", "s5", "s6"],                                                      // 0 = tidak hadir, 1–5
+  competency: ["k1", "k2", "k3", "k4", "k5", "k6"],                                                  // pre_kX & post_kX, 1–5
+  nps: ["nps"],                                                                                       // 0–10
+  text: ["t1", "t2", "t3", "t4"],
+  flag: ["pub"]                                                                                       // izin publikasi testimoni
+};
+function evalHeaders() {
+  var h = ["id", "submittedAt", "name", "email", "category", "institution"];
+  h = h.concat(EVAL.likert, EVAL.session);
+  EVAL.competency.forEach(function (k) { h.push("pre_" + k, "post_" + k); });
+  return h.concat(EVAL.nps, EVAL.text, EVAL.flag);
+}
 
 function setup() {
   getSheet();
@@ -77,6 +98,10 @@ function doPost(e) {
       case "forgot":   return json(forgot(body));
       case "track":    return json(track(body));
       case "verify":   return json(verifyCert(body.no));
+      case "invoice":  return json(invoice(body));
+      case "evalGet":  return json(evalGet(body));
+      case "evalSubmit": return json(evalSubmit(body));
+      case "evalList": requireAdmin(body.key); return json(evalList());
       case "list":     requireAdmin(body.key); return json({ ok: true, regs: readAll(), stats: stats() });
       case "update":   requireAdmin(body.key); return json(updateReg(body.id, body.fields || {}));
       case "resend":   requireAdmin(body.key); return json(resendAccess(body.id));
@@ -275,6 +300,96 @@ function verifyCert(no) {
   return { ok: true, valid: true, cert: { no: r.certNo, name: r.name, institution: r.institution, date: r.certDate, jp: CONFIG.CERT_JP, batch: CONFIG.BATCH } };
 }
 
+/* ------- Invoice & kuitansi (pemilik: no. pendaftaran + email/WA; atau admin) ------- */
+function invoice(b) {
+  var sheet = getSheet(), id = String(b.id || "").trim().toUpperCase(), rec;
+  if (b.key) { requireAdmin(b.key); rec = readRow(sheet, findRow(sheet, id)); }
+  else rec = findOwned(sheet, id, b.contact).rec;
+  var paid = ACTIVE.indexOf(rec.status) >= 0;
+  return { ok: true, doc: {
+    id: rec.id, invoiceNo: "INV/" + rec.id, receiptNo: paid ? rec.receiptNo : "", status: rec.status, paid: paid,
+    createdAt: rec.createdAt, paidAt: paid ? rec.activatedAt : "", name: rec.name, email: rec.email, phone: rec.phone,
+    institution: rec.institution, city: rec.city, province: rec.province, category: rec.category,
+    price: Number(rec.price), uniqueCode: Number(rec.uniqueCode), total: Number(rec.total),
+    payerName: rec.payerName, paidAmount: Number(rec.paidAmount) || 0, proofAt: rec.proofAt,
+    training: CONFIG.TRAINING, batch: CONFIG.BATCH, payment: CONFIG.PAYMENT
+  } };
+}
+
+/* ------- Evaluasi pelatihan ------- */
+function sessionRec(b) {
+  var sheet = getSheet();
+  var hit = findByEmail(sheet, String(b.email || "").trim().toLowerCase());
+  if (!hit || !hit.rec.accessCode || normCode(hit.rec.accessCode) !== normCode(b.code) || ACTIVE.indexOf(hit.rec.status) < 0)
+    throw new Error("Sesi tidak valid. Silakan masuk kembali.");
+  return { sheet: sheet, row: hit.row, rec: hit.rec };
+}
+
+function getEvalSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), H = evalHeaders();
+  var sh = ss.getSheetByName(EVAL_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(EVAL_SHEET);
+    sh.getRange(1, 1, 1, H.length).setValues([H]).setFontWeight("bold");
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function evalGet(b) {
+  var s = sessionRec(b), sh = getEvalSheet(), H = evalHeaders();
+  var n = sh.getLastRow() - 1, answers = null;
+  if (n > 0) sh.getRange(2, 1, n, H.length).getValues().forEach(function (r) {
+    if (r[0] === s.rec.id) { answers = {}; H.forEach(function (k, i) { answers[k] = r[i] instanceof Date ? r[i].toISOString() : r[i]; }); }
+  });
+  return { ok: true, open: CONFIG.EVAL_OPEN, answers: answers };
+}
+
+function evalSubmit(b) {
+  if (!CONFIG.EVAL_OPEN) throw new Error("Formulir evaluasi sedang ditutup");
+  var a = b.answers || {}, row = {}, miss = [];
+  var int = function (v, lo, hi, k) {
+    var x = parseInt(v, 10);
+    if (isNaN(x) || x < lo || x > hi) { miss.push(k); return ""; }
+    return x;
+  };
+  EVAL.likert.forEach(function (k) { row[k] = int(a[k], 1, 5, k); });
+  EVAL.session.forEach(function (k) { row[k] = int(a[k], 0, 5, k); });
+  EVAL.competency.forEach(function (k) { row["pre_" + k] = int(a["pre_" + k], 1, 5, "pre_" + k); row["post_" + k] = int(a["post_" + k], 1, 5, "post_" + k); });
+  row.nps = int(a.nps, 0, 10, "nps");
+  if (miss.length) throw new Error("Masih ada " + miss.length + " pertanyaan wajib yang belum dijawab");
+  EVAL.text.forEach(function (k) { row[k] = String(a[k] == null ? "" : a[k]).trim().slice(0, 1500); });
+  row.pub = a.pub ? "Ya" : "Tidak";
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var s = sessionRec(b), sh = getEvalSheet(), H = evalHeaders();
+    row.id = s.rec.id; row.submittedAt = new Date().toISOString();
+    row.name = s.rec.name; row.email = s.rec.email; row.category = s.rec.category; row.institution = s.rec.institution;
+    var n = sh.getLastRow() - 1, target = sh.getLastRow() + 1;
+    if (n > 0) {
+      var ids = sh.getRange(2, 1, n, 1).getValues();
+      for (var i = 0; i < ids.length; i++) if (ids[i][0] === row.id) { target = i + 2; break; }
+    }
+    sh.getRange(target, 1, 1, H.length).setValues([H.map(function (k) { return row[k] == null ? "" : row[k]; })]);
+    s.rec.evalAt = row.submittedAt;
+    writeRow(s.sheet, s.row, s.rec);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true, submittedAt: row.submittedAt };
+}
+
+function evalList() {
+  var sh = getEvalSheet(), H = evalHeaders(), n = sh.getLastRow() - 1;
+  var rows = n > 0 ? sh.getRange(2, 1, n, H.length).getValues().map(function (r) {
+    var o = {}; H.forEach(function (k, i) { o[k] = r[i] instanceof Date ? r[i].toISOString() : r[i]; }); return o;
+  }) : [];
+  var eligible = readAll().filter(function (r) { return ACTIVE.indexOf(r.status) >= 0; }).length;
+  return { ok: true, evals: rows, eligible: eligible };
+}
+
 /* ======================= Aksi admin ======================= */
 
 function updateReg(id, fields) {
@@ -292,6 +407,7 @@ function updateReg(id, fields) {
         rec.activatedAt = new Date().toISOString();
         becameActive = true;
       }
+      if (ACTIVE.indexOf(fields.status) >= 0 && !rec.receiptNo) rec.receiptNo = newSeqNo("RECEIPT_SEQ", CONFIG.RECEIPT_PREFIX);
       if (fields.status === "Lulus" && !rec.certNo) {
         rec.certNo = newCertNo();
         rec.certDate = Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd");
@@ -398,8 +514,15 @@ function publicReg(r) {
 
 function participantView(r) {
   return { id: r.id, name: r.name, email: r.email, institution: r.institution, category: r.category, status: r.status,
-    certNo: r.status === "Lulus" ? r.certNo : "", certDate: r.status === "Lulus" ? r.certDate : "",
+    evalDone: !!r.evalAt, evalOpen: CONFIG.EVAL_OPEN, evalRequired: CONFIG.EVAL_REQUIRED_FOR_CERT,
+    // Sertifikat ditahan sampai evaluasi diisi (bila diwajibkan)
+    certIssued: r.status === "Lulus" && !!r.certNo,
+    certNo: certAllowed(r) ? r.certNo : "", certDate: certAllowed(r) ? r.certDate : "",
     progress: String(r.progress || "").split(",").filter(String), batch: CONFIG.BATCH, jp: CONFIG.CERT_JP };
+}
+
+function certAllowed(r) {
+  return r.status === "Lulus" && !!r.certNo && (!CONFIG.EVAL_REQUIRED_FOR_CERT || !!r.evalAt);
 }
 
 function checkFile(f) {
@@ -512,11 +635,13 @@ function newId() {
   return "MAD-" + Utilities.formatDate(new Date(), "Asia/Jakarta", "yyMMdd") + "-" + ("000" + seq).slice(-4);
 }
 
-function newCertNo() {
+function newCertNo() { return newSeqNo("CERT_SEQ", CONFIG.CERT_PREFIX); }
+
+function newSeqNo(prop, prefix) {
   var props = PropertiesService.getScriptProperties();
-  var seq = (parseInt(props.getProperty("CERT_SEQ"), 10) || 0) + 1;
-  props.setProperty("CERT_SEQ", String(seq));
-  return CONFIG.CERT_PREFIX + ("000" + seq).slice(-4);
+  var seq = (parseInt(props.getProperty(prop), 10) || 0) + 1;
+  props.setProperty(prop, String(seq));
+  return prefix + ("000" + seq).slice(-4);
 }
 
 // 8 karakter tanpa huruf/angka yang mirip (0/O, 1/I/L)

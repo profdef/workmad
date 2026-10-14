@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="assets/brand/favicon.png">
+  <title>Evaluasi Pelatihan · Pelatihan MAD-R</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css?v=2">
+</head>
+<body>
+  <div id="topbar"></div>
+  <main class="container narrow" style="padding:28px 16px 48px">
+    <div id="loading" class="center muted" style="padding:60px 0">Memuat formulir…</div>
+    <div id="errBox" class="hidden"></div>
+
+    <div id="app" class="hidden">
+      <div class="eyebrow">Evaluasi Pelatihan</div>
+      <h1 style="font-size:clamp(24px,3vw,32px);margin-top:.3em">Bagaimana pengalaman belajar Anda?</h1>
+      <p class="muted">Penilaian Anda membantu publichealth.id meningkatkan mutu pelatihan berikutnya. Waktu pengisian ±7 menit. Semua butir bertanda <span style="color:var(--magenta)">*</span> wajib diisi.
+        <span id="certNote"></span></p>
+      <div id="prevNote"></div>
+
+      <div class="eval-progress no-print"><div class="small"><b id="pCount">0</b> dari <b id="pTotal">0</b> butir wajib terjawab</div><div class="meter"><i id="pBar" style="width:0"></i></div></div>
+
+      <form id="evalForm" novalidate>
+        <div id="sections"></div>
+
+        <section class="card eval-sec">
+          <div class="eval-head"><span class="eval-no">E</span><div><h2>Peningkatan Kompetensi</h2><p class="muted small">Nilai kemampuan Anda <b>sebelum</b> dan <b>sesudah</b> mengikuti pelatihan (1 = belum mampu, 5 = sangat mampu).</p></div></div>
+          <div id="comp"></div>
+        </section>
+
+        <section class="card eval-sec">
+          <div class="eval-head"><span class="eval-no">F</span><div><h2>Kepuasan & Rekomendasi</h2></div></div>
+          <div class="eval-item"><div class="q req">Secara keseluruhan, seberapa puas Anda dengan pelatihan ini?</div><div class="likert" data-k="o1"></div></div>
+          <div class="eval-item"><div class="q req">Seberapa besar kemungkinan Anda merekomendasikan pelatihan ini kepada rekan/kolega?</div>
+            <div class="nps" id="nps"></div><div class="nps-legend small muted"><span>0 · Sangat tidak mungkin</span><span>10 · Sangat mungkin</span></div></div>
+        </section>
+
+        <section class="card eval-sec">
+          <div class="eval-head"><span class="eval-no">G</span><div><h2>Masukan Terbuka</h2><p class="muted small">Opsional, namun sangat berharga bagi kami.</p></div></div>
+          <div class="field"><label for="t1">Bagian pelatihan yang paling bermanfaat bagi Anda</label><textarea id="t1" maxlength="1500"></textarea></div>
+          <div class="field"><label for="t2">Saran perbaikan untuk penyelenggaraan berikutnya</label><textarea id="t2" maxlength="1500"></textarea></div>
+          <div class="field"><label for="t3">Topik pelatihan lanjutan yang Anda butuhkan</label><textarea id="t3" maxlength="1500" placeholder="cth. analisis spasial, analisis survival, meta-analisis…"></textarea></div>
+          <div class="field"><label for="t4">Testimoni singkat</label><textarea id="t4" maxlength="600"></textarea></div>
+          <label class="small" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" id="pub" style="margin-top:4px">
+            <span>Saya mengizinkan testimoni di atas ditampilkan oleh publichealth.id beserta nama & instansi saya.</span></label>
+        </section>
+
+        <button class="btn btn-primary btn-block btn-lg" type="submit" id="submitBtn" style="margin-top:18px">Kirim Evaluasi</button>
+        <div id="err" class="alert alert-err hidden" role="alert"></div>
+      </form>
+    </div>
+
+    <div id="done" class="hidden card center" style="margin-top:12px">
+      <div class="success-ic">✓</div>
+      <h1 style="font-size:26px">Terima kasih atas evaluasi Anda!</h1>
+      <p class="muted">Masukan Anda telah kami terima dan akan digunakan untuk perbaikan mutu pelatihan publichealth.id.</p>
+      <div id="doneCert"></div>
+      <p><a class="btn" href="portal.html">← Kembali ke Portal</a></p>
+    </div>
+  </main>
+  <div id="footer"></div>
+
+  <script src="assets/config.js?v=2"></script>
+  <script src="assets/api.js?v=2"></script>
+  <script src="assets/common.js?v=2"></script>
+  <script>
+  (async function () {
+    const C = APP_CONFIG, E = C.EVALUATION;
+    const $ = (id) => document.getElementById(id);
+    const s = Session.get();
+    if (!s) { location.replace("masuk.html?next=evaluasi.html"); return; }
+    renderChrome("");
+
+    let me, prev;
+    try {
+      [me, prev] = await Promise.all([API.login(s.email, s.code, true), API.evalGet()]);
+    } catch (e) {
+      $("loading").classList.add("hidden");
+      $("errBox").classList.remove("hidden");
+      $("errBox").innerHTML = '<div class="card"><h2>Tidak dapat membuka evaluasi</h2><p class="muted">' + esc(e.message) + '</p><a class="btn btn-primary" href="masuk.html">Masuk kembali</a></div>';
+      return;
+    }
+    const p = me.participant;
+    $("loading").classList.add("hidden");
+    if (!prev.open) {
+      $("errBox").classList.remove("hidden");
+      $("errBox").innerHTML = '<div class="card"><h2>Formulir evaluasi belum dibuka</h2><p class="muted">Formulir akan dibuka oleh admin menjelang akhir pelatihan.</p><a class="btn" href="portal.html">← Portal</a></div>';
+      return;
+    }
+    $("app").classList.remove("hidden");
+    if (p.evalRequired) $("certNote").innerHTML = "<b>E-sertifikat dapat diunduh setelah evaluasi ini dikirim.</b>";
+    if (prev.answers) $("prevNote").innerHTML = '<div class="alert alert-info">Anda sudah mengirim evaluasi pada ' + esc(fmtDate(prev.answers.submittedAt, true)) + ". Jawaban sebelumnya dimuat; Anda dapat memperbaikinya lalu mengirim ulang.</div>";
+
+    const likert = (k, session) =>
+      (session ? '<label class="lk na"><input type="radio" name="' + k + '" value="0"><span>Tidak hadir</span></label>' : "") +
+      E.scale.map((t, i) => '<label class="lk"><input type="radio" name="' + k + '" value="' + (i + 1) + '"><span><b>' + (i + 1) + "</b><small>" + esc(t) + "</small></span></label>").join("");
+
+    $("sections").innerHTML = E.sections.map((sec, si) =>
+      '<section class="card eval-sec"><div class="eval-head"><span class="eval-no">' + "ABCD"[si] + "</span><div><h2>" + esc(sec.title) + '</h2><p class="muted small">' + esc(sec.desc) + "</p></div></div>" +
+      sec.items.map(([k, q], i) => '<div class="eval-item"><div class="q req"><span class="qn">' + "ABCD"[si] + (i + 1) + ".</span> " + esc(q) + '</div><div class="likert' + (sec.type === "session" ? " with-na" : "") + '">' + likert(k, sec.type === "session") + "</div></div>").join("") +
+      "</section>").join("");
+    document.querySelector('[data-k="o1"]').innerHTML = likert("o1");
+
+    $("comp").innerHTML = '<div class="comp-head"><span></span><span>Sebelum</span><span>Sesudah</span></div>' +
+      E.competencies.map(([k, q], i) =>
+        '<div class="comp-row"><div class="q req"><span class="qn">E' + (i + 1) + ".</span> " + esc(q) + "</div>" +
+        ["pre", "post"].map((w) => '<div class="seg ' + w + '" aria-label="' + (w === "pre" ? "Sebelum" : "Sesudah") + '"><span class="seg-lbl">' + (w === "pre" ? "Sebelum" : "Sesudah") + "</span>" +
+          [1, 2, 3, 4, 5].map((v) => '<label title="' + esc(E.competencyScale[v - 1]) + '"><input type="radio" name="' + w + "_" + k + '" value="' + v + '"><span>' + v + "</span></label>").join("") + "</div>").join("") +
+        "</div>").join("") +
+      '<div class="small muted" style="margin-top:8px">' + E.competencyScale.map((t, i) => (i + 1) + " = " + esc(t)).join(" · ") + "</div>";
+
+    $("nps").innerHTML = Array.from({ length: 11 }, (_, v) =>
+      '<label class="np ' + (v <= 6 ? "lo" : v <= 8 ? "mid" : "hi") + '"><input type="radio" name="nps" value="' + v + '"><span>' + v + "</span></label>").join("");
+
+    // Daftar butir wajib
+    const required = [].concat(
+      ...E.sections.map((sec) => sec.items.map(([k]) => k)), ["o1", "nps"],
+      ...E.competencies.map(([k]) => ["pre_" + k, "post_" + k]));
+    $("pTotal").textContent = required.length;
+
+    // Muat jawaban lama
+    if (prev.answers) {
+      required.forEach((k) => { const el = document.querySelector('input[name="' + k + '"][value="' + prev.answers[k] + '"]'); if (el) el.checked = true; });
+      ["t1", "t2", "t3", "t4"].forEach((k) => ($(k).value = prev.answers[k] || ""));
+      $("pub").checked = prev.answers.pub === "Ya";
+    }
+
+    const val = (k) => { const el = document.querySelector('input[name="' + k + '"]:checked'); return el ? Number(el.value) : null; };
+    function progress() {
+      const n = required.filter((k) => val(k) !== null).length;
+      $("pCount").textContent = n;
+      $("pBar").style.width = (n / required.length) * 100 + "%";
+      document.querySelectorAll(".missing").forEach((el) => { const k = el.dataset.miss; if (val(k) !== null) el.classList.remove("missing"); });
+    }
+    $("evalForm").addEventListener("change", progress);
+    progress();
+
+    $("evalForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      $("err").classList.add("hidden");
+      const miss = required.filter((k) => val(k) === null);
+      if (miss.length) {
+        miss.forEach((k) => { const box = document.querySelector('input[name="' + k + '"]').closest(".eval-item, .comp-row"); box.classList.add("missing"); box.dataset.miss = k; });
+        document.querySelector(".missing").scrollIntoView({ behavior: "smooth", block: "center" });
+        return fail("Masih ada " + miss.length + " butir wajib yang belum dijawab (ditandai merah).");
+      }
+      const answers = {};
+      required.forEach((k) => (answers[k] = val(k)));
+      ["t1", "t2", "t3", "t4"].forEach((k) => (answers[k] = $(k).value.trim()));
+      answers.pub = $("pub").checked;
+      $("submitBtn").disabled = true; $("submitBtn").textContent = "Mengirim…";
+      try {
+        await API.evalSubmit(answers);
+        $("app").classList.add("hidden");
+        $("done").classList.remove("hidden");
+        if (p.certIssued) $("doneCert").innerHTML = '<p><a class="btn btn-primary btn-lg" href="sertifikat.html?cetak=1">🎓 Unduh E-Sertifikat</a></p>';
+        else $("doneCert").innerHTML = '<p class="muted small">E-sertifikat akan tersedia di Portal Peserta setelah status Anda dinyatakan <b>Lulus</b> oleh admin.</p>';
+        window.scrollTo(0, 0);
+      } catch (ex) {
+        fail(ex.message);
+        $("submitBtn").disabled = false; $("submitBtn").textContent = "Kirim Evaluasi";
+      }
+    });
+    function fail(m) { $("err").textContent = m; $("err").classList.remove("hidden"); }
+  })();
+  </script>
+</body>
+</html>

@@ -32,7 +32,7 @@
     $("loginBtn").disabled = false;
   }
   const saved = sessionStorage.getItem(KEY_SS);
-  if (saved) login(saved);
+  if (saved) login(saved).then(() => { if (location.hash === "#evaluasi") document.querySelector('[data-view="eval"]').click(); });
   $("logoutBtn").addEventListener("click", () => { sessionStorage.removeItem(KEY_SS); location.reload(); });
   $("refreshBtn").addEventListener("click", () => load().catch((e) => alert(e.message)));
   $("seedBtn").addEventListener("click", async () => {
@@ -124,7 +124,7 @@
         "<td><b style=\"color:#fff\">" + esc(r.name) + '</b><br><span class="small muted">' + esc(r.institution) + "<br>" + esc(r.email) + " · " + esc(r.phone) + "</span></td>" +
         "<td class=\"small\">" + esc(r.category) + '</td><td class="num">' + rupiah(r.total) + "</td>" +
         '<td class="num' + (mism ? " mismatch" : "") + '">' + (r.paidAmount ? rupiah(r.paidAmount) + (mism ? " ⚠" : "") : '<span class="muted">—</span>') + "</td>" +
-        "<td>" + statusBadge(r.status) + "</td><td class=\"small\">" + progressCount(r) + "/" + TOTAL_DECKS + "</td>" +
+        "<td>" + statusBadge(r.status) + "</td><td class=\"small\">" + progressCount(r) + "/" + TOTAL_DECKS + (r.evalAt ? '<br><span style="color:var(--good)">✓ evaluasi</span>' : "") + "</td>" +
         '<td><button class="btn btn-sm" type="button" data-id="' + esc(r.id) + '">Detail</button></td></tr>';
     }).join("") || '<tr><td colspan="8" class="center muted" style="padding:28px">Tidak ada data</td></tr>';
     $("rows").querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => openDetail(b.dataset.id)));
@@ -152,12 +152,15 @@
       ["Kode akses", r.accessCode ? '<span class="code-box" style="font-size:18px">' + esc(r.accessCode) + "</span>" : '<span class="muted">Terbit otomatis saat status Aktif</span>'],
       ["Login terakhir", r.lastLogin ? esc(fmtDate(r.lastLogin, true)) + " (" + esc(r.loginCount) + "×)" : '<span class="muted">Belum pernah</span>'],
       ["Modul dibuka", progressCount(r) + " / " + TOTAL_DECKS],
+      ["Kuitansi", r.receiptNo ? '<span class="mono">' + esc(r.receiptNo) + "</span>" : '<span class="muted">Terbit saat diverifikasi</span>'],
+      ["Evaluasi", r.evalAt ? "✓ diisi " + esc(fmtDate(r.evalAt, true)) : '<span class="muted">Belum mengisi</span>'],
       ["Sertifikat", r.certNo ? '<span class="mono">' + esc(r.certNo) + "</span> · " + esc(r.certDate) : '<span class="muted">—</span>'],
       ["Sumber info", esc(r.source)], ["Catatan peserta", esc(r.note)],
     ];
     const st = r.status;
     const actions = [];
-    if (r.proofFileId) actions.push('<button class="btn btn-sm" data-act="proof">🧾 Lihat bukti</button>');
+    actions.push('<button class="btn btn-sm" data-act="doc">' + (st === "Aktif" || st === "Lulus" ? "🧾 Cetak kuitansi" : "📄 Cetak invoice") + "</button>");
+    if (r.proofFileId) actions.push('<button class="btn btn-sm" data-act="proof">🖼 Lihat bukti transfer</button>');
     if (r.ktmFileId) actions.push('<button class="btn btn-sm" data-act="ktm">🪪 Lihat KTM</button>');
     if (st === "Menunggu Pembayaran" || st === "Menunggu Verifikasi") actions.push('<button class="btn btn-sm btn-primary" data-act="Aktif">✓ Verifikasi & aktifkan akses</button>');
     if (st === "Aktif") actions.push('<button class="btn btn-sm btn-primary" data-act="Lulus">🎓 Tandai Lulus (terbitkan sertifikat)</button>');
@@ -186,7 +189,10 @@
     const msg = (t, cls) => ($("dlgMsg").innerHTML = '<div class="alert ' + (cls || "alert-info") + '">' + t + "</div>");
     btn.disabled = true;
     try {
-      if (a === "proof" || a === "ktm") {
+      if (a === "doc") {
+        sessionStorage.setItem("mad_doc", JSON.stringify({ id: r.id, admin: key }));
+        window.open("invoice.html", "_blank");
+      } else if (a === "proof" || a === "ktm") {
         const f = await API.file(key, r.id, a);
         $("fileView").innerHTML = (f.mimeType === "application/pdf" ? '<iframe src="' + f.dataUrl + '"></iframe>' : '<img src="' + f.dataUrl + '" alt="">') +
           (f.url ? '<p class="small"><a href="' + esc(f.url) + '" target="_blank" rel="noopener">Buka di Google Drive</a></p>' : "");
@@ -248,5 +254,90 @@
     $("dlgBody").innerHTML = mails.length ? mails.map((m, i) => '<details class="mail"' + (i ? "" : " open") + "><summary><b>" + esc(m.subject) + '</b><br><span class="muted small">ke ' + esc(m.to) + " · " + esc(fmtDate(m.at, true)) +
       '</span></summary><div class="body">' + (m.html || "<pre>" + esc(m.text) + "</pre>") + "</div></details>").join("") : '<p class="muted">Belum ada email.</p>';
     if (!$("dlg").open) $("dlg").showModal();
+  });
+
+  // ---------- Tab tampilan ----------
+  let evalData = null;
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("[data-view]").forEach((x) => x.classList.toggle("on", x === b));
+    $("pesertaView").classList.toggle("hidden", b.dataset.view !== "peserta");
+    $("evalView").classList.toggle("hidden", b.dataset.view !== "eval");
+    if (b.dataset.view === "eval") loadEval();
+  }));
+  $("refreshBtn").addEventListener("click", () => { if (!$("evalView").classList.contains("hidden")) loadEval(); });
+
+  async function loadEval() {
+    try { evalData = await API.evalList(key); renderEval(); }
+    catch (e) { $("evBody").innerHTML = '<div class="alert alert-err">' + esc(e.message) + "</div>"; }
+  }
+
+  // ---------- Analisis evaluasi ----------
+  const E = C.EVALUATION;
+  const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
+  const f1 = (x) => (isNaN(x) ? "–" : x.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  const nums = (rows, k, zeroIsNA) => rows.map((r) => r[k]).filter((v) => v !== "" && v != null).map(Number).filter((v) => !isNaN(v) && (!zeroIsNA || v > 0));
+  const color = (m) => (m >= 4.2 ? "linear-gradient(90deg,#22c55e,#4ade80)" : m >= 3.4 ? "linear-gradient(90deg,#a855f7,#e879f9)" : "linear-gradient(90deg,#f59e0b,#fbbf24)");
+  function bar(label, m, n) {
+    return '<div class="ev-bar"><span class="lb">' + esc(label) + (n != null ? ' <span class="muted small">(n=' + n + ")</span>" : "") + '</span><span class="tr"><i style="width:' +
+      (isNaN(m) ? 0 : (m / 5) * 100) + "%;background:" + color(m) + '"></i></span><span class="vl">' + f1(m) + "</span></div>";
+  }
+
+  function renderEval() {
+    const rows = evalData.evals, n = rows.length, eligible = evalData.eligible;
+    $("evMeta").textContent = n + " responden dari " + eligible + " peserta aktif/lulus · diperbarui " + new Date().toLocaleTimeString("id-ID");
+    if (!n) { $("evBody").innerHTML = '<div class="card center muted">Belum ada peserta yang mengisi evaluasi.</div>'; return; }
+
+    const secMean = (sec) => mean(sec.items.map(([k]) => mean(nums(rows, k, sec.type === "session"))).filter((x) => !isNaN(x)));
+    const npsVals = nums(rows, "nps");
+    const prom = npsVals.filter((v) => v >= 9).length, pas = npsVals.filter((v) => v >= 7 && v <= 8).length, det = npsVals.filter((v) => v <= 6).length;
+    const nps = Math.round(((prom - det) / npsVals.length) * 100);
+    const gains = E.competencies.map(([k]) => mean(nums(rows, "post_" + k)) - mean(nums(rows, "pre_" + k)));
+    const [sa, sb, sc] = E.sections;
+    const kpi = [
+      [Math.round((n / Math.max(1, eligible)) * 100) + "%", "Tingkat respons (" + n + "/" + eligible + ")"],
+      [f1(mean(nums(rows, "o1"))) + " / 5", "Kepuasan keseluruhan"],
+      [(nps > 0 ? "+" : "") + nps, "Net Promoter Score"],
+      [f1(secMean(sb)) + " / 5", "Rerata materi"],
+      [f1(secMean(sc)) + " / 5", "Rerata narasumber"],
+      ["+" + f1(mean(gains)), "Peningkatan kompetensi (poin)"],
+    ];
+    const quotes = (k, label) => {
+      const list = rows.filter((r) => String(r[k] || "").trim());
+      return '<div class="ev-sub">' + label + " (" + list.length + ")</div>" + (list.length ? list.map((r) =>
+        '<div class="quote">“' + esc(r[k]) + '”<div class="by">' + esc(r.name) + " · " + esc(r.institution) + (k === "t4" ? (r.pub === "Ya" ? ' · <span style="color:var(--good)">boleh dipublikasikan</span>' : " · tidak untuk publikasi") : "") + "</div></div>").join("") : '<div class="muted small">—</div>');
+    };
+
+    $("evBody").innerHTML =
+      '<div class="kpis">' + kpi.map(([v, l]) => '<div class="kpi"><div class="v">' + esc(v) + '</div><div class="l">' + esc(l) + "</div></div>").join("") + "</div>" +
+      '<div class="ev-grid">' +
+        E.sections.map((sec) => '<div class="card"><h3>' + esc(sec.title) + ' <span class="muted small">· rerata ' + f1(secMean(sec)) + "</span></h3>" +
+          sec.items.map(([k, q]) => { const v = nums(rows, k, sec.type === "session"); return bar(q, mean(v), sec.type === "session" ? v.length : null); }).join("") + "</div>").join("") +
+        '<div class="card"><h3>Peningkatan kompetensi (sebelum → sesudah)</h3><div class="legend" style="margin-bottom:10px"><span><i style="background:#38bdf8"></i>Sebelum</span><span><i style="background:#e879f9"></i>Sesudah</span><span>skala 1–5</span></div>' +
+          E.competencies.map(([k, q], i) => {
+            const a = mean(nums(rows, "pre_" + k)), b = mean(nums(rows, "post_" + k)), x = (v) => ((v - 1) / 4) * 100;
+            return '<div class="dumb"><span class="lb">' + esc(q) + '</span><span class="track"><span class="seg-line" style="left:' + x(Math.min(a, b)) + "%;width:" + Math.abs(x(b) - x(a)) + '%"></span>' +
+              '<span class="dot pre" style="left:' + x(a) + '%" title="Sebelum ' + f1(a) + '"></span><span class="dot post" style="left:' + x(b) + '%" title="Sesudah ' + f1(b) + '"></span></span>' +
+              '<span class="vl">' + f1(a) + " → " + f1(b) + "<br><b>+" + f1(gains[i]) + "</b></span></div>";
+          }).join("") + "</div>" +
+        '<div class="card"><h3>Net Promoter Score: ' + (nps > 0 ? "+" : "") + nps + "</h3>" +
+          '<div class="nps-bar"><div style="flex:' + det + ';background:#ef4444">' + (det ? det : "") + '</div><div style="flex:' + pas + ';background:#f59e0b">' + (pas ? pas : "") +
+          '</div><div style="flex:' + prom + ';background:#22c55e">' + (prom ? prom : "") + "</div></div>" +
+          '<div class="legend" style="margin-top:8px"><span><i style="background:#ef4444"></i>Detractor 0–6</span><span><i style="background:#f59e0b"></i>Passive 7–8</span><span><i style="background:#22c55e"></i>Promoter 9–10</span></div>' +
+          '<div class="ev-sub">Distribusi skor</div>' + hbars(Array.from({ length: 11 }, (_, v) => [String(10 - v), npsVals.filter((x) => x === 10 - v).length]).filter((x) => x[1])) +
+          '<div class="ev-sub">Kepuasan keseluruhan</div>' + hbars([5, 4, 3, 2, 1].map((v) => [v + " · " + E.scale[v - 1], nums(rows, "o1").filter((x) => x === v).length]).filter((x) => x[1])) +
+        "</div>" +
+      "</div>" +
+      '<div class="card" style="margin-top:12px"><h3>Masukan terbuka</h3><div class="ev-grid" style="margin-top:0"><div>' +
+        quotes("t1", "Paling bermanfaat") + quotes("t2", "Saran perbaikan") + "</div><div>" + quotes("t3", "Topik pelatihan lanjutan") + quotes("t4", "Testimoni") + "</div></div></div>";
+  }
+
+  $("evPrint").addEventListener("click", () => print());
+  $("evCsv").addEventListener("click", () => {
+    if (!evalData || !evalData.evals.length) return;
+    const cols = Object.keys(evalData.evals[0]);
+    const cell = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+    const csv = "﻿" + [cols.join(","), ...evalData.evals.map((r) => cols.map((c) => cell(r[c])).join(","))].join("\r\n");
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv], { type: "text/csv" })), download: "evaluasi-mad-r-" + new Date().toISOString().slice(0, 10) + ".csv" });
+    document.body.appendChild(a); a.click(); a.remove();
   });
 })();

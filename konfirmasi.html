@@ -7,7 +7,7 @@
   <title>Konfirmasi Pembayaran · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=1">
+  <link rel="stylesheet" href="assets/style.css?v=2">
 </head>
 <body>
   <div id="topbar"></div>
@@ -41,9 +41,9 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=1"></script>
-  <script src="assets/api.js?v=1"></script>
-  <script src="assets/common.js?v=1"></script>
+  <script src="assets/config.js?v=2"></script>
+  <script src="assets/api.js?v=2"></script>
+  <script src="assets/common.js?v=2"></script>
   <script>
   (function () {
     renderChrome("konfirmasi");
@@ -76,7 +76,10 @@
           "<dt>No. pendaftaran</dt><dd class=\"mono\">" + esc(reg.id) + "</dd><dt>Nama</dt><dd>" + esc(reg.name) + "</dd>" +
           "<dt>Kategori</dt><dd>" + esc(reg.category) + "</dd><dt>Tagihan</dt><dd>" + rupiah(reg.total) + "</dd>" +
           "<dt>Status</dt><dd>" + statusBadge(reg.status) + "</dd></dl>" +
-          '<div class="alert alert-info">' + (next[reg.status] || "") + "</div>";
+          '<div class="alert alert-info">' + (next[reg.status] || "") + "</div>" +
+          '<p style="margin-top:14px"><button class="btn" type="button" id="docBtn">' + (reg.status === "Aktif" || reg.status === "Lulus" ? "🧾 Cetak kuitansi pembayaran" : "📄 Cetak invoice") + "</button></p>";
+        const req = { id: $("stId").value.trim().toUpperCase(), contact: $("stContact").value.trim() };
+        $("docBtn").addEventListener("click", () => { sessionStorage.setItem("mad_doc", JSON.stringify(req)); location.href = "invoice.html"; });
       } catch (ex) { out.innerHTML = '<div class="alert alert-err">' + esc(ex.message) + "</div>"; }
     });
   })();

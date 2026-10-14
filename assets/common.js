@@ -11,6 +11,7 @@
       ["index.html#jadwal", "Jadwal", "jadwal"],
       ["index.html#biaya", "Biaya", "biaya"],
       ["konfirmasi.html", "Konfirmasi Bayar", "konfirmasi"],
+      ["invoice.html", "Invoice", "invoice"],
       ["sertifikat.html", "Cek Sertifikat", "sertifikat"],
     ].map(([h, t, k]) => '<a class="link' + (k === active ? " on" : "") + '" href="' + h + '">' + t + "</a>").join("");
     const right = s

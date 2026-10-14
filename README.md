@@ -16,8 +16,10 @@ tampil di header, hero, footer, email, dan sertifikat; nama/moto/tautan diatur d
 | `masuk.html` | Peserta | Login dengan email + **kode akses**; kirim ulang kode ke email |
 | `portal.html` | Peserta aktif | 20 modul slide, progres belajar, jadwal + tautan Zoom & grup WA, unduh Paket Latihan, sertifikat, profil |
 | `materi/view.html` | Peserta aktif | Membuka slide Quarto yang **terenkripsi** |
+| `invoice.html` | Peserta / admin | **Invoice** (tagihan, cap *BELUM DIBAYAR*) dan **Kuitansi** (bukti pembayaran diterima, nomor `KW/MAD-R/2026/0001`, cap *LUNAS*, terbilang) — A4, cetak/simpan PDF |
+| `evaluasi.html` | Peserta aktif | **Evaluasi pelatihan** (model Kirkpatrick level 1–2): penyelenggaraan, materi, narasumber, tiap sesi, kompetensi *sebelum vs sesudah*, kepuasan, NPS, masukan terbuka & testimoni |
 | `sertifikat.html` | Peserta / publik | Cetak e-sertifikat (PDF) & **verifikasi keaslian** berdasarkan nomor |
-| `admin.html` | Admin | KPI, grafik harian/kategori/provinsi, filter & cari, lihat bukti transfer & KTM, verifikasi → kode akses otomatis terkirim, tandai lulus → nomor sertifikat, kirim kode/pengingat via WA, ekspor CSV |
+| `admin.html` | Admin | Tab **Evaluasi**: tingkat respons, kepuasan, Net Promoter Score, rerata per butir/sesi, grafik peningkatan kompetensi, masukan terbuka, ekspor CSV & cetak laporan. Tab **Peserta**: KPI, grafik harian/kategori/provinsi, filter & cari, lihat bukti transfer & KTM, verifikasi → kode akses otomatis terkirim, tandai lulus → nomor sertifikat, kirim kode/pengingat via WA, ekspor CSV |
 
 ### Alur status peserta
 ```
@@ -25,7 +27,10 @@ Menunggu Pembayaran → (unggah bukti) → Menunggu Verifikasi → (admin verifi
                                                                               ↘ Dibatalkan
 ```
 - **Aktif**: server membuat kode akses `XXXX-XXXX` dan mengirim email berisi kode + tautan portal.
-- **Lulus**: server memberi nomor sertifikat `MAD-R/2026/0001`, dst.
+- **Aktif** juga menerbitkan nomor **kuitansi** `KW/MAD-R/2026/0001`.
+- **Lulus**: server memberi nomor sertifikat `MAD-R/2026/0001`, dst. Bila `EVAL_REQUIRED_FOR_CERT: true` (bawaan), sertifikat baru
+  bisa diunduh setelah peserta mengisi evaluasi (ditegakkan di server). Buka/tutup formulir dengan `EVAL_OPEN` di `Code.gs`.
+- Butir evaluasi diatur di `EVALUATION` (`assets/config.js`); kunci butir harus sama dengan `EVAL` di `Code.gs`. Jawaban tersimpan di sheet **Evaluasi**.
 - Dashboard menandai ⚠ bila jumlah transfer berbeda dari tagihan.
 
 ### Bagaimana materi dilindungi
@@ -142,6 +147,29 @@ Situs aktif di `https://profdef.github.io/workmad/`, dashboard di `…/workmad/a
 5. **🎓 Tandai Lulus** → unduh sertifikat di portal → cek nomor di `sertifikat.html`.
 6. Hapus peserta uji (🗑) agar kuota kembali penuh.
 
+## Langkah 7 — Tautkan ke menu publichealth.id
+
+Perubahan sudah disiapkan di repo `~/Github/phid`, branch **`menu-pelatihan`** (belum digabung ke `main`):
+- Menu navbar **Pelatihan** (EN: *Training*) → halaman `id/pelatihan.qmd` / `en/training.qmd` (hero, tombol Daftar, Konfirmasi Pembayaran, Portal Peserta, Cek Sertifikat).
+- Banner pelatihan di beranda `id/index.qmd` & `en/index.qmd`, tautan *Pelatihan* di footer, gambar `images/pelatihan-mad-r.jpg`.
+- Alamat aplikasi diatur sekali di `_quarto.yml`: `training-url: "https://profdef.github.io/workmad/"`.
+
+Uji coba lokal:
+```bash
+cd ~/Github/phid && git checkout menu-pelatihan && quarto preview
+```
+Untuk mengklik tombol ke aplikasi lokal, sementara ubah `training-url` menjadi `http://localhost:8765/` (jalankan juga server aplikasi), lalu kembalikan.
+
+Terbitkan (setelah aplikasi `workmad` aktif di GitHub Pages):
+```bash
+cd ~/Github/phid && git checkout main && git merge menu-pelatihan && git push
+```
+GitHub Actions di repo `phid` merender & menerbitkan publichealth.id otomatis.
+
+**Opsional — subdomain `pelatihan.publichealth.id`:** di pengelola DNS tambahkan record `CNAME pelatihan → profdef.github.io`;
+di repo `workmad` buat file `CNAME` berisi `pelatihan.publichealth.id`, lalu Settings → Pages → Custom domain → *Enforce HTTPS*.
+Setelah itu ganti `training-url` (phid) dan `CONFIG.SITE_URL` (Code.gs) ke `https://pelatihan.publichealth.id/`.
+
 ## Operasional harian
 
 - Chip merah **Perlu verifikasi** di dashboard → **Detail → Lihat bukti** → cocokkan dengan mutasi rekening (nominal unik) → **✓ Verifikasi & aktifkan akses**.
@@ -149,6 +177,8 @@ Situs aktif di `https://profdef.github.io/workmad/`, dashboard di `…/workmad/a
 - Peserta lupa kode → mereka klik *Kirim ulang ke email* di halaman masuk, atau Anda kirim via WA.
 - Selesai pelatihan → **🎓 Tandai Lulus** (perbaiki dulu *Nama di sertifikat* bila perlu).
 - **⬇ Ekspor CSV** untuk daftar hadir/laporan keuangan.
+- Peserta minta bukti bayar → **Detail → 🧾 Cetak kuitansi** (atau peserta cetak sendiri dari Portal → Profil / halaman Invoice).
+- Akhir pelatihan → ingatkan peserta mengisi evaluasi; pantau di tab **📊 Evaluasi Pelatihan**, lalu **🖨 Cetak laporan** untuk laporan penyelenggaraan.
 
 ## Keamanan
 
