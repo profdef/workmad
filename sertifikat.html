@@ -114,25 +114,45 @@
         if (r % 4 === 1) o += t(10 + (r * 37) % 150, y, rnd() > .5 ? "1" : "0", mono + ' font-size="10" fill="' + R + '" opacity=".35"');
       }
 
+      // Bayangan logo R, RStudio & Quarto (vektor monokrom samar, di belakang grafik)
+      const shade = (inner, x, y, sc, op) => '<g transform="translate(' + x + " " + y + ") scale(" + sc + ')" opacity="' + op + '">' + inner + "</g>";
+      const rLogo = // cincin elips khas logo R + huruf R di depan cincin
+        '<path fill-rule="evenodd" fill="' + W + '" d="M0 -64 C 58 -64 98 -38 98 -4 C 98 32 58 58 0 58 C -58 58 -98 32 -98 -4 C -98 -38 -58 -64 0 -64 Z ' +
+        'M-4 -50 C -46 -50 -76 -32 -76 -8 C -76 12 -56 28 -26 34 L -26 34 C -26 34 0 36 30 32 C 60 26 78 12 78 -6 C 78 -32 40 -50 -4 -50 Z"/>' +
+        '<text x="22" y="56" text-anchor="middle" font-family="Poppins, sans-serif" font-weight="800" font-size="118" fill="' + W + '" stroke="#2f2f31" stroke-width="9" paint-order="stroke" stroke-linejoin="round">R</text>';
+      const rsLogo = // lingkaran dengan huruf R berlubang (gaya RStudio)
+        '<mask id="rsM"><rect x="-80" y="-80" width="160" height="160" fill="#fff"/><text x="2" y="34" text-anchor="middle" font-family="Poppins, sans-serif" font-weight="800" font-size="96" fill="#000">R</text></mask>' +
+        '<circle r="66" fill="' + W + '" mask="url(#rsM)"/><circle r="74" fill="none" stroke="' + W + '" stroke-width="3"/>';
+      const qLogo = // lingkaran empat kuadran bercelah (gaya Quarto)
+        '<path d="M-4 -4 V-66 A62 62 0 0 0 -66 -4 Z" fill="' + W + '"/><path d="M4 -4 H66 A62 62 0 0 0 4 -66 Z" fill="' + W + '" opacity=".55"/>' +
+        '<path d="M-4 4 H-66 A62 62 0 0 0 -4 66 Z" fill="' + W + '" opacity=".55"/><path d="M4 4 V66 A62 62 0 0 0 66 4 Z" fill="' + W + '"/>';
+      // Baris lencana: tiga logo berukuran setara, pembatas tipis, garis atas-bawah
+      const ly = 264;
+      o += '<line x1="22" y1="' + (ly - 40) + '" x2="228" y2="' + (ly - 40) + '" stroke="' + W + '" stroke-width=".6" opacity=".22"/>' +
+        '<line x1="22" y1="' + (ly + 40) + '" x2="228" y2="' + (ly + 40) + '" stroke="' + W + '" stroke-width=".6" opacity=".22"/>' +
+        '<line x1="89" y1="' + (ly - 24) + '" x2="89" y2="' + (ly + 24) + '" stroke="' + W + '" stroke-width=".6" opacity=".22"/>' +
+        '<line x1="161" y1="' + (ly - 24) + '" x2="161" y2="' + (ly + 24) + '" stroke="' + W + '" stroke-width=".6" opacity=".22"/>' +
+        shade(rLogo, 53, ly + 2, 0.3, 0.30) + shade(rsLogo, 125, ly, 0.36, 0.30) + shade(qLogo, 197, ly, 0.4, 0.30);
+
       // 2) Forest plot (OR & 95% CI, efek gabungan berbentuk wajik)
       const fx = (v) => 40 + ((Math.log(v) + Math.log(4)) / (2 * Math.log(4))) * 180; // skala log 0,25–4
       const fp = [[1.8, 1.1, 2.9, 7], [2.4, 1.3, 4.4, 5], [1.3, 0.8, 2.1, 8], [2.9, 1.5, 5.6, 4], [1.6, 1.0, 2.5, 9], [2.1, 1.2, 3.6, 6]];
-      const fy0 = 70;
-      o += '<line x1="' + fx(1) + '" y1="' + (fy0 - 14) + '" x2="' + fx(1) + '" y2="' + (fy0 + 6 * 22 + 22) + '" stroke="' + W + '" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>';
+      const fy0 = 56;
+      o += '<line x1="' + fx(1) + '" y1="' + (fy0 - 14) + '" x2="' + fx(1) + '" y2="' + (fy0 + 6 * 20 + 20) + '" stroke="' + W + '" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>';
       fp.forEach(([or, lo, hi, w], i) => {
-        const y = fy0 + i * 22;
+        const y = fy0 + i * 20;
         o += '<line x1="' + fx(lo).toFixed(1) + '" y1="' + y + '" x2="' + fx(Math.min(hi, 4)).toFixed(1) + '" y2="' + y + '" stroke="' + W + '" stroke-width="1.3" opacity=".75"/>' +
           '<rect x="' + (fx(or) - w / 2).toFixed(1) + '" y="' + (y - w / 2) + '" width="' + w + '" height="' + w + '" fill="' + W + '" opacity=".9"/>' +
           '<line x1="16" y1="' + y + '" x2="' + (16 + 8 + (i % 3) * 4) + '" y2="' + y + '" stroke="' + G + '" stroke-width="2" stroke-linecap="round" opacity=".6"/>';
       });
-      const py = fy0 + 6 * 22 + 6, pc = fx(1.95);
+      const py = fy0 + 6 * 20 + 6, pc = fx(1.95);
       o += '<path d="M' + fx(1.6).toFixed(1) + " " + py + " L" + pc.toFixed(1) + " " + (py - 6) + " L" + fx(2.4).toFixed(1) + " " + py + " L" + pc.toFixed(1) + " " + (py + 6) + ' Z" fill="' + R + '"/>' +
         '<line x1="34" y1="' + (py + 16) + '" x2="226" y2="' + (py + 16) + '" stroke="' + W + '" stroke-width=".8" opacity=".45"/>';
       [0.25, 0.5, 1, 2, 4].forEach((v) => (o += '<line x1="' + fx(v).toFixed(1) + '" y1="' + (py + 16) + '" x2="' + fx(v).toFixed(1) + '" y2="' + (py + 20) + '" stroke="' + W + '" stroke-width=".8" opacity=".45"/>' +
         t(fx(v).toFixed(1), py + 30, String(v).replace(".", ","), 'font-family="Poppins, sans-serif" font-size="7" text-anchor="middle" fill="' + W + '" opacity=".5"')));
 
       // 3) Kurva survival Kaplan–Meier (dua kelompok, area berarsir)
-      const ky = 300, kh = 100, kx = (d) => 34 + d * 1.9;
+      const ky = 338, kh = 86, kx = (d) => 34 + d * 1.9;
       const km = (steps) => { let d = "M" + kx(0) + " " + ky, p = 1; steps.forEach(([day, s2]) => { d += " H" + kx(day).toFixed(1) + " V" + (ky + (1 - s2) * kh).toFixed(1); p = s2; }); return d + " H" + kx(100); };
       const g1 = [[8, .94], [17, .88], [26, .83], [38, .78], [49, .74], [61, .70], [75, .67], [88, .64]];
       const g2 = [[6, .9], [12, .8], [20, .7], [29, .61], [40, .52], [52, .45], [66, .39], [80, .35], [92, .32]];
@@ -143,7 +163,7 @@
         [[30, .81], [57, .72], [44, .5], [72, .38]].map(([d2, s3], i) => '<path d="M' + kx(d2).toFixed(1) + " " + (ky + (1 - s3) * kh - 3).toFixed(1) + " v6" + '" stroke="' + (i < 2 ? W : R) + '" stroke-width="1.2" opacity=".8"/>').join("");
 
       // 4) Plot sebaran + garis regresi & pita kepercayaan
-      const sy = 430, sh = 90;
+      const sy = 462, sh = 80;
       o += '<path d="M34 ' + (sy + sh) + " L226 " + (sy + 14) + " L226 " + (sy + 34) + " L34 " + (sy + sh + 6) + ' Z" fill="' + W + '" opacity=".08"/>' +
         '<path d="M34 ' + (sy + sh - 4) + " L226 " + (sy - 2) + " L226 " + (sy + 18) + " L34 " + (sy + sh - 18) + ' Z" fill="' + W + '" opacity=".0"/>';
       for (let i = 0; i < 34; i++) {
