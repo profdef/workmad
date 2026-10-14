@@ -126,13 +126,10 @@
       const qLogo = // lingkaran empat kuadran bercelah (gaya Quarto)
         '<path d="M-4 -4 V-66 A62 62 0 0 0 -66 -4 Z" fill="' + W + '"/><path d="M4 -4 H66 A62 62 0 0 0 4 -66 Z" fill="' + W + '" opacity=".55"/>' +
         '<path d="M-4 4 H-66 A62 62 0 0 0 -4 66 Z" fill="' + W + '" opacity=".55"/><path d="M4 4 V66 A62 62 0 0 0 66 4 Z" fill="' + W + '"/>';
-      // Baris lencana: tiga logo berukuran setara, pembatas tipis, garis atas-bawah
-      const ly = 264;
-      o += '<line x1="22" y1="' + (ly - 40) + '" x2="228" y2="' + (ly - 40) + '" stroke="' + W + '" stroke-width=".6" opacity=".22"/>' +
-        '<line x1="22" y1="' + (ly + 40) + '" x2="228" y2="' + (ly + 40) + '" stroke="' + W + '" stroke-width=".6" opacity=".22"/>' +
-        '<line x1="89" y1="' + (ly - 24) + '" x2="89" y2="' + (ly + 24) + '" stroke="' + W + '" stroke-width=".6" opacity=".22"/>' +
-        '<line x1="161" y1="' + (ly - 24) + '" x2="161" y2="' + (ly + 24) + '" stroke="' + W + '" stroke-width=".6" opacity=".22"/>' +
-        shade(rLogo, 53, ly + 2, 0.3, 0.30) + shade(rsLogo, 125, ly, 0.36, 0.30) + shade(qLogo, 197, ly, 0.4, 0.30);
+      // Bayangan logo berselang-seling di ruang kosong (kiri → kanan → kiri), sedikit bertumpuk dengan grafik
+      o += shade(rLogo, 78, 266, 0.52, 0.11) +   // R: kiri, antara forest plot & kurva survival
+        shade(rsLogo, 182, 566, 0.5, 0.10) +      // RStudio: kanan, antara plot sebaran & kurva epidemi
+        shade(qLogo, 64, 664, 0.66, 0.10);        // Quarto: kiri, di samping kaki kurva epidemi
 
       // 2) Forest plot (OR & 95% CI, efek gabungan berbentuk wajik)
       const fx = (v) => 40 + ((Math.log(v) + Math.log(4)) / (2 * Math.log(4))) * 180; // skala log 0,25–4
@@ -152,7 +149,7 @@
         t(fx(v).toFixed(1), py + 30, String(v).replace(".", ","), 'font-family="Poppins, sans-serif" font-size="7" text-anchor="middle" fill="' + W + '" opacity=".5"')));
 
       // 3) Kurva survival Kaplan–Meier (dua kelompok, area berarsir)
-      const ky = 338, kh = 86, kx = (d) => 34 + d * 1.9;
+      const ky = 314, kh = 90, kx = (d) => 34 + d * 1.9;
       const km = (steps) => { let d = "M" + kx(0) + " " + ky, p = 1; steps.forEach(([day, s2]) => { d += " H" + kx(day).toFixed(1) + " V" + (ky + (1 - s2) * kh).toFixed(1); p = s2; }); return d + " H" + kx(100); };
       const g1 = [[8, .94], [17, .88], [26, .83], [38, .78], [49, .74], [61, .70], [75, .67], [88, .64]];
       const g2 = [[6, .9], [12, .8], [20, .7], [29, .61], [40, .52], [52, .45], [66, .39], [80, .35], [92, .32]];
@@ -163,7 +160,7 @@
         [[30, .81], [57, .72], [44, .5], [72, .38]].map(([d2, s3], i) => '<path d="M' + kx(d2).toFixed(1) + " " + (ky + (1 - s3) * kh - 3).toFixed(1) + " v6" + '" stroke="' + (i < 2 ? W : R) + '" stroke-width="1.2" opacity=".8"/>').join("");
 
       // 4) Plot sebaran + garis regresi & pita kepercayaan
-      const sy = 462, sh = 80;
+      const sy = 438, sh = 84;
       o += '<path d="M34 ' + (sy + sh) + " L226 " + (sy + 14) + " L226 " + (sy + 34) + " L34 " + (sy + sh + 6) + ' Z" fill="' + W + '" opacity=".08"/>' +
         '<path d="M34 ' + (sy + sh - 4) + " L226 " + (sy - 2) + " L226 " + (sy + 18) + " L34 " + (sy + sh - 18) + ' Z" fill="' + W + '" opacity=".0"/>';
       for (let i = 0; i < 34; i++) {
