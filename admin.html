@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Dashboard Admin · Pelatihan MAD-R</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css?v=1">
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <main id="loginView" class="container" style="max-width:440px;padding:56px 16px">
+    <form id="loginForm" class="card" novalidate>
+      <div class="eyebrow">Admin</div>
+      <h1 style="font-size:24px;margin-top:.3em">Masuk Dashboard</h1>
+      <div class="field"><label for="adminKey">Kunci admin</label><input id="adminKey" type="password" autocomplete="current-password"></div>
+      <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Masuk</button>
+      <div id="loginErr" class="alert alert-err hidden" role="alert"></div>
+      <div id="demoTools" class="hidden" style="margin-top:14px;display:grid;gap:8px">
+        <button id="seedBtn" class="btn btn-sm btn-block" type="button">Isi data contoh (demo)</button>
+      </div>
+    </form>
+  </main>
+
+  <main id="dashView" class="container hidden" style="padding-bottom:48px">
+    <div class="dash-head">
+      <div><div class="eyebrow">Dashboard Admin</div><h1>Peserta Pelatihan</h1><div class="muted small" id="lastSync"></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="mailBtn" class="btn btn-sm hidden" type="button">✉ Kotak email (demo)</button>
+        <button id="resetBtn" class="btn btn-sm btn-bad hidden" type="button">Hapus data demo</button>
+        <button id="csvBtn" class="btn btn-sm" type="button">⬇ Ekspor CSV</button>
+        <button id="refreshBtn" class="btn btn-sm" type="button">↻ Muat ulang</button>
+        <button id="logoutBtn" class="btn btn-sm" type="button">Keluar</button>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+    <div class="charts">
+      <div class="card chart-card"><h3>Pendaftar per hari (21 hari terakhir)</h3><div id="chDaily"></div></div>
+      <div class="card chart-card"><h3>Per kategori</h3><div id="chCat"></div></div>
+      <div class="card chart-card"><h3>Provinsi teratas</h3><div id="chProv"></div></div>
+    </div>
+
+    <div class="filters">
+      <input type="search" id="q" placeholder="Cari nama, email, no. WA, instansi, no. pendaftaran…">
+      <select id="fCat"><option value="">Semua kategori</option></select>
+    </div>
+    <div class="filters" id="pills" style="margin-top:0"></div>
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead><tr><th>No. / Tanggal</th><th>Peserta</th><th>Kategori</th><th class="num">Tagihan</th><th class="num">Transfer</th><th>Status</th><th>Modul</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="small muted" id="count" style="margin-top:8px"></div>
+  </main>
+
+  <dialog id="dlg">
+    <div class="dlg-head"><h3 style="margin:0" id="dlgTitle"></h3><button class="btn btn-sm" type="button" id="dlgClose">✕</button></div>
+    <div class="dlg-body" id="dlgBody"></div>
+  </dialog>
+
+  <div id="footer"></div>
+  <script src="assets/config.js?v=1"></script>
+  <script src="assets/api.js?v=1"></script>
+  <script src="assets/common.js?v=1"></script>
+  <script src="materi/catalog.js?v=1"></script>
+  <script src="assets/admin.js?v=1"></script>
+</body>
+</html>

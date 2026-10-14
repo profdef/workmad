@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Portal Peserta · Pelatihan MAD-R</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css?v=1">
+</head>
+<body>
+  <div id="topbar"></div>
+  <main class="container" style="padding-bottom:48px">
+    <div id="loading" class="center muted" style="padding:80px 0">Memuat portal…</div>
+    <div id="errBox" class="hidden" style="padding:48px 0"></div>
+
+    <div id="app" class="hidden">
+      <div class="portal-head">
+        <div>
+          <div class="eyebrow">Portal Peserta · <span id="pBatch"></span></div>
+          <h1>Halo, <span class="grad" id="pName"></span></h1>
+          <div class="muted small"><span id="pId" class="mono"></span> · <span id="pStatus"></span> · <a href="#" id="logout">Keluar</a></div>
+        </div>
+        <div class="progress-ring">
+          <svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3.5"/>
+            <circle id="ring" cx="18" cy="18" r="15.5" fill="none" stroke="url(#g)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="0 100" transform="rotate(-90 18 18)" pathLength="100"/>
+            <defs><linearGradient id="g"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#38bdf8"/></linearGradient></defs></svg>
+          <div><div style="font:800 22px Poppins,sans-serif;color:#fff" id="pPct">0%</div><div class="small muted"><span id="pDone">0</span> dari <span id="pTotal">0</span> modul dibuka</div></div>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button type="button" class="on" data-tab="materi">📚 Materi</button>
+        <button type="button" data-tab="jadwal">🗓 Jadwal & Zoom</button>
+        <button type="button" data-tab="unduh">⬇ Paket Latihan</button>
+        <button type="button" data-tab="sertifikat">🎓 Sertifikat</button>
+        <button type="button" data-tab="profil">👤 Profil</button>
+      </div>
+
+      <section data-pane="materi">
+        <div class="alert alert-info" style="margin-top:0">Klik modul untuk membuka slide. Tekan <b>F</b> untuk layar penuh, <b>Esc</b> untuk ikhtisar slide, <b>M</b> untuk menu. Materi hanya untuk penggunaan pribadi.</div>
+        <div id="decks"></div>
+      </section>
+
+      <section data-pane="jadwal" class="hidden">
+        <div class="card" style="margin-bottom:14px">
+          <h3>Tautan sesi live</h3>
+          <div id="links"></div>
+        </div>
+        <div class="timeline" id="sessions"></div>
+      </section>
+
+      <section data-pane="unduh" class="hidden">
+        <div id="downloads"></div>
+        <div class="card" style="margin-top:14px">
+          <h3>Persiapan perangkat lunak</h3>
+          <ol class="muted" style="margin:0;padding-left:20px">
+            <li>Instal <b>R</b> dari <a href="https://cran.r-project.org" target="_blank" rel="noopener">cran.r-project.org</a></li>
+            <li>Instal <b>RStudio Desktop</b> dari <a href="https://posit.co/download/rstudio-desktop/" target="_blank" rel="noopener">posit.co</a></li>
+            <li>Instal <b>Quarto</b> dari <a href="https://quarto.org/docs/get-started/" target="_blank" rel="noopener">quarto.org</a></li>
+            <li>Ekstrak Paket Latihan, buka foldernya sebagai RStudio Project, lalu jalankan <span class="mono">R/setup.R</span></li>
+          </ol>
+        </div>
+      </section>
+
+      <section data-pane="sertifikat" class="hidden"><div class="card" id="certBox"></div></section>
+
+      <section data-pane="profil" class="hidden"><div class="card"><dl class="kv" id="profile"></dl>
+        <p class="small muted" style="margin:16px 0 0">Ada data yang salah (mis. penulisan nama untuk sertifikat)? <a id="waFix" target="_blank" rel="noopener">Hubungi admin via WhatsApp</a>.</p></div></section>
+    </div>
+  </main>
+  <div id="footer"></div>
+
+  <script src="assets/config.js?v=1"></script>
+  <script src="assets/api.js?v=1"></script>
+  <script src="assets/common.js?v=1"></script>
+  <script src="assets/materi.js?v=1"></script>
+  <script src="materi/catalog.js?v=1"></script>
+  <script>
+  (async function () {
+    const C = APP_CONFIG;
+    const $ = (id) => document.getElementById(id);
+    const s = Session.get();
+    if (!s) { location.replace("masuk.html?next=portal.html"); return; }
+    renderChrome("");
+
+    let data;
+    try {
+      const cached = sessionStorage.getItem("mad_login");
+      data = cached ? JSON.parse(cached) : await API.login(s.email, s.code, true);
+      sessionStorage.removeItem("mad_login");
+      if (data.key !== s.key) Session.set(Object.assign(s, { key: data.key })); // materi diperbarui → kunci baru
+    } catch (e) {
+      $("loading").classList.add("hidden");
+      $("errBox").classList.remove("hidden");
+      $("errBox").innerHTML = '<div class="card narrow" style="margin:0 auto"><h2>Sesi tidak valid</h2><p class="muted">' + esc(e.message) +
+        '</p><a class="btn btn-primary" href="masuk.html" id="relogin">Masuk kembali</a></div>';
+      $("relogin").addEventListener("click", () => Session.clear());
+      return;
+    }
+    const p = data.participant;
+    $("loading").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    $("pBatch").textContent = p.batch;
+    $("pName").textContent = p.name;
+    $("pId").textContent = p.id;
+    $("pStatus").innerHTML = statusBadge(p.status);
+    $("logout").addEventListener("click", (e) => { e.preventDefault(); Session.clear(); location.href = "index.html"; });
+
+    // Tab
+    const tabs = document.querySelectorAll("[data-tab]");
+    function show(t) {
+      tabs.forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
+      document.querySelectorAll("[data-pane]").forEach((x) => x.classList.toggle("hidden", x.dataset.pane !== t));
+      history.replaceState(null, "", "#" + t);
+    }
+    tabs.forEach((b) => b.addEventListener("click", () => show(b.dataset.tab)));
+    if (location.hash.slice(1) && document.querySelector('[data-tab="' + location.hash.slice(1) + '"]')) show(location.hash.slice(1));
+
+    // Materi + progres
+    const M = window.MATERI || { parts: [], downloads: [] };
+    const done = new Set(p.progress || []);
+    const all = M.parts.flatMap((x) => x.decks);
+    $("decks").innerHTML = M.parts.map((part) =>
+      '<h3 class="part"><span>' + esc(part.label) + "</span> " + esc(part.title) + '</h3><div class="grid">' +
+      part.decks.map((d) => '<a class="deck' + (done.has(d.slug) ? " done" : "") + '" href="materi/view.html?d=' + encodeURIComponent(d.slug) +
+        '"><div class="n">' + esc(d.n) + '</div><div><div class="tt">' + esc(d.title) + '</div><div class="ds">' + esc(d.desc) +
+        '</div></div><div class="tick">' + (done.has(d.slug) ? "✓ dibuka" : "baru") + "</div></a>").join("") + "</div>").join("");
+    const n = all.filter((d) => done.has(d.slug)).length, pct = all.length ? Math.round((n / all.length) * 100) : 0;
+    $("pDone").textContent = n; $("pTotal").textContent = all.length; $("pPct").textContent = pct + "%";
+    $("ring").setAttribute("stroke-dasharray", pct + " 100");
+
+    // Jadwal & tautan
+    const link = (label, url, icon) => url
+      ? '<div class="bank"><div><div class="small muted">' + icon + " " + label + '</div><div style="word-break:break-all"><a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(url) + "</a></div></div>" +
+        '<button class="btn btn-sm" type="button" data-copy="' + esc(url) + '">Salin</button></div>'
+      : '<div class="bank"><div><div class="small muted">' + icon + " " + label + "</div><div class=\"muted\">Akan diumumkan admin</div></div></div>";
+    $("links").innerHTML = link("Zoom Meeting", data.zoom, "🎥") + link("Grup WhatsApp peserta", data.waGroup, "💬");
+    bindCopy($("links"));
+    $("sessions").innerHTML = C.SESSIONS.map((x, i) =>
+      '<div class="tl"><div class="no">SESI ' + (i + 1) + '</div><div><div class="t">' + esc(x.topic) + '</div><div class="d">' + esc(x.decks) +
+      '</div></div><div class="w"><b>' + esc(x.date) + "</b><br>" + esc(x.time) + "</div></div>").join("");
+
+    // Unduhan terenkripsi
+    $("downloads").innerHTML = (M.downloads || []).map((d) =>
+      '<div class="card" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><h3 style="margin:0 0 4px">📦 ' + esc(d.title) +
+      '</h3><div class="muted small">' + esc(d.desc) + " · " + (d.size / 1048576).toFixed(1) + ' MB (.zip)</div><div class="small muted" data-prog="' + esc(d.id) + '"></div></div>' +
+      '<button class="btn btn-primary" type="button" data-dl="' + esc(d.id) + '" data-file="' + esc(d.file) + '">Unduh</button></div>').join("");
+    document.querySelectorAll("[data-dl]").forEach((b) => b.addEventListener("click", async () => {
+      const prog = document.querySelector('[data-prog="' + b.dataset.dl + '"]');
+      b.disabled = true;
+      try {
+        const buf = await Materi.open("materi/enc/" + b.dataset.dl + ".bin", Session.get().key, (x) => (prog.textContent = "Mengunduh " + Math.round(x * 100) + "%"));
+        const url = URL.createObjectURL(new Blob([buf], { type: "application/zip" }));
+        const a = Object.assign(document.createElement("a"), { href: url, download: b.dataset.file });
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        prog.textContent = "✓ Selesai. Periksa folder Unduhan.";
+        API.track(b.dataset.dl);
+      } catch (e) { prog.innerHTML = '<span style="color:#fca5a5">' + esc(e.message) + "</span>"; }
+      b.disabled = false;
+    }));
+
+    // Sertifikat
+    $("certBox").innerHTML = p.certNo
+      ? '<div class="success-ic">🎓</div><h2 class="center">Selamat, Anda dinyatakan lulus!</h2><p class="center muted">No. sertifikat <b class="mono" style="color:#fff">' + esc(p.certNo) +
+        '</b> · ' + esc(fmtDate(p.certDate + "T12:00:00+07:00")) + '</p><p class="center"><a class="btn btn-primary btn-lg" href="sertifikat.html?cetak=1">Lihat & Unduh Sertifikat</a></p>'
+      : "<h3>Sertifikat belum tersedia</h3><p class=\"muted\">E-sertifikat (" + p.jp + " JP) terbit setelah Anda mengikuti sesi live dan menyelesaikan tugas akhir. " +
+        "Admin akan mengubah status Anda menjadi <b>Lulus</b>, lalu sertifikat dapat diunduh di sini.</p>";
+
+    // Profil
+    $("profile").innerHTML = [["No. pendaftaran", p.id], ["Nama", p.name], ["Email", p.email], ["Instansi", p.institution], ["Kategori", p.category]]
+      .map(([k, v]) => "<dt>" + k + "</dt><dd>" + esc(v) + "</dd>").join("") + "<dt>Status</dt><dd>" + statusBadge(p.status) + "</dd>";
+    $("waFix").href = "https://wa.me/" + C.ADMIN_WA + "?text=" + encodeURIComponent("Halo Admin, saya " + p.name + " (" + p.id + ") ingin memperbaiki data: ");
+  })();
+  </script>
+</body>
+</html>

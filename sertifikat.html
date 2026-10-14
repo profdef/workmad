@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sertifikat · Pelatihan MAD-R</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Great+Vibes&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css?v=1">
+  <style>
+    .cert-wrap { overflow-x: auto; padding: 8px 0 24px; }
+    .cert {
+      width: 1123px; height: 794px; margin: 0 auto; position: relative; background: #fff; color: #0d1340; overflow: hidden;
+      font-family: "Plus Jakarta Sans", sans-serif; box-shadow: 0 20px 60px rgba(0,0,0,.5); transform-origin: top left;
+    }
+    .cert .band { position: absolute; inset: 0 auto 0 0; width: 250px;
+      background: radial-gradient(500px 400px at 100% 0, rgba(91,43,214,.7), transparent 60%), linear-gradient(170deg, #070b2b, #0d1340 55%, #1c1a6e); }
+    .cert .band::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.14) 1.2px, transparent 1.3px); background-size: 22px 22px; }
+    .cert .band img { position: absolute; left: 40px; bottom: 60px; width: 170px; border-radius: 4px; box-shadow: 0 0 40px rgba(168,85,247,.6); }
+    .cert .band .lg { position: absolute; left: 40px; top: 56px; color: #fff; font: 800 15px Poppins, sans-serif; letter-spacing: .2em; line-height: 1.6; }
+    .cert .band .lg span { display: block; color: #38bdf8; font-size: 11px; letter-spacing: .28em; }
+    .cert .body { position: absolute; left: 310px; right: 70px; top: 64px; bottom: 56px; display: flex; flex-direction: column; }
+    .cert .kicker { font: 700 13px Poppins, sans-serif; letter-spacing: .32em; color: #a855f7; text-transform: uppercase; }
+    .cert h1 { font: 800 54px Poppins, sans-serif; color: #0d1340; margin: 6px 0 0; letter-spacing: .02em; }
+    .cert .no { font: 500 13px "JetBrains Mono", monospace; color: #5b5f8a; margin-top: 4px; }
+    .cert .given { margin-top: 30px; font-size: 16px; color: #5b5f8a; }
+    .cert .nm { font: 400 64px "Great Vibes", cursive; color: #0d1340; line-height: 1.15; margin: 6px 0 2px; border-bottom: 2px solid; border-image: linear-gradient(90deg, #a855f7, #e879f9, #38bdf8) 1; padding-bottom: 6px; }
+    .cert .inst { font-size: 15px; color: #5b5f8a; }
+    .cert .desc { margin-top: 22px; font-size: 16px; line-height: 1.6; color: #1c1a6e; }
+    .cert .desc b { color: #0d1340; }
+    .cert .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
+    .cert .sign { text-align: center; min-width: 300px; }
+    .cert .sign .sp { height: 70px; }
+    .cert .sign b { display: block; border-top: 1.5px solid #0d1340; padding-top: 6px; font-family: Poppins, sans-serif; }
+    .cert .sign span { font-size: 12.5px; color: #5b5f8a; }
+    .cert .verify { font-size: 11.5px; color: #5b5f8a; max-width: 330px; }
+    .cert .verify b { font-family: "JetBrains Mono", monospace; color: #0d1340; }
+    @media print {
+      @page { size: A4 landscape; margin: 0; }
+      html, body { background: #fff !important; }
+      body::before { display: none; }
+      .cert-wrap { padding: 0; overflow: visible; }
+      .cert { box-shadow: none; transform: none !important; width: 297mm; height: 210mm; }
+      main { padding: 0 !important; }
+    }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  </style>
+</head>
+<body>
+  <div id="topbar"></div>
+  <main class="container" style="padding:32px 16px 48px">
+    <div class="no-print" id="verifyBox" style="max-width:640px;margin:0 auto 24px">
+      <div class="eyebrow">Verifikasi</div>
+      <h1 style="font-size:28px;margin-top:.3em">Cek Keaslian Sertifikat</h1>
+      <form id="vForm" class="card" novalidate style="display:flex;gap:10px;flex-wrap:wrap">
+        <input id="vNo" placeholder="MAD-R/2026/0001" class="mono" style="flex:1;min-width:220px">
+        <button class="btn btn-primary" type="submit">Verifikasi</button>
+      </form>
+      <div id="vOut"></div>
+    </div>
+    <div id="printBar" class="no-print hidden" style="display:flex;gap:10px;justify-content:center;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-primary" type="button" onclick="print()">🖨 Cetak / Simpan PDF</button>
+      <a class="btn" href="portal.html#sertifikat">← Kembali ke Portal</a>
+      <div class="small muted" style="width:100%;text-align:center">Di dialog cetak pilih <b>Save as PDF</b>, ukuran <b>A4 landscape</b>, margin <b>None</b>, aktifkan <b>Background graphics</b>.</div>
+    </div>
+    <div class="cert-wrap hidden" id="certWrap"><div class="cert" id="cert"></div></div>
+  </main>
+  <div id="footer"></div>
+
+  <script src="assets/config.js?v=1"></script>
+  <script src="assets/api.js?v=1"></script>
+  <script src="assets/common.js?v=1"></script>
+  <script>
+  (async function () {
+    const C = APP_CONFIG, T = C.TRAINING;
+    const $ = (id) => document.getElementById(id);
+    renderChrome("sertifikat");
+    const qs = new URLSearchParams(location.search);
+    const verifyUrl = API.base + "sertifikat.html?no=";
+
+    function render(c) {
+      $("cert").innerHTML =
+        '<div class="band"><div class="lg">MAD-R<span>PELATIHAN ONLINE</span></div><img src="assets/cover.jpg" alt=""></div>' +
+        '<div class="body"><div class="kicker">Sertifikat Pelatihan</div><h1>SERTIFIKAT</h1><div class="no">No. ' + esc(c.no) + '</div>' +
+        '<div class="given">Diberikan kepada</div><div class="nm">' + esc(c.name) + '</div><div class="inst">' + esc(c.institution) + "</div>" +
+        '<div class="desc">atas partisipasinya sebagai <b>Peserta</b> dan telah menyelesaikan Pelatihan Online<br><b>' + esc(T.title) + " " + esc(T.subtitle) +
+        "</b><br>" + esc(c.batch) + " · " + esc(c.jp) + " Jam Pelajaran (JP)</div>" +
+        '<div class="foot"><div class="verify">Verifikasi keaslian:<br><b>' + esc(verifyUrl + encodeURIComponent(c.no)) + "</b><br>Diterbitkan " + esc(fmtDate(c.date + "T12:00:00+07:00")) + "</div>" +
+        '<div class="sign"><span>Padang, ' + esc(fmtDate(c.date + "T12:00:00+07:00")) + '</span><div class="sp"></div><b>' + esc(T.instructor) + "</b><span>Narasumber</span></div></div></div>";
+      $("certWrap").classList.remove("hidden");
+      fit();
+    }
+    function fit() {
+      const w = $("certWrap").clientWidth, el = $("cert");
+      const k = Math.min(1, w / 1123);
+      el.style.transform = k < 1 ? "scale(" + k + ")" : "";
+      el.style.marginBottom = k < 1 ? -(794 * (1 - k)) + "px" : "";
+      el.style.marginLeft = k < 1 ? "0" : "";
+    }
+    addEventListener("resize", () => $("cert").innerHTML && fit());
+
+    async function verify(no) {
+      $("vOut").innerHTML = '<p class="muted">Memeriksa…</p>';
+      try {
+        const r = await API.verify(no);
+        if (!r.valid) { $("vOut").innerHTML = '<div class="alert alert-err">✗ Nomor sertifikat <b>' + esc(no) + "</b> tidak terdaftar.</div>"; $("certWrap").classList.add("hidden"); return; }
+        $("vOut").innerHTML = '<div class="alert alert-ok">✓ Sertifikat <b>SAH</b> — diterbitkan untuk <b>' + esc(r.cert.name) + "</b> (" + esc(r.cert.institution) + "), " + esc(fmtDate(r.cert.date + "T12:00:00+07:00")) + ".</div>";
+        render(r.cert);
+      } catch (e) { $("vOut").innerHTML = '<div class="alert alert-err">' + esc(e.message) + "</div>"; }
+    }
+    $("vForm").addEventListener("submit", (e) => { e.preventDefault(); const no = $("vNo").value.trim(); if (no) verify(no); });
+
+    if (qs.get("cetak")) {
+      const s = Session.get();
+      if (!s) { location.replace("masuk.html?next=" + encodeURIComponent("sertifikat.html?cetak=1")); return; }
+      try {
+        const r = await API.login(s.email, s.code, true);
+        const p = r.participant;
+        if (!p.certNo) throw new Error("Sertifikat Anda belum diterbitkan.");
+        $("verifyBox").classList.add("hidden");
+        $("printBar").classList.remove("hidden");
+        render({ no: p.certNo, name: p.name, institution: p.institution, date: p.certDate, jp: p.jp, batch: p.batch });
+      } catch (e) { $("vOut").innerHTML = '<div class="alert alert-err">' + esc(e.message) + "</div>"; }
+    } else if (qs.get("no")) { $("vNo").value = qs.get("no"); verify(qs.get("no")); }
+  })();
+  </script>
+</body>
+</html>

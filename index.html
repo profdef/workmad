@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pelatihan Online · Manajemen & Analisis Data Epidemiologi dengan R, RStudio & Quarto</title>
+  <meta name="description" content="Pelatihan online Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat menggunakan R, RStudio & Quarto bersama Prof. Defriman Djafri, SKM, MKM, PhD.">
+  <meta property="og:title" content="Pelatihan Online: Manajemen & Analisis Data Epidemiologi dengan R, RStudio & Quarto">
+  <meta property="og:image" content="assets/cover.jpg">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23a855f7'/><text x='16' y='23' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>R</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css?v=1">
+</head>
+<body>
+  <div id="topbar"></div>
+  <main>
+    <section class="container hero">
+      <div>
+        <div class="eyebrow">Pelatihan Online · <span id="batch"></span></div>
+        <h1>Manajemen &amp; Analisis Data <span class="grad">Epidemiologi &amp; Kesehatan Masyarakat</span></h1>
+        <div class="sub">Menggunakan R, RStudio &amp; Quarto</div>
+        <p class="lead">Dari data mentah surveilans dan survei hingga laporan epidemiologi otomatis yang dapat direproduksi. Praktik langsung dengan dataset nyata, 20 modul interaktif, dan pendampingan narasumber.</p>
+        <div class="chips" id="chips"></div>
+        <div class="cta">
+          <a class="btn btn-primary btn-lg" href="daftar.html" id="ctaDaftar">Daftar Sekarang →</a>
+          <a class="btn btn-lg" href="#kurikulum">Lihat Kurikulum</a>
+        </div>
+        <div class="author"><b id="instr"></b><br><span id="aff"></span></div>
+      </div>
+      <div class="book"><img src="assets/cover.jpg" alt="Sampul buku Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat"></div>
+    </section>
+
+    <section class="container">
+      <div class="quota" id="quota">
+        <div class="q"><b id="qReg">–</b><span>Peserta terdaftar</span></div>
+        <div class="q"><b id="qRem">–</b><span>Kursi tersisa</span><div class="meter"><i id="qBar" style="width:0"></i></div></div>
+        <div class="q"><b>20</b><span>Modul presentasi</span></div>
+        <div class="q"><b id="qJp">18 JP</b><span>Sertifikat</span></div>
+      </div>
+    </section>
+
+    <section class="container section">
+      <div class="section-head"><div class="eyebrow">Alur Pendaftaran</div><h2>Empat langkah menuju akses materi</h2></div>
+      <div class="steps">
+        <div class="step"><b>Isi formulir</b><span>Lengkapi data diri & pilih kategori peserta. No. pendaftaran & tagihan langsung terbit.</span></div>
+        <div class="step"><b>Transfer</b><span>Bayar tepat sesuai tagihan (termasuk 3 digit kode unik) ke rekening resmi.</span></div>
+        <div class="step"><b>Unggah bukti</b><span>Unggah foto/screenshot bukti transfer. Admin memverifikasi ≤ 1×24 jam.</span></div>
+        <div class="step"><b>Masuk portal</b><span>Kode akses dikirim ke email. Buka 20 modul, paket latihan, jadwal & Zoom.</span></div>
+      </div>
+    </section>
+
+    <section class="container section" id="manfaat">
+      <div class="section-head"><div class="eyebrow">Yang Anda Dapatkan</div><h2>Fasilitas peserta</h2></div>
+      <div class="features" id="benefits"></div>
+    </section>
+
+    <section class="container section" id="kurikulum">
+      <div class="section-head"><div class="eyebrow">Kurikulum</div><h2>20 modul dalam 5 bagian</h2>
+        <p class="muted">Seluruh modul disajikan sebagai slide interaktif Quarto. Materi terbuka di Portal Peserta setelah pembayaran diverifikasi.</p></div>
+      <div id="curriculum"></div>
+    </section>
+
+    <section class="container section" id="jadwal">
+      <div class="section-head"><div class="eyebrow">Jadwal Sesi Live</div><h2>6 sesi interaktif via Zoom</h2></div>
+      <div class="timeline" id="sessions"></div>
+    </section>
+
+    <section class="container section" id="biaya">
+      <div class="section-head"><div class="eyebrow">Investasi</div><h2>Biaya pelatihan</h2></div>
+      <div class="prices" id="prices"></div>
+      <p class="small muted" style="margin-top:12px">Pembayaran melalui transfer bank. Tagihan mendapat 3 digit kode unik agar transfer Anda mudah dicocokkan.</p>
+    </section>
+
+    <section class="container section narrow" id="faq">
+      <div class="section-head"><div class="eyebrow">FAQ</div><h2>Pertanyaan yang sering diajukan</h2></div>
+      <div id="faqList"></div>
+      <div class="card center" style="margin-top:28px">
+        <h2>Siap menguasai data epidemiologi dengan R?</h2>
+        <p class="muted">Kursi terbatas. Pendaftaran ditutup <b id="closeDate"></b> atau saat kuota penuh.</p>
+        <a class="btn btn-primary btn-lg" href="daftar.html">Daftar Sekarang →</a>
+      </div>
+    </section>
+  </main>
+  <div id="footer"></div>
+
+  <script src="assets/config.js?v=1"></script>
+  <script src="assets/api.js?v=1"></script>
+  <script src="assets/common.js?v=1"></script>
+  <script src="materi/catalog.js?v=1"></script>
+  <script>
+  (function () {
+    const C = APP_CONFIG, T = C.TRAINING;
+    renderChrome("");
+    const $ = (id) => document.getElementById(id);
+    $("batch").textContent = T.batch;
+    $("instr").textContent = T.instructor;
+    $("aff").textContent = T.affiliation;
+    $("closeDate").textContent = fmtDate(T.closeDate + "T12:00:00+07:00");
+    $("chips").innerHTML = ["🖥 " + T.mode, "⏱ " + T.hours, "🎓 E-sertifikat"].map((t) => '<span class="chip">' + esc(t) + "</span>").join("");
+    $("benefits").innerHTML = C.BENEFITS.map((b, i) => '<div class="feature"><div class="ic">' + "✦▣◎✎⌘∞"[i % 6] + "</div><div>" + esc(b) + "</div></div>").join("");
+
+    const M = window.MATERI || { parts: [] };
+    $("curriculum").innerHTML = M.parts.map((p) =>
+      '<h3 class="part"><span>' + esc(p.label) + "</span> " + esc(p.title) + '</h3><div class="grid">' +
+      p.decks.map((d) => '<div class="deck locked"><div class="n">' + esc(d.n) + '</div><div><div class="tt">' + esc(d.title) +
+        '</div><div class="ds">' + esc(d.desc) + '</div></div><div class="tick"></div></div>').join("") + "</div>").join("");
+
+    $("sessions").innerHTML = C.SESSIONS.map((s, i) =>
+      '<div class="tl"><div class="no">SESI ' + (i + 1) + '</div><div><div class="t">' + esc(s.topic) + '</div><div class="d">' + esc(s.decks) +
+      '</div></div><div class="w"><b>' + esc(s.date) + "</b><br>" + esc(s.time) + "</div></div>").join("");
+
+    const cats = Object.entries(C.CATEGORIES);
+    $("prices").innerHTML = cats.map(([name, c], i) =>
+      '<div class="price-card' + (i === 1 ? " featured" : "") + '"><div class="cat">' + esc(name) + '</div><div class="amt grad">' + rupiah(c.price) +
+      '</div><div class="note">' + esc(c.note || "Akses penuh seluruh fasilitas") + '</div><a class="btn btn-block' + (i === 1 ? " btn-primary" : "") +
+      '" style="margin-top:14px" href="daftar.html?kategori=' + encodeURIComponent(name) + '">Pilih</a></div>').join("");
+
+    $("faqList").innerHTML = C.FAQ.map(([q, a]) => '<details class="faq"><summary>' + esc(q) + "</summary><p>" + esc(a) + "</p></details>").join("");
+
+    async function loadStats() {
+      try {
+        const s = await API.stats();
+        $("qReg").textContent = s.registered;
+        $("qRem").textContent = s.remaining;
+        $("qBar").style.width = Math.min(100, (s.registered / s.quota) * 100) + "%";
+        if (s.closed) document.querySelectorAll('a[href^="daftar.html"]').forEach((a) => { a.textContent = s.remaining <= 0 ? "Kuota Penuh" : "Pendaftaran Ditutup"; a.removeAttribute("href"); a.classList.add("btn"); a.style.opacity = .6; });
+      } catch (e) { $("qReg").textContent = "–"; }
+    }
+    loadStats();
+    setInterval(loadStats, 60000);
+  })();
+  </script>
+</body>
+</html>

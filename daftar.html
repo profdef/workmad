@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pendaftaran · Pelatihan MAD-R</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css?v=1">
+</head>
+<body>
+  <div id="topbar"></div>
+  <main class="container">
+    <!-- Formulir -->
+    <div id="formView" class="form-layout">
+      <form id="regForm" class="card" novalidate>
+        <div class="eyebrow">Formulir Pendaftaran</div>
+        <h1 style="font-size:28px;margin-top:.3em">Daftar Pelatihan Online</h1>
+        <p class="muted">Isi data dengan benar — nama akan tercetak di sertifikat dan kode akses dikirim ke email.</p>
+
+        <h3 style="margin-top:20px">1 · Data diri</h3>
+        <div class="field"><label class="req" for="name">Nama lengkap & gelar (untuk sertifikat)</label><input id="name" autocomplete="name" placeholder="cth. dr. Siti Rahma, M.Epid"></div>
+        <div class="row">
+          <div class="field"><label class="req" for="email">Email aktif</label><input id="email" type="email" autocomplete="email" placeholder="nama@email.com"></div>
+          <div class="field"><label class="req" for="phone">No. WhatsApp</label><input id="phone" inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label for="gender">Jenis kelamin</label><select id="gender"><option value="">— pilih —</option><option>Laki-laki</option><option>Perempuan</option></select></div>
+          <div class="field"><label class="req" for="profession">Profesi</label><select id="profession"></select></div>
+        </div>
+        <div class="field"><label class="req" for="institution">Instansi / Perguruan tinggi</label><input id="institution" autocomplete="organization" placeholder="cth. FKM Universitas Andalas"></div>
+        <div class="row">
+          <div class="field"><label class="req" for="province">Provinsi</label><select id="province"></select></div>
+          <div class="field"><label class="req" for="city">Kota / Kabupaten</label><input id="city"></div>
+        </div>
+
+        <h3 style="margin-top:12px">2 · Kategori peserta</h3>
+        <div class="cat-opts" id="cats"></div>
+        <div class="field hidden" id="ktmField" style="margin-top:14px">
+          <label class="req" for="ktm">Foto Kartu Tanda Mahasiswa (KTM) aktif</label>
+          <input id="ktm" type="file" accept="image/*,application/pdf">
+          <div class="hint">JPG, PNG, atau PDF · maks. 5 MB</div>
+          <img class="proof-preview hidden" id="ktmPrev" alt="Pratinjau KTM">
+        </div>
+
+        <h3 style="margin-top:20px">3 · Lainnya</h3>
+        <div class="field"><label for="source">Dari mana Anda mengetahui pelatihan ini?</label>
+          <select id="source"><option value="">— pilih —</option><option>WhatsApp</option><option>Instagram</option><option>LinkedIn</option><option>Teman / kolega</option><option>Kampus / instansi</option><option>Lainnya</option></select></div>
+        <div class="field"><label for="note">Harapan / pertanyaan untuk narasumber (opsional)</label><textarea id="note" maxlength="500"></textarea></div>
+        <label class="small" style="display:flex;gap:10px;align-items:flex-start;margin:6px 0 16px"><input type="checkbox" id="agree" style="margin-top:4px">
+          <span>Saya menyetujui bahwa data saya digunakan untuk keperluan administrasi pelatihan, dan materi pelatihan hanya untuk penggunaan pribadi (tidak disebarluaskan).</span></label>
+        <button class="btn btn-primary btn-block btn-lg" type="submit" id="submitBtn">Daftar & Terbitkan Tagihan</button>
+        <div id="err" class="alert alert-err hidden" role="alert"></div>
+      </form>
+
+      <aside class="card">
+        <div class="eyebrow">Ringkasan</div>
+        <h3 style="margin:.5em 0 .8em" id="sumTitle"></h3>
+        <div class="sum-row"><span class="muted">Kategori</span><span id="sumCat">–</span></div>
+        <div class="sum-row"><span class="muted">Biaya</span><span id="sumPrice">–</span></div>
+        <div class="sum-row"><span class="muted">Kode unik</span><span>+ 3 digit (101–499)</span></div>
+        <div style="margin-top:12px" class="muted small">Estimasi total</div>
+        <div class="sum-total" id="sumTotal">–</div>
+        <div class="small muted" style="margin-top:12px" id="sumQuota"></div>
+      </aside>
+    </div>
+
+    <!-- Berhasil -->
+    <div id="doneView" class="hidden narrow" style="margin:32px auto 48px">
+      <div class="card">
+        <div class="success-ic">✓</div>
+        <h1 class="center" style="font-size:26px">Pendaftaran berhasil!</h1>
+        <p class="center muted">No. pendaftaran Anda: <b class="mono" style="color:#fff" id="dId"></b> <button class="btn btn-sm" type="button" id="copyId">Salin</button><br>
+          Rincian tagihan juga dikirim ke <b id="dEmail"></b>.</p>
+        <div class="invoice">
+          <div class="small muted">Transfer tepat sejumlah</div>
+          <div class="amt" id="dAmt"></div>
+          <div class="small muted" id="dBreak"></div>
+        </div>
+        <div class="alert alert-warn">Transfer <b>persis</b> sesuai nominal di atas (3 digit terakhir adalah kode unik Anda) agar pembayaran cepat terverifikasi.</div>
+        <h3 style="margin-top:20px">Rekening tujuan</h3>
+        <div id="payInfo"></div>
+        <h3 style="margin-top:22px">Sudah transfer? Unggah bukti sekarang</h3>
+        <div id="proofBox"></div>
+        <p class="small muted" style="margin-top:14px">Belum sempat transfer? Simpan no. pendaftaran Anda, lalu unggah bukti kapan saja di halaman <a href="konfirmasi.html" id="konfLink">Konfirmasi Pembayaran</a>.
+          Butuh bantuan? <a id="waLink" target="_blank" rel="noopener">Chat admin via WhatsApp</a>.</p>
+      </div>
+    </div>
+  </main>
+  <div id="footer"></div>
+
+  <script src="assets/config.js?v=1"></script>
+  <script src="assets/api.js?v=1"></script>
+  <script src="assets/common.js?v=1"></script>
+  <script>
+  (function () {
+    const C = APP_CONFIG;
+    renderChrome("");
+    const $ = (id) => document.getElementById(id);
+    $("sumTitle").textContent = C.TRAINING.title + " " + C.TRAINING.subtitle;
+    $("profession").innerHTML = '<option value="">— pilih —</option>' + C.PROFESSIONS.map((p) => "<option>" + esc(p) + "</option>").join("");
+    $("province").innerHTML = '<option value="">— pilih —</option>' + C.PROVINCES.map((p) => "<option>" + esc(p) + "</option>").join("");
+    const cats = Object.keys(C.CATEGORIES);
+    const studentCat = cats[0];
+    $("cats").innerHTML = cats.map((c, i) =>
+      '<label class="cat-opt"><input type="radio" name="cat" value="' + esc(c) + '"><span class="nm">' + esc(c) +
+      (C.CATEGORIES[c].note ? '<br><span class="small muted" style="font-weight:400">' + esc(C.CATEGORIES[c].note) + "</span>" : "") +
+      '</span><span class="pr">' + rupiah(C.CATEGORIES[c].price) + "</span></label>").join("");
+    const pre = new URLSearchParams(location.search).get("kategori");
+    const radios = [...document.querySelectorAll('input[name=cat]')];
+    (radios.find((r) => r.value === pre) || radios[1] || radios[0]).checked = true;
+    previewFile($("ktm"), $("ktmPrev"));
+
+    function updateSummary() {
+      const cat = (radios.find((r) => r.checked) || {}).value;
+      const price = cat ? C.CATEGORIES[cat].price : 0;
+      $("sumCat").textContent = cat || "–";
+      $("sumPrice").textContent = price ? rupiah(price) : "–";
+      $("sumTotal").textContent = price ? rupiah(price + 101) + " – " + rupiah(price + 499).replace("Rp ", "") : "–";
+      $("ktmField").classList.toggle("hidden", cat !== studentCat);
+    }
+    radios.forEach((r) => r.addEventListener("change", updateSummary));
+    updateSummary();
+
+    API.stats().then((s) => {
+      $("sumQuota").textContent = "Kursi tersisa: " + s.remaining + " dari " + s.quota;
+      if (s.closed) {
+        $("submitBtn").disabled = true;
+        $("submitBtn").textContent = s.remaining <= 0 ? "Kuota Penuh" : "Pendaftaran Ditutup";
+      }
+    }).catch(() => {});
+
+    $("regForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      $("err").classList.add("hidden");
+      const v = (id) => $(id).value.trim();
+      const reg = {
+        name: v("name"), email: v("email"), phone: v("phone").replace(/[^\d+]/g, ""), gender: v("gender"),
+        profession: v("profession"), institution: v("institution"), province: v("province"), city: v("city"),
+        category: (radios.find((r) => r.checked) || {}).value, source: v("source"), note: v("note"),
+      };
+      const miss = [];
+      if (!reg.name) miss.push("nama");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(reg.email)) miss.push("email yang valid");
+      if (!/^(\+?62|0)8\d{7,12}$/.test(reg.phone)) miss.push("no. WhatsApp yang valid (08…)");
+      if (!reg.profession) miss.push("profesi");
+      if (!reg.institution) miss.push("instansi");
+      if (!reg.province) miss.push("provinsi");
+      if (!reg.city) miss.push("kota/kabupaten");
+      if (reg.category === studentCat && !$("ktm").files[0]) miss.push("foto KTM");
+      if (!$("agree").checked) miss.push("persetujuan penggunaan data");
+      if (miss.length) return fail("Mohon lengkapi: " + miss.join(", ") + ".");
+      const btn = $("submitBtn");
+      btn.disabled = true; btn.textContent = "Memproses…";
+      try {
+        if (reg.category === studentCat) reg.ktm = await fileToPayload($("ktm").files[0]);
+        const res = await API.register(reg);
+        showDone(res.reg, reg);
+      } catch (ex) {
+        fail(ex.message);
+        btn.disabled = false; btn.textContent = "Daftar & Terbitkan Tagihan";
+      }
+    });
+
+    function showDone(r, reg) {
+      $("formView").classList.add("hidden");
+      $("doneView").classList.remove("hidden");
+      window.scrollTo(0, 0);
+      $("dId").textContent = r.id;
+      $("dEmail").textContent = reg.email;
+      $("copyId").dataset.copy = r.id; bindCopy($("doneView"));
+      $("dAmt").innerHTML = amountHtml(r.total, r.uniqueCode);
+      $("dBreak").textContent = r.category + " " + rupiah(r.price) + " + kode unik " + r.uniqueCode;
+      renderPaymentInfo($("payInfo"));
+      $("payInfo").insertAdjacentHTML("beforeend", '<button class="btn btn-sm" type="button" data-copy="' + r.total + '">Salin nominal ' + rupiah(r.total) + "</button>");
+      bindCopy($("payInfo"));
+      $("konfLink").href = "konfirmasi.html?id=" + encodeURIComponent(r.id);
+      $("waLink").href = "https://wa.me/" + C.ADMIN_WA + "?text=" + encodeURIComponent("Halo Admin, saya " + reg.name + " sudah mendaftar pelatihan MAD-R dengan no. " + r.id + " (tagihan " + rupiah(r.total) + ").");
+      mountProofForm($("proofBox"), { id: r.id, contact: reg.email, total: r.total });
+    }
+    function fail(m) { $("err").textContent = m; $("err").classList.remove("hidden"); $("err").scrollIntoView({ block: "center", behavior: "smooth" }); }
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Konfirmasi Pembayaran · Pelatihan MAD-R</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css?v=1">
+</head>
+<body>
+  <div id="topbar"></div>
+  <main class="container narrow" style="padding:32px 16px 48px">
+    <div class="eyebrow">Pembayaran</div>
+    <h1 style="font-size:30px;margin-top:.3em">Konfirmasi Pembayaran</h1>
+    <p class="muted">Unggah bukti transfer atau cek status pendaftaran Anda menggunakan no. pendaftaran dan email/WhatsApp saat mendaftar.</p>
+
+    <div class="tabs" role="tablist">
+      <button type="button" class="on" data-tab="up">Unggah bukti transfer</button>
+      <button type="button" data-tab="st">Cek status</button>
+    </div>
+
+    <div id="tab-up" class="card">
+      <h3>Rekening tujuan</h3>
+      <div id="payInfo"></div>
+      <h3 style="margin-top:18px">Data pembayaran</h3>
+      <div id="proofBox"></div>
+    </div>
+
+    <div id="tab-st" class="card hidden">
+      <form id="stForm" novalidate>
+        <div class="row">
+          <div class="field"><label class="req" for="stId">No. pendaftaran</label><input id="stId" placeholder="MAD-261014-0001" autocapitalize="characters"></div>
+          <div class="field"><label class="req" for="stContact">Email atau no. WhatsApp</label><input id="stContact"></div>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Cek Status</button>
+      </form>
+      <div id="stOut"></div>
+    </div>
+  </main>
+  <div id="footer"></div>
+
+  <script src="assets/config.js?v=1"></script>
+  <script src="assets/api.js?v=1"></script>
+  <script src="assets/common.js?v=1"></script>
+  <script>
+  (function () {
+    renderChrome("konfirmasi");
+    const $ = (id) => document.getElementById(id);
+    const id = new URLSearchParams(location.search).get("id") || "";
+    renderPaymentInfo($("payInfo"));
+    mountProofForm($("proofBox"), { id });
+    $("stId").value = id;
+
+    document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => {
+      document.querySelectorAll("[data-tab]").forEach((x) => x.classList.toggle("on", x === b));
+      $("tab-up").classList.toggle("hidden", b.dataset.tab !== "up");
+      $("tab-st").classList.toggle("hidden", b.dataset.tab !== "st");
+    }));
+
+    const next = {
+      "Menunggu Pembayaran": "Silakan transfer sesuai tagihan lalu unggah bukti di tab <b>Unggah bukti transfer</b>.",
+      "Menunggu Verifikasi": "Bukti transfer sudah kami terima dan sedang diverifikasi (umumnya 1×24 jam).",
+      "Aktif": 'Pembayaran terverifikasi. Kode akses telah dikirim ke email Anda. <a href="masuk.html">Masuk ke Portal Peserta →</a>',
+      "Lulus": 'Selamat! Anda telah lulus. Unduh sertifikat di <a href="masuk.html">Portal Peserta</a>.',
+      "Dibatalkan": "Pendaftaran ini dibatalkan. Hubungi admin bila ada pertanyaan.",
+    };
+    $("stForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const out = $("stOut");
+      out.innerHTML = '<p class="muted" style="margin-top:12px">Memeriksa…</p>';
+      try {
+        const { reg } = await API.status($("stId").value.trim().toUpperCase(), $("stContact").value.trim());
+        out.innerHTML = '<dl class="kv" style="margin-top:18px">' +
+          "<dt>No. pendaftaran</dt><dd class=\"mono\">" + esc(reg.id) + "</dd><dt>Nama</dt><dd>" + esc(reg.name) + "</dd>" +
+          "<dt>Kategori</dt><dd>" + esc(reg.category) + "</dd><dt>Tagihan</dt><dd>" + rupiah(reg.total) + "</dd>" +
+          "<dt>Status</dt><dd>" + statusBadge(reg.status) + "</dd></dl>" +
+          '<div class="alert alert-info">' + (next[reg.status] || "") + "</div>";
+      } catch (ex) { out.innerHTML = '<div class="alert alert-err">' + esc(ex.message) + "</div>"; }
+    });
+  })();
+  </script>
+</body>
+</html>

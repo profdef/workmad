@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Masuk Portal Peserta · Pelatihan MAD-R</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css?v=1">
+</head>
+<body>
+  <div id="topbar"></div>
+  <main class="container" style="max-width:460px;padding:48px 16px">
+    <form id="loginForm" class="card" novalidate>
+      <div class="eyebrow">Portal Peserta</div>
+      <h1 style="font-size:26px;margin-top:.3em">Masuk</h1>
+      <p class="muted small">Gunakan email pendaftaran dan kode akses yang dikirim setelah pembayaran diverifikasi.</p>
+      <div class="field"><label class="req" for="email">Email</label><input id="email" type="email" autocomplete="username"></div>
+      <div class="field"><label class="req" for="code">Kode akses</label><input id="code" class="mono" autocomplete="current-password" autocapitalize="characters" placeholder="XXXX-XXXX" style="letter-spacing:.12em"></div>
+      <button class="btn btn-primary btn-block btn-lg" type="submit" id="btn">Masuk</button>
+      <div id="err" class="alert alert-err hidden" role="alert"></div>
+      <p class="small muted" style="margin:16px 0 0">Lupa kode akses? <a href="#" id="forgotLink">Kirim ulang ke email</a><br>
+        Belum terdaftar? <a href="daftar.html">Daftar pelatihan</a></p>
+      <div id="forgotOut"></div>
+    </form>
+  </main>
+  <div id="footer"></div>
+
+  <script src="assets/config.js?v=1"></script>
+  <script src="assets/api.js?v=1"></script>
+  <script src="assets/common.js?v=1"></script>
+  <script>
+  (function () {
+    renderChrome("");
+    const $ = (id) => document.getElementById(id);
+    const qs = new URLSearchParams(location.search);
+    // Hanya izinkan halaman lokal situs ini (cegah redirect ke situs lain / javascript:)
+    const nx = qs.get("next") || "";
+    const next = /^(materi\/)?[\w-]+\.html(\?[\w=&%-]*)?$/.test(nx) ? nx : "portal.html";
+    if (qs.get("email")) $("email").value = qs.get("email");
+    if (Session.get() && !qs.get("email")) location.replace(next);
+
+    $("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      $("err").classList.add("hidden");
+      const email = $("email").value.trim().toLowerCase(), code = $("code").value.trim().toUpperCase();
+      if (!email || !code) return fail("Masukkan email dan kode akses.");
+      $("btn").disabled = true; $("btn").textContent = "Memeriksa…";
+      try {
+        const r = await API.login(email, code);
+        Session.set({ email, code, key: r.key, name: r.participant.name, id: r.participant.id, at: Date.now() });
+        sessionStorage.setItem("mad_login", JSON.stringify(r));
+        location.replace(next);
+      } catch (ex) {
+        fail(ex.message);
+        $("btn").disabled = false; $("btn").textContent = "Masuk";
+      }
+    });
+    $("forgotLink").addEventListener("click", async (e) => {
+      e.preventDefault();
+      const email = $("email").value.trim();
+      if (!email) return fail("Isi email Anda terlebih dahulu, lalu klik “Kirim ulang ke email”.");
+      $("forgotOut").innerHTML = '<p class="small muted">Mengirim…</p>';
+      try { const r = await API.forgot(email); $("forgotOut").innerHTML = '<div class="alert alert-info">' + esc(r.message) + "</div>"; }
+      catch (ex) { $("forgotOut").innerHTML = '<div class="alert alert-err">' + esc(ex.message) + "</div>"; }
+    });
+    function fail(m) { $("err").textContent = m; $("err").classList.remove("hidden"); }
+  })();
+  </script>
+</body>
+</html>
