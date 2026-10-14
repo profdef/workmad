@@ -15,9 +15,11 @@
       width: 1122px; height: 792px; margin: 0 auto; position: relative; background: #fff; color: var(--char); overflow: hidden;
       font-family: "Plus Jakarta Sans", sans-serif; box-shadow: 0 20px 60px rgba(0,0,0,.5); transform-origin: top left;
     }
-    .cert .band { position: absolute; inset: 0 auto 0 0; width: 250px; background: linear-gradient(170deg, #fdfbf9 0%, #f5f1ee 55%, #eee8e4 100%); }
+    .cert .band { position: absolute; inset: 0 auto 0 0; width: 250px;
+      background: radial-gradient(420px 360px at 0 0, rgba(188,20,22,.30), transparent 65%), linear-gradient(165deg, #3d3d40 0%, #2f2f31 50%, #1f1f21 100%); }
     .cert .band svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-    .cert .band::after { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 5px; background: linear-gradient(180deg, var(--red), var(--red-dark)); }
+    .cert .band::after { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 8px;
+      background: linear-gradient(180deg, var(--red), var(--red-dark)); box-shadow: -3px 0 0 #fff, -5px 0 0 var(--red); }
     .cert .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
     .cert .org-logo { width: 260px; height: auto; display: block; margin-top: 2px; }
     .cert .org-by { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); text-align: right; margin-bottom: 6px; }
@@ -91,48 +93,79 @@
     const qs = new URLSearchParams(location.search);
     const verifyUrl = API.base + "sertifikat.html?no=";
 
-    // Ilustrasi vektor blok kiri (warna logo): gelombang penyebaran, jaringan data, kurva epidemi
+    // Ilustrasi vektor blok kiri (di atas latar abu arang): bilangan biner, forest plot,
+    // kurva survival, plot sebaran + regresi, dan kurva epidemi berarsir
     function bandArt() {
-      const R = "#bc1416", G = "#505050";
+      const W = "#ffffff", R = "#e0484b", G = "#9c9ca1";
+      const t = (x, y, txt, a) => '<text x="' + x + '" y="' + y + '" ' + a + ">" + txt + "</text>";
+      const mono = 'font-family="JetBrains Mono, monospace"';
       let o = '<svg viewBox="0 0 250 792" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-        '<defs><pattern id="bdots" width="14" height="14" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1" fill="' + G + '" opacity=".10"/></pattern>' +
-        '<linearGradient id="bfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + R + '" stop-opacity=".9"/><stop offset="1" stop-color="' + R + '" stop-opacity=".55"/></linearGradient>' +
-        '<linearGradient id="barea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + R + '" stop-opacity=".18"/><stop offset="1" stop-color="' + R + '" stop-opacity="0"/></linearGradient></defs>' +
-        '<rect width="250" height="792" fill="url(#bdots)"/>';
-      // 1) Gelombang penyebaran (cincin konsentris) + kasus
-      const cx = 118, cy = 168;
-      [26, 48, 72, 98, 126].forEach((r, i) => {
-        o += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + (i % 2 ? G : R) + '" stroke-width="' + (i ? 1 : 1.6) + '" opacity="' + (0.55 - i * 0.08).toFixed(2) + '"' + (i > 1 ? ' stroke-dasharray="' + (i === 2 ? "3 5" : "1 6") + '" stroke-linecap="round"' : "") + "/>";
+        '<defs><linearGradient id="epiFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + R + '" stop-opacity=".55"/><stop offset="1" stop-color="' + R + '" stop-opacity=".02"/></linearGradient>' +
+        '<linearGradient id="epiFill2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + W + '" stop-opacity=".22"/><stop offset="1" stop-color="' + W + '" stop-opacity="0"/></linearGradient>' +
+        '<linearGradient id="kmFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + W + '" stop-opacity=".10"/><stop offset="1" stop-color="' + W + '" stop-opacity="0"/></linearGradient></defs>';
+
+      // 1) Bilangan biner (tekstur latar, beberapa digit merah menyala)
+      let seed = 7; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+      for (let r = 0; r < 33; r++) {
+        let line = "";
+        for (let c = 0; c < 16; c++) line += rnd() > .5 ? "1" : "0";
+        const y = 16 + r * 24, op = (0.025 + 0.035 * Math.abs(Math.sin(r * 0.7))).toFixed(3);
+        o += t(10, y, line.replace(/(\d{4})(?=\d)/g, "$1 "), mono + ' font-size="10" letter-spacing="1.6" fill="' + W + '" opacity="' + op + '"');
+        if (r % 4 === 1) o += t(10 + (r * 37) % 150, y, rnd() > .5 ? "1" : "0", mono + ' font-size="10" fill="' + R + '" opacity=".35"');
+      }
+
+      // 2) Forest plot (OR & 95% CI, efek gabungan berbentuk wajik)
+      const fx = (v) => 40 + ((Math.log(v) + Math.log(4)) / (2 * Math.log(4))) * 180; // skala log 0,25–4
+      const fp = [[1.8, 1.1, 2.9, 7], [2.4, 1.3, 4.4, 5], [1.3, 0.8, 2.1, 8], [2.9, 1.5, 5.6, 4], [1.6, 1.0, 2.5, 9], [2.1, 1.2, 3.6, 6]];
+      const fy0 = 70;
+      o += '<line x1="' + fx(1) + '" y1="' + (fy0 - 14) + '" x2="' + fx(1) + '" y2="' + (fy0 + 6 * 22 + 22) + '" stroke="' + W + '" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>';
+      fp.forEach(([or, lo, hi, w], i) => {
+        const y = fy0 + i * 22;
+        o += '<line x1="' + fx(lo).toFixed(1) + '" y1="' + y + '" x2="' + fx(Math.min(hi, 4)).toFixed(1) + '" y2="' + y + '" stroke="' + W + '" stroke-width="1.3" opacity=".75"/>' +
+          '<rect x="' + (fx(or) - w / 2).toFixed(1) + '" y="' + (y - w / 2) + '" width="' + w + '" height="' + w + '" fill="' + W + '" opacity=".9"/>' +
+          '<line x1="16" y1="' + y + '" x2="' + (16 + 8 + (i % 3) * 4) + '" y2="' + y + '" stroke="' + G + '" stroke-width="2" stroke-linecap="round" opacity=".6"/>';
       });
-      o += '<circle cx="' + cx + '" cy="' + cy + '" r="15" fill="' + R + '" opacity=".14"/><circle cx="' + cx + '" cy="' + cy + '" r="7" fill="' + R + '"/>';
-      [[26, 30], [26, 200], [48, 80], [48, 250], [48, 150], [72, 20], [72, 120], [72, 310], [98, 200], [98, 60], [126, 165], [126, 280]].forEach(([r, deg], i) => {
-        const a = (deg * Math.PI) / 180, x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
-        o += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (i % 3 === 0 ? 4 : 2.8) + '" fill="' + (i % 3 === 0 ? R : G) + '" opacity="' + (i % 3 === 0 ? .85 : .55) + '"/>';
-      });
-      // 2) Jaringan data (simpul & sambungan)
-      const N = [[40, 360], [96, 338], [160, 372], [212, 344], [64, 420], [130, 432], [196, 418], [34, 486], [104, 498], [170, 480], [222, 506], [70, 552], [146, 548], [204, 572]];
-      const E = [[0, 1], [1, 2], [2, 3], [0, 4], [1, 5], [2, 5], [3, 6], [5, 6], [4, 7], [4, 8], [5, 8], [6, 9], [8, 9], [9, 10], [7, 11], [8, 11], [8, 12], [9, 12], [12, 13], [10, 13], [6, 10]];
-      E.forEach(([a, b], i) => (o += '<line x1="' + N[a][0] + '" y1="' + N[a][1] + '" x2="' + N[b][0] + '" y2="' + N[b][1] + '" stroke="' + (i % 5 === 0 ? R : G) + '" stroke-width="' + (i % 5 === 0 ? 1.3 : .9) + '" opacity="' + (i % 5 === 0 ? .6 : .32) + '"/>'));
-      N.forEach(([x, y], i) => {
-        const hot = [2, 5, 9, 12].includes(i);
-        o += (hot ? '<circle cx="' + x + '" cy="' + y + '" r="9" fill="' + R + '" opacity=".12"/>' : "") +
-          '<circle cx="' + x + '" cy="' + y + '" r="' + (hot ? 4.6 : 3.4) + '" fill="#fff" stroke="' + (hot ? R : G) + '" stroke-width="' + (hot ? 2 : 1.4) + '"/>';
-      });
-      // 3) Kurva epidemi: batang + garis rata-rata bergerak + area
-      const base = 728, xs = [], hs = [];
-      for (let i = 0; i < 15; i++) { const x = 24 + i * 13.6, z = (i - 6.3) / 3.1; xs.push(x); hs.push(14 + 92 * Math.exp(-z * z / 1.25) + (i % 3 === 1 ? 7 : 0)); }
-      o += '<line x1="18" y1="' + base + '" x2="232" y2="' + base + '" stroke="' + G + '" stroke-width="1.2" opacity=".55"/>';
-      [base - 40, base - 80, base - 120].forEach((y) => (o += '<line x1="18" y1="' + y + '" x2="232" y2="' + y + '" stroke="' + G + '" stroke-width=".6" stroke-dasharray="2 4" opacity=".25"/>'));
-      xs.forEach((x, i) => (o += '<rect x="' + x.toFixed(1) + '" y="' + (base - hs[i]).toFixed(1) + '" width="9.6" height="' + hs[i].toFixed(1) + '" rx="2" fill="' + (hs[i] > 75 ? "url(#bfade)" : G) + '" opacity="' + (hs[i] > 75 ? 1 : .28) + '"/>'));
-      const pts = xs.map((x, i) => [x + 4.8, base - (hs[Math.max(0, i - 1)] + hs[i] + hs[Math.min(14, i + 1)]) / 3 - 8]);
-      const path = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
-      o += '<path d="' + path + " L" + pts[14][0].toFixed(1) + " " + base + " L" + pts[0][0].toFixed(1) + " " + base + ' Z" fill="url(#barea)"/>' +
-        '<path d="' + path + '" fill="none" stroke="' + R + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
-        pts.filter((_, i) => i % 3 === 0).map((p) => '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.6" fill="#fff" stroke="' + R + '" stroke-width="1.4"/>').join("");
-      // 4) Aksen geometris lembut
-      o += '<path d="M0 610 C 70 590, 150 640, 250 600 L250 620 C 150 660, 70 610, 0 630 Z" fill="' + R + '" opacity=".06"/>' +
-        '<path d="M0 270 C 80 250, 170 300, 250 262" fill="none" stroke="' + G + '" stroke-width=".8" opacity=".25"/>' +
-        '<path d="M0 286 C 80 266, 170 316, 250 278" fill="none" stroke="' + R + '" stroke-width=".8" opacity=".25"/>';
+      const py = fy0 + 6 * 22 + 6, pc = fx(1.95);
+      o += '<path d="M' + fx(1.6).toFixed(1) + " " + py + " L" + pc.toFixed(1) + " " + (py - 6) + " L" + fx(2.4).toFixed(1) + " " + py + " L" + pc.toFixed(1) + " " + (py + 6) + ' Z" fill="' + R + '"/>' +
+        '<line x1="34" y1="' + (py + 16) + '" x2="226" y2="' + (py + 16) + '" stroke="' + W + '" stroke-width=".8" opacity=".45"/>';
+      [0.25, 0.5, 1, 2, 4].forEach((v) => (o += '<line x1="' + fx(v).toFixed(1) + '" y1="' + (py + 16) + '" x2="' + fx(v).toFixed(1) + '" y2="' + (py + 20) + '" stroke="' + W + '" stroke-width=".8" opacity=".45"/>' +
+        t(fx(v).toFixed(1), py + 30, String(v).replace(".", ","), 'font-family="Poppins, sans-serif" font-size="7" text-anchor="middle" fill="' + W + '" opacity=".5"')));
+
+      // 3) Kurva survival Kaplan–Meier (dua kelompok, area berarsir)
+      const ky = 300, kh = 100, kx = (d) => 34 + d * 1.9;
+      const km = (steps) => { let d = "M" + kx(0) + " " + ky, p = 1; steps.forEach(([day, s2]) => { d += " H" + kx(day).toFixed(1) + " V" + (ky + (1 - s2) * kh).toFixed(1); p = s2; }); return d + " H" + kx(100); };
+      const g1 = [[8, .94], [17, .88], [26, .83], [38, .78], [49, .74], [61, .70], [75, .67], [88, .64]];
+      const g2 = [[6, .9], [12, .8], [20, .7], [29, .61], [40, .52], [52, .45], [66, .39], [80, .35], [92, .32]];
+      o += '<path d="' + km(g1) + " V" + (ky + kh) + " H" + kx(0) + ' Z" fill="url(#kmFill)"/>' +
+        '<path d="' + km(g1) + '" fill="none" stroke="' + W + '" stroke-width="1.6" opacity=".85"/>' +
+        '<path d="' + km(g2) + '" fill="none" stroke="' + R + '" stroke-width="1.6"/>' +
+        '<path d="M34 ' + (ky - 4) + " V" + (ky + kh) + ' H226" fill="none" stroke="' + W + '" stroke-width=".8" opacity=".45"/>' +
+        [[30, .81], [57, .72], [44, .5], [72, .38]].map(([d2, s3], i) => '<path d="M' + kx(d2).toFixed(1) + " " + (ky + (1 - s3) * kh - 3).toFixed(1) + " v6" + '" stroke="' + (i < 2 ? W : R) + '" stroke-width="1.2" opacity=".8"/>').join("");
+
+      // 4) Plot sebaran + garis regresi & pita kepercayaan
+      const sy = 430, sh = 90;
+      o += '<path d="M34 ' + (sy + sh) + " L226 " + (sy + 14) + " L226 " + (sy + 34) + " L34 " + (sy + sh + 6) + ' Z" fill="' + W + '" opacity=".08"/>' +
+        '<path d="M34 ' + (sy + sh - 4) + " L226 " + (sy - 2) + " L226 " + (sy + 18) + " L34 " + (sy + sh - 18) + ' Z" fill="' + W + '" opacity=".0"/>';
+      for (let i = 0; i < 34; i++) {
+        const x = 40 + rnd() * 180, base = sy + sh - ((x - 34) / 192) * (sh - 22), y = base - 6 + (rnd() - .5) * 34;
+        o += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (i % 6 === 0 ? 2.8 : 2.1) + '" fill="' + (i % 6 === 0 ? R : W) + '" opacity="' + (i % 6 === 0 ? .9 : .55) + '"/>';
+      }
+      o += '<line x1="34" y1="' + (sy + sh - 4) + '" x2="226" y2="' + (sy + 20) + '" stroke="' + R + '" stroke-width="1.8" stroke-linecap="round"/>' +
+        '<path d="M34 ' + (sy - 6) + " V" + (sy + sh + 8) + ' H226" fill="none" stroke="' + W + '" stroke-width=".8" opacity=".45"/>';
+
+      // 5) Kurva epidemi berarsir (batang + area gradasi + rata-rata bergerak)
+      const base = 738, xs = [], hs = [];
+      for (let i = 0; i < 16; i++) { const x = 30 + i * 12.2, z = (i - 6.6) / 3.2; xs.push(x); hs.push(10 + 120 * Math.exp(-z * z / 1.3) + (i % 3 === 1 ? 9 : 0)); }
+      [base - 40, base - 80, base - 120].forEach((y) => (o += '<line x1="24" y1="' + y + '" x2="228" y2="' + y + '" stroke="' + W + '" stroke-width=".6" stroke-dasharray="2 4" opacity=".22"/>'));
+      xs.forEach((x, i) => (o += '<rect x="' + x.toFixed(1) + '" y="' + (base - hs[i]).toFixed(1) + '" width="9" height="' + hs[i].toFixed(1) + '" rx="1.5" fill="url(#epiFill2)" stroke="' + W + '" stroke-width=".6" stroke-opacity=".35"/>'));
+      const pts = xs.map((x, i) => [x + 4.5, base - (hs[Math.max(0, i - 1)] + hs[i] + hs[Math.min(15, i + 1)]) / 3 - 4]);
+      let curve = "M" + pts[0][0].toFixed(1) + " " + pts[0][1].toFixed(1);
+      for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], mx = (x0 + x1) / 2; curve += " C" + mx.toFixed(1) + " " + y0.toFixed(1) + " " + mx.toFixed(1) + " " + y1.toFixed(1) + " " + x1.toFixed(1) + " " + y1.toFixed(1); }
+      o += '<path d="' + curve + " L" + pts[15][0].toFixed(1) + " " + base + " L" + pts[0][0].toFixed(1) + " " + base + ' Z" fill="url(#epiFill)"/>' +
+        '<path d="' + curve + '" fill="none" stroke="' + R + '" stroke-width="2.2" stroke-linecap="round"/>' +
+        '<line x1="24" y1="' + base + '" x2="228" y2="' + base + '" stroke="' + W + '" stroke-width="1" opacity=".6"/>' +
+        '<line x1="24" y1="' + (base - 64) + '" x2="228" y2="' + (base - 64) + '" stroke="' + W + '" stroke-width=".9" stroke-dasharray="6 4" opacity=".55"/>' +
+        pts.filter((_, i) => i % 3 === 0).map((p) => '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.4" fill="#2f2f31" stroke="' + R + '" stroke-width="1.4"/>').join("");
       return o + "</svg>";
     }
 
@@ -159,11 +192,10 @@
         '<circle cx="59" cy="59" r="42.5" fill="none" stroke="#7a5b1c" stroke-width=".8"/>' +
         '<circle cx="59" cy="59" r="41.6" fill="none" stroke="#fff4c9" stroke-width=".5" opacity=".8"/>' +
         // garis ornamen di sekitar tulisan tengah
-        '<path d="M40 48.5 H78 M44 77.5 H74" stroke="#8a6a22" stroke-width=".6" opacity=".75"/>' +
-        '<path d="M40 49.1 H78 M44 78.1 H74" stroke="#fff4c9" stroke-width=".4" opacity=".75"/>' +
-        '<path d="M59 45.6 l1.6 2.9 -1.6 2.9 -1.6 -2.9 Z M59 74.6 l1.6 2.9 -1.6 2.9 -1.6 -2.9 Z" fill="#8a6a22"/>' +
-        emb("publichealth", F + ' x="59" y="62" font-weight="800" font-size="10.2" letter-spacing=".1"') +
-        emb(".id", F + ' x="59" y="72" font-weight="800" font-size="8.6" letter-spacing=".5"') +
+        '<path d="M38 51 H80 M38 70 H80" stroke="#8a6a22" stroke-width=".6" opacity=".75"/>' +
+        '<path d="M38 51.6 H80 M38 70.6 H80" stroke="#fff4c9" stroke-width=".4" opacity=".75"/>' +
+        '<path d="M59 48.1 l1.6 2.9 -1.6 2.9 -1.6 -2.9 Z M59 67.1 l1.6 2.9 -1.6 2.9 -1.6 -2.9 Z" fill="#8a6a22"/>' +
+        emb("publichealth.id", F + ' x="59" y="63" font-weight="800" font-size="10" textLength="70" lengthAdjust="spacingAndGlyphs"') +
         emb('<textPath href="#arcTop" xlink:href="#arcTop" startOffset="50%">BETTER HEALTH · BRIGHTER FUTURE</textPath>', 'font-family="Poppins, sans-serif" text-anchor="middle" font-weight="700" font-size="4.15" letter-spacing=".3"') +
         emb('<textPath href="#arcBot" xlink:href="#arcBot" startOffset="50%">' + esc(jp) + " JAM PELAJARAN</textPath>", 'font-family="Poppins, sans-serif" text-anchor="middle" font-weight="700" font-size="5.6" letter-spacing="1.2"') +
         "</svg>";
