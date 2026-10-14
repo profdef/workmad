@@ -11,35 +11,39 @@
   <style>
     .cert-wrap { overflow: hidden; padding: 8px 0 24px; }
     .cert {
-      width: 1122px; height: 792px; margin: 0 auto; position: relative; background: #fff; color: #0d1340; overflow: hidden;
+      --red: #bc1416; --red-dark: #8c0d10; --gray: #505050; --char: #2f2f31; --muted: #6b6b6e;
+      width: 1122px; height: 792px; margin: 0 auto; position: relative; background: #fff; color: var(--char); overflow: hidden;
       font-family: "Plus Jakarta Sans", sans-serif; box-shadow: 0 20px 60px rgba(0,0,0,.5); transform-origin: top left;
     }
     .cert .band { position: absolute; inset: 0 auto 0 0; width: 250px;
-      background: radial-gradient(500px 400px at 100% 0, rgba(91,43,214,.7), transparent 60%), linear-gradient(170deg, #070b2b, #0d1340 55%, #1c1a6e); }
-    .cert .band::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.14) 1.2px, transparent 1.3px); background-size: 22px 22px; }
+      background: radial-gradient(420px 360px at 0 0, rgba(188,20,22,.30), transparent 65%), linear-gradient(165deg, #3d3d40 0%, #2f2f31 50%, #1f1f21 100%); }
+    .cert .band::before { content: ""; position: absolute; inset: 0;
+      background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.045) 0 1px, transparent 1px 14px); }
+    .cert .band::after { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 8px;
+      background: linear-gradient(180deg, var(--red), var(--red-dark)); box-shadow: -3px 0 0 #fff, -5px 0 0 var(--red); }
     .cert .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
     .cert .org-logo { width: 260px; height: auto; display: block; margin-top: 2px; }
-    .cert .org-by { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #5b5f8a; text-align: right; margin-bottom: 6px; }
+    .cert .org-by { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); text-align: right; margin-bottom: 6px; }
     .cert .motto { position: absolute; left: 250px; right: 0; bottom: 0; height: 34px; display: flex; align-items: center; justify-content: flex-end; gap: 10px;
       padding: 0 70px; color: #fff; font: italic 600 13px Poppins, sans-serif; letter-spacing: .06em;
-      background: linear-gradient(90deg, #5b2bd6, #a855f7 45%, #c0141a); }
+      background: linear-gradient(90deg, #2f2f31, #505050 55%, var(--red)); }
     .cert .body { position: absolute; left: 310px; right: 70px; top: 56px; bottom: 66px; display: flex; flex-direction: column; }
-    .cert .kicker { font: 700 13px Poppins, sans-serif; letter-spacing: .32em; color: #a855f7; text-transform: uppercase; }
-    .cert h1 { font: 800 54px Poppins, sans-serif; color: #0d1340; margin: 6px 0 0; letter-spacing: .02em; }
-    .cert .no { font: 500 13px "JetBrains Mono", monospace; color: #5b5f8a; margin-top: 4px; }
-    .cert .given { margin-top: 22px; font-size: 16px; color: #5b5f8a; }
-    .cert .nm { white-space: nowrap; overflow: hidden; font: 400 64px "Great Vibes", cursive; color: #0d1340; line-height: 1.15; margin: 6px 0 2px; border-bottom: 2px solid; border-image: linear-gradient(90deg, #a855f7, #e879f9, #38bdf8) 1; padding-bottom: 6px; }
-    .cert .inst { font-size: 15px; color: #5b5f8a; }
-    .cert .desc { margin-top: 22px; font-size: 16px; line-height: 1.6; color: #1c1a6e; }
-    .cert .desc b { color: #0d1340; }
+    .cert .kicker { font: 700 13px Poppins, sans-serif; letter-spacing: .32em; color: var(--red); text-transform: uppercase; }
+    .cert h1 { font: 800 54px Poppins, sans-serif; color: var(--char); margin: 6px 0 0; letter-spacing: .02em; }
+    .cert .no { font: 500 13px "JetBrains Mono", monospace; color: var(--muted); margin-top: 4px; }
+    .cert .given { margin-top: 22px; font-size: 16px; color: var(--muted); }
+    .cert .nm { white-space: nowrap; overflow: hidden; font: 400 64px "Great Vibes", cursive; color: var(--char); line-height: 1.15; margin: 6px 0 2px; border-bottom: 2px solid; border-image: linear-gradient(90deg, var(--red), #505050 70%, #c9c9cc) 1; padding-bottom: 6px; }
+    .cert .inst { font-size: 15px; color: var(--muted); }
+    .cert .desc { margin-top: 22px; font-size: 16px; line-height: 1.6; color: #3a3a3d; }
+    .cert .desc b { color: var(--char); }
     .cert .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; }
-    .cert .seal { width: 126px; height: 150px; flex: none; margin-bottom: -8px; }
+    .cert .seal { width: 132px; height: 156px; flex: none; margin-bottom: -10px; }
     .cert .sign { text-align: center; min-width: 270px; }
     .cert .sign .sp { height: 70px; }
-    .cert .sign b { display: block; border-top: 1.5px solid #0d1340; padding-top: 6px; font-family: Poppins, sans-serif; font-size: 14.5px; white-space: nowrap; }
-    .cert .sign span { font-size: 12.5px; color: #5b5f8a; }
-    .cert .verify { display: flex; align-items: flex-end; gap: 12px; font-size: 11px; line-height: 1.5; color: #5b5f8a; max-width: 300px; }
-    .cert .verify b { font-family: "JetBrains Mono", monospace; color: #0d1340; font-size: 10px; overflow-wrap: anywhere; }
+    .cert .sign b { display: block; border-top: 1.5px solid var(--char); padding-top: 6px; font-family: Poppins, sans-serif; font-size: 14.5px; white-space: nowrap; }
+    .cert .sign span { font-size: 12.5px; color: var(--muted); }
+    .cert .verify { display: flex; align-items: flex-end; gap: 12px; font-size: 11px; line-height: 1.5; color: var(--muted); max-width: 300px; }
+    .cert .verify b { font-family: "JetBrains Mono", monospace; color: var(--char); font-size: 10px; overflow-wrap: anywhere; }
     .cert .qr { width: 84px; height: 84px; flex: none; padding: 4px; background: #fff; border: 1px solid #d9d9e6; }
     .cert .qr img, .cert .qr canvas { width: 100% !important; height: 100% !important; display: block; }
     @media print {
@@ -93,20 +97,26 @@
     // Segel emas (SVG vektor — tajam saat dicetak): rosette bergerigi, cincin, teks melengkung, pita
     function seal(jp) {
       const cx = 59, cy = 59, pts = [];
-      for (let i = 0; i < 64; i++) { const r = i % 2 ? 51 : 57, a = (Math.PI * i) / 32; pts.push((cx + r * Math.sin(a)).toFixed(2) + "," + (cy - r * Math.cos(a)).toFixed(2)); }
-      return '<svg class="seal" viewBox="0 0 118 140" xmlns="http://www.w3.org/2000/svg" aria-label="Segel publichealth.id ' + esc(jp) + ' JP">' +
-        '<defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6e3a1"/><stop offset=".45" stop-color="#d4af55"/><stop offset=".75" stop-color="#b08d3c"/><stop offset="1" stop-color="#7d5f1f"/></linearGradient>' +
-        '<radialGradient id="sf" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#fbeec0"/><stop offset=".5" stop-color="#d9b65e"/><stop offset="1" stop-color="#a07c2c"/></radialGradient>' +
-        '<path id="arcTop" d="M 25.5 59 A 33.5 33.5 0 0 1 92.5 59"/><path id="arcBot" d="M 28 61 A 31 31 0 0 0 90 61"/></defs>' +
-        '<path d="M44 92 L30 136 L41 129 L48 139 L57 98 Z" fill="#0d1340"/><path d="M74 92 L88 136 L77 129 L70 139 L61 98 Z" fill="#5b2bd6"/>' +
-        '<polygon points="' + pts.join(" ") + '" fill="url(#sg)" stroke="#7d5f1f" stroke-width=".6"/>' +
-        '<circle cx="59" cy="59" r="47" fill="url(#sf)" stroke="#7d5f1f" stroke-width="1"/>' +
-        '<circle cx="59" cy="59" r="43.5" fill="none" stroke="#fff8e1" stroke-width=".8" opacity=".9"/>' +
-        '<circle cx="59" cy="59" r="23" fill="none" stroke="#7d5f1f" stroke-width=".7" opacity=".75"/>' +
-        '<text font-family="Poppins, sans-serif" font-weight="700" font-size="7" letter-spacing="1.3" fill="#4a3810"><textPath href="#arcTop" startOffset="50%" text-anchor="middle">PUBLICHEALTH.ID</textPath></text>' +
-        '<text font-family="Poppins, sans-serif" font-size="6" letter-spacing="3" fill="#4a3810"><textPath href="#arcBot" startOffset="50%" text-anchor="middle">★ ★ ★</textPath></text>' +
-        '<text x="59" y="62.5" text-anchor="middle" font-family="Poppins, sans-serif" font-weight="800" font-size="18" fill="#3d2d08">' + esc(jp) + "</text>" +
-        '<text x="60" y="72" text-anchor="middle" font-family="Poppins, sans-serif" font-weight="700" font-size="6.5" letter-spacing="2" fill="#3d2d08">JP</text>' +
+      for (let i = 0; i < 72; i++) { const r = i % 2 ? 51.5 : 57, a = (Math.PI * i) / 36; pts.push((cx + r * Math.sin(a)).toFixed(2) + "," + (cy - r * Math.cos(a)).toFixed(2)); }
+      const dots = Array.from({ length: 36 }, (_, i) => { const a = (Math.PI * 2 * i) / 36; return '<circle cx="' + (cx + 45.5 * Math.sin(a)).toFixed(2) + '" cy="' + (cy - 45.5 * Math.cos(a)).toFixed(2) + '" r=".7" fill="#fff6d6" opacity=".9"/>'; }).join("");
+      return '<svg class="seal" viewBox="0 0 118 140" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-label="Segel publichealth.id ' + esc(jp) + ' JP">' +
+        '<defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7e6a8"/><stop offset=".4" stop-color="#d9b65e"/><stop offset=".72" stop-color="#b48f3d"/><stop offset="1" stop-color="#7a5b1c"/></linearGradient>' +
+        '<radialGradient id="sf" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#fcf0c4"/><stop offset=".5" stop-color="#ddbb62"/><stop offset="1" stop-color="#a27e2d"/></radialGradient>' +
+        '<path id="arcTop" d="M 22.5 59 A 36.5 36.5 0 0 1 95.5 59"/><path id="arcBot" d="M 24.5 60 A 34.5 34.5 0 0 0 93.5 60"/>' +
+        '<clipPath id="idc"><circle cx="59" cy="59" r="18.5"/></clipPath></defs>' +
+        // pita (merah & abu arang — warna logo)
+        '<path d="M44 92 L29 137 L40.5 130 L47.5 140 L57 98 Z" fill="#8c0d10"/><path d="M45 93 L31.5 134 L40.8 128.6 L47.6 137 L55.6 98.6 Z" fill="#bc1416"/>' +
+        '<path d="M74 92 L89 137 L77.5 130 L70.5 140 L61 98 Z" fill="#2f2f31"/><path d="M73 93 L86.5 134 L77.2 128.6 L70.4 137 L62.4 98.6 Z" fill="#505050"/>' +
+        // tepi bergerigi + cincin emas
+        '<polygon points="' + pts.join(" ") + '" fill="url(#sg)" stroke="#7a5b1c" stroke-width=".6"/>' +
+        '<circle cx="59" cy="59" r="48.5" fill="url(#sf)" stroke="#7a5b1c" stroke-width="1"/>' + dots +
+        '<circle cx="59" cy="59" r="42.5" fill="none" stroke="#7a5b1c" stroke-width=".8"/>' +
+        '<circle cx="59" cy="59" r="25" fill="#fffaf0" stroke="#7a5b1c" stroke-width="1.2"/>' +
+        '<circle cx="59" cy="59" r="22" fill="none" stroke="#d9b65e" stroke-width=".8"/>' +
+        // logo .id publichealth.id (stempel di tengah)
+        '<image href="' + C.ORGANIZER.icon + '" xlink:href="' + C.ORGANIZER.icon + '" x="40.5" y="40.5" width="37" height="37" clip-path="url(#idc)"/>' +
+        '<text font-family="Poppins, sans-serif" font-weight="700" font-size="7.4" letter-spacing="1.5" fill="#4a3810"><textPath href="#arcTop" xlink:href="#arcTop" startOffset="50%" text-anchor="middle">PUBLICHEALTH.ID</textPath></text>' +
+        '<text font-family="Poppins, sans-serif" font-weight="700" font-size="7.4" letter-spacing="1.2" fill="#4a3810"><textPath href="#arcBot" xlink:href="#arcBot" startOffset="50%" text-anchor="middle">★ ' + esc(jp) + ' JP ★</textPath></text>' +
         "</svg>";
     }
 
@@ -126,7 +136,7 @@
           '<div class="sign"><span>Padang, ' + esc(date) + '</span><div class="sp"></div><b>' + esc(T.instructor) + "</b><span>Narasumber · publichealth.id</span></div>" +
         "</div></div>" +
         '<div class="motto">publichealth.id · ' + esc(O.motto) + "</div>";
-      try { new QRCode($("qr"), { text: vurl, width: 256, height: 256, colorDark: "#0d1340", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); }
+      try { new QRCode($("qr"), { text: vurl, width: 256, height: 256, colorDark: "#2f2f31", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); }
       catch (e) { $("qr").remove(); }
       $("certWrap").classList.remove("hidden");
       fitName();
