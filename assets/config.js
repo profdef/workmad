@@ -138,7 +138,7 @@ window.fmtDate = (iso, withTime) => {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d)) return String(iso);
-  const o = { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" };
+  const o = { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta" }; // nama bulan lengkap, bahasa Indonesia
   if (withTime) Object.assign(o, { hour: "2-digit", minute: "2-digit" });
   return d.toLocaleString("id-ID", o);
 };
