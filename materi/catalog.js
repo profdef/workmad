@@ -1,6 +1,6 @@
 // DIBUAT OTOMATIS oleh tools/build-materi.mjs
 window.MATERI = {
- "builtAt": "2026-10-14T07:32:02.158Z",
+ "builtAt": "2026-10-14T09:37:04.446Z",
  "parts": [
   {
    "label": "Pengantar",

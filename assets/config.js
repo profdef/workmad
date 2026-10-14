@@ -8,7 +8,7 @@
 window.APP_CONFIG = {
   // URL Web App Google Apps Script (lihat README).
   // Biarkan kosong "" untuk MODE DEMO (data disimpan di browser saja).
-  API_URL: "",
+  API_URL: "https://script.google.com/macros/s/AKfycbzwUaZ6NYVPwNe-A9OV_AilgujQLiwoVx-4we33sSWNGlGbk0sKDJcPU1R7--X1pkKCWw/exec",
 
   TRAINING: {
     title: "Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat",
