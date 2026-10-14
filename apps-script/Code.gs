@@ -81,6 +81,17 @@ function setup() {
     if (!p.getProperty(k)) Logger.log("PERINGATAN: " + k + " belum diatur di Script Properties.");
   });
   if (CONFIG.SEND_EMAIL) Logger.log("Sisa kuota email hari ini: " + MailApp.getRemainingDailyQuota());
+  try { materiKey(); Logger.log("MATERI_KEY valid (format OK)."); } catch (e) { Logger.log("PERINGATAN: " + e.message); }
+}
+
+// Ambil MATERI_KEY: buang spasi/baris baru/tanda kutip yang ikut tertempel, lalu periksa formatnya
+function materiKey() {
+  var raw = PropertiesService.getScriptProperties().getProperty("MATERI_KEY");
+  if (!raw) throw new Error("Materi belum disiapkan admin (MATERI_KEY kosong)");
+  var key = String(raw).replace(/\s+|["'`]/g, "");
+  if (!/^[A-Za-z0-9+\/]{43}=$/.test(key))
+    throw new Error("MATERI_KEY di server tidak valid. Admin: salin ulang seluruh isi file .materi-key (44 karakter, diakhiri '=') ke Script Properties.");
+  return key;
 }
 
 function doGet() {
@@ -251,8 +262,7 @@ function login(b) {
       writeRow(sheet, hit.row, rec);
     }
     var P = PropertiesService.getScriptProperties();
-    var key = P.getProperty("MATERI_KEY");
-    if (!key) throw new Error("Materi belum disiapkan admin (MATERI_KEY kosong)");
+    var key = materiKey();
     return {
       ok: true, key: key,
       zoom: P.getProperty("ZOOM_LINK") || "", waGroup: P.getProperty("WA_GROUP_LINK") || "",

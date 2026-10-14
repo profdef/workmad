@@ -2,7 +2,9 @@
    "MAD1" + iv(12) + AES-256-GCM(ciphertext+tag) dari gzip(isi) */
 (function () {
   async function importKey(b64) {
-    const raw = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    let raw;
+    try { raw = Uint8Array.from(atob(String(b64 || "").replace(/\s+|["'`]/g, "")), (c) => c.charCodeAt(0)); }
+    catch (e) { raw = new Uint8Array(0); }
     if (raw.length !== 32) throw new Error("Kunci materi tidak valid. Silakan keluar lalu masuk kembali.");
     return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
   }

@@ -15,7 +15,7 @@ let mem = null;
 const be = GasMock.loadBackend(fs.readFileSync(path.join(ROOT, "apps-script", "Code.gs"), "utf8"), { load: () => mem, save: (db) => (mem = db) });
 const props = be.gas.db().props;
 props.ADMIN_KEY = "rahasia-admin";
-props.MATERI_KEY = "a2V5LXVqaQ==";
+props.MATERI_KEY = '"QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVoxMjM0NTY="\n'; // sengaja dengan kutip & baris baru (salah tempel)
 props.ZOOM_LINK = "https://zoom.us/j/123";
 
 let pass = 0, fail = 0;
@@ -93,7 +93,12 @@ console.log("Login peserta, materi & progres");
 r = call({ action: "login", email: "siti@contoh.id", code: "ZZZZ-ZZZZ" });
 ok(!r.ok && /salah/.test(r.error), "kode salah ditolak");
 r = call({ action: "login", email: " SITI@contoh.id ", code: code.toLowerCase().replace("-", "") });
-ok(r.ok && r.key === "a2V5LXVqaQ==" && r.zoom === "https://zoom.us/j/123" && r.participant.status === "Aktif" && !r.participant.certNo, "login berhasil (format kode longgar) → kunci materi + Zoom", r);
+ok(r.ok && r.key === "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVoxMjM0NTY=" && r.zoom === "https://zoom.us/j/123" && r.participant.status === "Aktif" && !r.participant.certNo, "login berhasil (format kode longgar) → kunci materi + Zoom", r);
+const goodKey = props.MATERI_KEY;
+props.MATERI_KEY = "MATERI_KEY = abc";
+r = call({ action: "login", email: "siti@contoh.id", code, silent: true });
+ok(!r.ok && /MATERI_KEY di server tidak valid/.test(r.error), "MATERI_KEY rusak → pesan jelas untuk admin", r);
+props.MATERI_KEY = goodKey;
 r = call({ action: "track", email: "siti@contoh.id", code, slug: "bab-01-konsep-dasar-data" });
 call({ action: "track", email: "siti@contoh.id", code, slug: "bab-01-konsep-dasar-data" });
 r = call({ action: "track", email: "siti@contoh.id", code, slug: "bab-02-siklus-hidup-data" });

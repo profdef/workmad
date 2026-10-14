@@ -28,7 +28,7 @@
     backend.CONFIG.SITE_URL = BASE;
     const props = backend.gas.db().props;
     if (!props.ADMIN_KEY) props.ADMIN_KEY = "admin123";
-    props.MATERI_KEY = window.DEMO_MATERI_KEY || "demo-tanpa-kunci";
+    props.MATERI_KEY = window.DEMO_MATERI_KEY || "A".repeat(43) + "="; // tanpa demo-key.js: login jalan, materi tidak terbuka
     props.ZOOM_LINK = props.ZOOM_LINK || "https://zoom.us/j/0000000000 (contoh)";
     props.WA_GROUP_LINK = props.WA_GROUP_LINK || "https://chat.whatsapp.com/contoh";
     backend.gas.save();
