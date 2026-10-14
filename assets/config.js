@@ -17,7 +17,7 @@ window.APP_CONFIG = {
     mode: "Online (Zoom) + akses materi mandiri",
     hours: "6 sesi × 3 jam (18 JP)",
     instructor: "Prof. Defriman Djafri, SKM, MKM, PhD",
-    email: "defrimandjafri@ph.unand.ac.id",
+    email: "info@publichealth.id",          // email resmi penyelenggara (footer, invoice, kuitansi)
     closeDate: "2026-11-05", // pendaftaran ditutup setelah tanggal ini (YYYY-MM-DD, WIB)
   },
 

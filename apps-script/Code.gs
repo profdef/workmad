@@ -32,6 +32,7 @@ var CONFIG = {
   SITE_URL: "https://profdef.github.io/workmad/", // alamat GitHub Pages (untuk tautan di email)
   PAYMENT: "Bank BNI 46 · 0214815784 · a.n. Defriman Djafri",
   ADMIN_WA: "6281310603106",
+  CONTACT_EMAIL: "info@publichealth.id",    // email resmi: Reply-To & kontak di email otomatis
   ORGANIZER: "publichealth.id",
   MOTTO: "Better Health, Brighter Future",
   CERT_PREFIX: "MAD-R/2026/",
@@ -477,7 +478,7 @@ function sendMail(to, subject, html) {
   if (!CONFIG.SEND_EMAIL || !to) return false;
   try {
     if (MailApp.getRemainingDailyQuota() < 1) return false;
-    MailApp.sendEmail({ to: to, subject: subject, htmlBody: html, name: "Pelatihan MAD-R · publichealth.id" });
+    MailApp.sendEmail({ to: to, subject: subject, htmlBody: html, name: "Pelatihan MAD-R · publichealth.id", replyTo: CONFIG.CONTACT_EMAIL });
     return true;
   } catch (e) { return false; }
 }
@@ -500,7 +501,7 @@ function mailTemplate(title, intro, rows, ctaText, ctaUrl, ctaLabel) {
     "<table style='border-collapse:collapse;font-size:14px;margin:12px 0'>" + tr + "</table>" +
     "<p style='line-height:1.6'>" + ctaText + "</p>" +
     "<p><a href='" + ctaUrl + "' style='display:inline-block;background:linear-gradient(90deg,#a855f7,#e879f9);color:#fff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:999px'>" + ctaLabel + "</a></p>" +
-    "<p style='font-size:12px;color:#a9acd9;margin-top:24px'>Pertanyaan? WhatsApp admin: +" + CONFIG.ADMIN_WA + "<br>" +
+    "<p style='font-size:12px;color:#a9acd9;margin-top:24px'>Pertanyaan? Email <a href='mailto:" + CONFIG.CONTACT_EMAIL + "' style='color:#38bdf8'>" + CONFIG.CONTACT_EMAIL + "</a> · WhatsApp admin: +" + CONFIG.ADMIN_WA + "<br>" +
     "Diselenggarakan oleh <a href='https://publichealth.id' style='color:#38bdf8'>publichealth.id</a> · <i>" + h(CONFIG.MOTTO) + "</i></p></div></div>";
 }
 
