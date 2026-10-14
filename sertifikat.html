@@ -38,7 +38,8 @@
     .cert .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; }
     .cert .seal { width: 132px; height: 156px; flex: none; margin-bottom: -10px; }
     .cert .sign { text-align: center; min-width: 270px; }
-    .cert .sign .sp { height: 70px; }
+    .cert .sign .sp { height: 100px; position: relative; }
+    .cert .sign .ttd { position: absolute; left: 50%; bottom: -9px; height: 112px; width: auto; transform: translateX(-50%) rotate(-3deg); }
     .cert .sign b { display: block; border-top: 1.5px solid var(--char); padding-top: 6px; font-family: Poppins, sans-serif; font-size: 14.5px; white-space: nowrap; }
     .cert .sign span { font-size: 12.5px; color: var(--muted); }
     .cert .verify { display: flex; align-items: flex-end; gap: 12px; font-size: 11px; line-height: 1.5; color: var(--muted); max-width: 300px; }
@@ -81,7 +82,7 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=5"></script>
+  <script src="assets/config.js?v=6"></script>
   <script src="assets/api.js?v=5"></script>
   <script src="assets/common.js?v=5"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -231,7 +232,7 @@
         '<div class="foot">' +
           '<div class="verify"><div class="qr" id="qr"></div><div>Pindai untuk verifikasi keaslian:<br><b>' + esc(verifyUrl.replace(/^https?:\/\//, "")) + "<wbr>" + esc(c.no) + "</b><br>Diterbitkan " + esc(date) + "</div></div>" +
           seal(c.jp) +
-          '<div class="sign"><span>Padang, ' + esc(date) + '</span><div class="sp"></div><b>' + esc(T.instructor) + "</b><span>Narasumber · publichealth.id</span></div>" +
+          '<div class="sign"><span>Padang, ' + esc(date) + '</span><div class="sp">' + (T.signature ? '<img class="ttd" src="' + T.signature + '" alt="Tanda tangan ' + esc(T.instructor) + '">' : "") + "</div><b>" + esc(T.instructor) + "</b><span>Narasumber · publichealth.id</span></div>" +
         "</div></div>" +
         '<div class="motto">publichealth.id · ' + esc(O.motto) + "</div>";
       try { new QRCode($("qr"), { text: vurl, width: 256, height: 256, colorDark: "#2f2f31", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); }
