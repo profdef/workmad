@@ -7,7 +7,7 @@
   <title>Pendaftaran · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=10">
+  <link rel="stylesheet" href="assets/style.css?v=12">
 </head>
 <body>
   <div id="topbar"></div>
@@ -44,7 +44,13 @@
           <img class="proof-preview hidden" id="ktmPrev" alt="Pratinjau KTM">
         </div>
 
-        <h3 style="margin-top:20px">3 · Lainnya</h3>
+        <h3 style="margin-top:20px">3 · Pembeli buku (opsional)</h3>
+        <div class="field"><label for="bookOrder">No. pesanan buku — potongan <b id="discLbl"></b></label>
+          <div style="display:flex;gap:8px"><input id="bookOrder" class="mono" placeholder="ORD-2026…" autocapitalize="characters" style="flex:1"><button class="btn btn-sm" type="button" id="bookCheck">Cek</button></div>
+          <div class="hint">Isi no. pesanan dari situs pemesanan buku dengan no. WhatsApp yang sama. Peserta kelas gratis terverifikasi otomatis mendapat potongan bila memakai email yang sama.</div>
+          <div id="bookOut"></div></div>
+
+        <h3 style="margin-top:20px">4 · Lainnya</h3>
         <div class="field"><label for="source">Dari mana Anda mengetahui pelatihan ini?</label>
           <select id="source"><option value="">— pilih —</option><option>WhatsApp</option><option>Instagram</option><option>LinkedIn</option><option>Teman / kolega</option><option>Kampus / instansi</option><option>Lainnya</option></select></div>
         <div class="field"><label for="note">Harapan / pertanyaan untuk narasumber (opsional)</label><textarea id="note" maxlength="500"></textarea></div>
@@ -59,6 +65,7 @@
         <h3 style="margin:.5em 0 .8em" id="sumTitle"></h3>
         <div class="sum-row"><span class="muted">Kategori</span><span id="sumCat">–</span></div>
         <div class="sum-row"><span class="muted">Biaya</span><span id="sumPrice">–</span></div>
+        <div class="sum-row hidden" id="sumDiscRow"><span class="muted">Potongan pembeli buku</span><span style="color:var(--good)" id="sumDisc"></span></div>
         <div class="sum-row"><span class="muted">Kode unik</span><span>+ 3 digit (101–499)</span></div>
         <div style="margin-top:12px" class="muted small">Estimasi total</div>
         <div class="sum-total" id="sumTotal">–</div>
@@ -91,9 +98,9 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=9"></script>
-  <script src="assets/api.js?v=5"></script>
-  <script src="assets/common.js?v=9"></script>
+  <script src="assets/config.js?v=11"></script>
+  <script src="assets/api.js?v=11"></script>
+  <script src="assets/common.js?v=12"></script>
   <script>
   (function () {
     const C = APP_CONFIG;
@@ -113,15 +120,35 @@
     (radios.find((r) => r.value === pre) || radios[1] || radios[0]).checked = true;
     previewFile($("ktm"), $("ktmPrev"));
 
+    const FC = C.FREE_CLASS || {}, DISC = FC.bookDiscount || 0;
+    let bookOk = false;
+    $("discLbl").textContent = rupiah(DISC);
+    const ses = Session.get();
+    if (new URLSearchParams(location.search).get("buku") && ses && ses.program === "Gratis") {
+      $("name").value = ses.name || ""; $("email").value = ses.email || "";
+      bookOk = true; // peserta kelas gratis terverifikasi → potongan (dipastikan ulang oleh server)
+    }
     function updateSummary() {
       const cat = (radios.find((r) => r.checked) || {}).value;
-      const price = cat ? C.CATEGORIES[cat].price : 0;
+      const base = cat ? C.CATEGORIES[cat].price : 0, disc = bookOk ? Math.min(DISC, base) : 0, price = base - disc;
+      $("sumDiscRow").classList.toggle("hidden", !disc); $("sumDisc").textContent = "− " + rupiah(disc);
       $("sumCat").textContent = cat || "–";
-      $("sumPrice").textContent = price ? rupiah(price) : "–";
+      $("sumPrice").textContent = base ? rupiah(base) : "–";
       $("sumTotal").textContent = price ? rupiah(price + 101) + " – " + rupiah(price + 499).replace("Rp ", "") : "–";
       $("ktmField").classList.toggle("hidden", cat !== studentCat);
     }
     radios.forEach((r) => r.addEventListener("change", updateSummary));
+    $("bookCheck").addEventListener("click", async () => {
+      const order = $("bookOrder").value.trim(), phone = $("phone").value.trim();
+      if (!order || !phone) { $("bookOut").innerHTML = '<div class="alert alert-warn">Isi no. WhatsApp (bagian 1) dan no. pesanan buku.</div>'; return; }
+      $("bookOut").innerHTML = '<p class="small muted">Memeriksa…</p>';
+      try {
+        const r = await API.checkBook(order, phone);
+        bookOk = r.valid;
+        $("bookOut").innerHTML = r.valid ? '<div class="alert alert-ok">✓ Pesanan buku terverifikasi — potongan ' + rupiah(DISC) + " diterapkan.</div>" : '<div class="alert alert-warn">' + esc(r.reason) + "</div>";
+        updateSummary();
+      } catch (e) { $("bookOut").innerHTML = '<div class="alert alert-err">' + esc(e.message) + "</div>"; }
+    });
     updateSummary();
 
     API.stats().then((s) => {
@@ -139,7 +166,7 @@
       const reg = {
         name: v("name"), email: v("email"), phone: v("phone").replace(/[^\d+]/g, ""), gender: v("gender"),
         profession: v("profession"), institution: v("institution"), province: v("province"), city: v("city"),
-        category: (radios.find((r) => r.checked) || {}).value, source: v("source"), note: v("note"),
+        category: (radios.find((r) => r.checked) || {}).value, source: v("source"), note: v("note"), bookOrderId: v("bookOrder"),
       };
       const miss = [];
       if (!reg.name) miss.push("nama");
@@ -172,7 +199,7 @@
       $("dEmail").textContent = reg.email;
       $("copyId").dataset.copy = r.id; bindCopy($("doneView"));
       $("dAmt").innerHTML = amountHtml(r.total, r.uniqueCode);
-      $("dBreak").textContent = r.category + " " + rupiah(r.price) + " + kode unik " + r.uniqueCode;
+      $("dBreak").textContent = r.category + " " + rupiah(r.price) + (r.discount ? " − potongan pembeli buku " + rupiah(r.discount) : "") + " + kode unik " + r.uniqueCode;
       renderPaymentInfo($("payInfo"));
       $("payInfo").insertAdjacentHTML("beforeend", '<button class="btn btn-sm" type="button" data-copy="' + r.total + '">Salin nominal ' + rupiah(r.total) + "</button>");
       bindCopy($("payInfo"));

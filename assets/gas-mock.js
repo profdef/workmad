@@ -23,8 +23,9 @@
       return a;
     };
 
-    function makeSheet(name) {
-      const rows = () => db.sheets[name];
+    function makeSheet(name, box) {
+      box = box || (() => db.sheets);
+      const rows = () => box()[name];
       const sheet = {
         getLastRow: () => rows().length,
         getLastColumn: () => rows().reduce((m, r) => Math.max(m, r.length), 0),
@@ -84,6 +85,11 @@
             getSheetByName: (n) => (db.sheets[n] ? makeSheet(n) : null),
             insertSheet: (n) => { db.sheets[n] = []; save(); return makeSheet(n); },
           }),
+          // Spreadsheet lain (mis. data pesanan buku aplikasi orderbuku): db.ext[id][namaSheet] = baris
+          openById: (id) => {
+            if (!db.ext || !db.ext[id]) throw new Error("Spreadsheet tidak ditemukan");
+            return { getSheetByName: (n) => (db.ext[id][n] ? makeSheet(n, () => db.ext[id]) : null) };
+          },
         },
         PropertiesService: {
           getScriptProperties: () => ({

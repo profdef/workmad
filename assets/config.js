@@ -8,7 +8,7 @@
 window.APP_CONFIG = {
   // Versi rilis — naikkan bersamaan dengan version.json setiap kali situs diperbarui,
   // agar browser peserta otomatis memuat ulang halaman versi terbaru (bukan dari cache).
-  APP_VERSION: "2026.10.14-3",
+  APP_VERSION: "2026.10.14-4",
 
   // URL Web App Google Apps Script (lihat README).
   // Biarkan kosong "" untuk MODE DEMO (data disimpan di browser saja).
@@ -34,6 +34,33 @@ window.APP_CONFIG = {
     logo: "assets/brand/logo-full.png",          // untuk latar terang (sertifikat)
     logoDark: "assets/brand/logo-full-dark.png", // untuk latar gelap (web)
     icon: "assets/brand/favicon.png",
+  },
+
+  // Kelas pra-pelatihan GRATIS untuk pembeli buku. Samakan QUOTA, CLOSE_DATE & bookDiscount dengan Code.gs
+  // (CONFIG.FREE_CLASS & CONFIG.BOOK_DISCOUNT). Tautan Zoom kelas gratis: Script Property ZOOM_LINK_FREE.
+  FREE_CLASS: {
+    enabled: true,
+    title: "Kelas Pengenalan R, RStudio & Quarto untuk Manajemen dan Analisis Data",
+    date: "Sabtu, 31 Oktober 2026",
+    time: "09.00–11.30 WIB",
+    mode: "Online via Zoom · gratis khusus pembeli buku",
+    quota: 300,
+    closeDate: "2026-10-31",
+    bookDiscount: 100000,                       // potongan biaya pelatihan penuh bagi pembeli buku (Rp)
+    bookUrl: "https://profdef.github.io/orderbuku/", // halaman pemesanan buku
+    agenda: [
+      ["09.00", "Pembukaan: mengapa R, RStudio & Quarto untuk data kesehatan"],
+      ["09.15", "Instalasi & tur RStudio: panel, project, paket"],
+      ["09.45", "Praktik: impor data epidemiologi & ringkasan pertama"],
+      ["10.30", "Dari analisis ke laporan: dokumen Quarto pertama"],
+      ["11.00", "Peta jalan pelatihan penuh & tanya jawab"],
+    ],
+    benefits: [
+      "Sesi live 2,5 jam bersama penulis buku",
+      "Akses 5 modul pengenalan (Tentang Buku, Pendahuluan, Bab 6–8)",
+      "Potongan biaya pelatihan penuh untuk pembeli buku",
+      "Grup WhatsApp diskusi kelas gratis",
+    ],
   },
 
   // Kategori peserta & biaya (Rp). Samakan dengan CONFIG.CATEGORIES di Code.gs.

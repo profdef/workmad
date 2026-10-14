@@ -160,5 +160,61 @@ r = call({ action: "delete", key: "rahasia-admin", id: rm.reg.id });
 ok(r.ok && call({ action: "list", key: "rahasia-admin" }).regs.length === 2, "hapus pendaftaran");
 ok(!call({ action: "apa" }).ok, "aksi tidak dikenal ditolak");
 
+console.log("Kelas gratis pembeli buku");
+const KF = "RlJFRUZSRUVGUkVFRlJFRUZSRUVGUkVFRlJFRUZSRUU=";
+props.MATERI_KEY_FREE = KF;
+props.ZOOM_LINK_FREE = "https://zoom.us/j/gratis";
+props.BOOK_SHEET_ID = "book1";
+be.gas.db().ext = { book1: { Orders: [["id", "createdAt", "status", "name", "phone"],
+  ["ORD-20261010-0001", "", "Dibayar", "Ani", "081211112222"],
+  ["ORD-20261010-0002", "", "Menunggu Pembayaran", "Beni", "081233334444"],
+  ["ORD-20261010-0003", "", "Selesai", "Cici", "081255556666"]] } };
+const fbase = { name: "Ani Lestari", email: "ani@contoh.id", phone: "081211112222", institution: "Puskesmas X", profession: "Tenaga Kesehatan", province: "Riau", city: "Pekanbaru" };
+r = call({ action: "registerFree", reg: fbase });
+ok(!r.ok && /no\. pesanan buku/.test(r.error), "tanpa no. pesanan & bukti → ditolak", r);
+r = call({ action: "registerFree", reg: Object.assign({}, fbase, { bookOrderId: "ORD-20261010-0002", phone: "081233334444" }) });
+ok(!r.ok && /belum lunas/.test(r.error), "pesanan belum lunas → ditolak", r);
+r = call({ action: "registerFree", reg: Object.assign({}, fbase, { bookOrderId: "ord-20261010-0001", phone: "089900001111" }) });
+ok(!r.ok && /tidak cocok/.test(r.error), "no. WA tidak cocok dengan pesanan → ditolak", r);
+r = call({ action: "registerFree", reg: Object.assign({}, fbase, { bookOrderId: "ord-20261010-0001" }) });
+ok(r.ok && r.reg.verified && r.reg.status === "Aktif" && r.mailed, "pesanan lunas → otomatis Aktif + email kode akses", r);
+ok(/Kelas Gratis/.test(be.gas.db().mails[0].subject), "email akses kelas gratis");
+const freeId = r.reg.id;
+ok(!call({ action: "registerFree", reg: Object.assign({}, fbase, { bookOrderId: "ORD-20261010-0001" }) }).ok, "email yang sama tidak bisa daftar kelas gratis 2×");
+r = call({ action: "registerFree", reg: Object.assign({}, fbase, { email: "lain@contoh.id", bookOrderId: "ORD-20261010-0001" }) });
+ok(!r.ok && /sudah dipakai/.test(r.error), "satu no. pesanan hanya untuk satu pendaftar", r);
+r = call({ action: "registerFree", reg: Object.assign({}, fbase, { email: "dodi@contoh.id", name: "Dodi", phone: "081277778888", bookProof: img }) });
+ok(r.ok && !r.reg.verified && r.reg.status === "Menunggu Verifikasi", "bukti foto buku → menunggu verifikasi admin", r);
+const proofFreeId = r.reg.id;
+ok(call({ action: "file", key: "rahasia-admin", id: proofFreeId, kind: "book" }).ok, "admin melihat bukti pembelian buku");
+r = call({ action: "update", key: "rahasia-admin", id: proofFreeId, fields: { status: "Aktif" } });
+ok(r.ok && r.reg.accessCode && !r.reg.receiptNo && r.reg.bookVerified === "Ya", "admin aktifkan → kode akses, tanpa kuitansi");
+ok(!call({ action: "update", key: "rahasia-admin", id: proofFreeId, fields: { status: "Lulus" } }).ok, "peserta gratis tidak bisa Lulus/sertifikat");
+const st2 = call({ action: "stats" });
+ok(st2.free.registered === 2 && st2.registered === 2 && st2.bookDiscount === 100000, "kuota gratis & penuh dihitung terpisah", st2);
+const freeRec = call({ action: "list", key: "rahasia-admin" }).regs.find((x) => x.id === freeId);
+r = call({ action: "login", email: "ani@contoh.id", code: freeRec.accessCode });
+ok(r.ok && r.key === "" && r.keyFree === KF && r.zoom === "https://zoom.us/j/gratis" && r.participant.program === "Gratis", "login kelas gratis: hanya kunci materi pengenalan + Zoom gratis", r);
+ok(!call({ action: "evalGet", email: "ani@contoh.id", code: freeRec.accessCode }).ok, "evaluasi tidak untuk kelas gratis");
+
+console.log("Potongan pembeli buku di pelatihan penuh");
+r = call({ action: "register", reg: Object.assign({}, base, { name: "Ani Lestari", email: "ani@contoh.id", phone: "081211112222" }) });
+ok(r.ok && r.reg.discount === 100000 && r.reg.total === 500000 - 100000 + r.reg.uniqueCode && r.reg.program === "Penuh", "peserta kelas gratis terverifikasi boleh daftar penuh + potongan", r);
+const aniFull = r.reg.id;
+r = call({ action: "register", reg: Object.assign({}, base, { name: "Cici", email: "cici@contoh.id", phone: "081255556666", bookOrderId: "ORD-20261010-0003" }) });
+ok(r.ok && r.reg.discount === 100000, "no. pesanan buku valid → potongan");
+r = call({ action: "register", reg: Object.assign({}, base, { email: "eko@contoh.id", bookOrderId: "ORD-XYZ" }) });
+ok(!r.ok && /tidak ditemukan/.test(r.error), "no. pesanan palsu → ditolak (bukan diam-diam tanpa potongan)", r);
+r = call({ action: "checkBook", orderId: "ORD-20261010-0003", phone: "6281255556666" });
+ok(r.ok && r.valid && r.discount === 100000, "cek pesanan publik (pratinjau potongan)");
+r = call({ action: "invoice", id: aniFull, contact: "ani@contoh.id" });
+ok(r.ok && r.doc.discount === 100000, "invoice memuat potongan");
+r = call({ action: "update", key: "rahasia-admin", id: aniFull, fields: { status: "Aktif" } });
+const fullCode = r.reg.accessCode;
+r = call({ action: "login", email: "ani@contoh.id", code: fullCode });
+ok(r.ok && r.key && r.keyFree === KF && r.participant.program === "Penuh", "kode akses penuh → kedua kunci materi");
+r = call({ action: "login", email: "ani@contoh.id", code: freeRec.accessCode });
+ok(r.ok && r.participant.program === "Gratis", "kode kelas gratis tetap berfungsi terpisah");
+
 console.log(`\n${pass} lulus, ${fail} gagal`);
 process.exit(fail ? 1 : 0);

@@ -29,6 +29,18 @@
     const props = backend.gas.db().props;
     if (!props.ADMIN_KEY) props.ADMIN_KEY = "admin123";
     props.MATERI_KEY = window.DEMO_MATERI_KEY || "A".repeat(43) + "="; // tanpa demo-key.js: login jalan, materi tidak terbuka
+    props.MATERI_KEY_FREE = window.DEMO_MATERI_KEY_FREE || "B".repeat(43) + "=";
+    props.ZOOM_LINK_FREE = props.ZOOM_LINK_FREE || "https://zoom.us/j/1111111111 (contoh kelas gratis)";
+    props.WA_GROUP_LINK_FREE = props.WA_GROUP_LINK_FREE || "https://chat.whatsapp.com/contoh-gratis";
+    // Data pesanan buku contoh (meniru sheet "Orders" aplikasi orderbuku)
+    props.BOOK_SHEET_ID = "demo-orderbuku";
+    const db = backend.gas.db();
+    db.ext = db.ext || {};
+    if (!db.ext["demo-orderbuku"]) db.ext["demo-orderbuku"] = { Orders: [["id", "createdAt", "status", "name", "phone"],
+      ["ORD-20261010-0001", "", "Dibayar", "Contoh Pembeli", "081200000001"],
+      ["ORD-20261010-0002", "", "Dikirim", "Contoh Pembeli 2", "081200000002"],
+      ["ORD-20261010-0003", "", "Selesai", "Contoh Pembeli 3", "081200000003"],
+      ["ORD-20261010-0004", "", "Menunggu Pembayaran", "Belum Bayar", "081200000004"]] };
     props.ZOOM_LINK = props.ZOOM_LINK || "https://zoom.us/j/0000000000 (contoh)";
     props.WA_GROUP_LINK = props.WA_GROUP_LINK || "https://chat.whatsapp.com/contoh";
     backend.gas.save();
@@ -89,6 +101,8 @@
     forgot: (email) => call({ action: "forgot", email }),
     verify: (no) => call({ action: "verify", no }),
     invoice: (id, contact) => call({ action: "invoice", id, contact }),
+    registerFree: (reg) => call({ action: "registerFree", reg }),
+    checkBook: (orderId, phone) => call({ action: "checkBook", orderId, phone }),
     invoiceAdmin: (key, id) => call({ action: "invoice", id, key }),
     evalGet() { const s = Session.get() || {}; return call({ action: "evalGet", email: s.email, code: s.code }); },
     evalSubmit(answers) { const s = Session.get() || {}; return call({ action: "evalSubmit", email: s.email, code: s.code, answers }); },
@@ -152,6 +166,12 @@
         C.EVALUATION.competencies.forEach(([k]) => { a["pre_" + k] = rnd(1, 3); a["post_" + k] = rnd(3, 5); });
         a.o1 = rnd(4, 5);
         b.call({ action: "evalSubmit", email, code: u.reg.accessCode, answers: a });
+      });
+      // Peserta kelas gratis contoh
+      [["Rina Marlina", "081200000002", "ORD-20261010-0002", "Dinas Kesehatan Kab. Agam"], ["Taufik Hidayat", "081299990000", "", "Mahasiswa FKM UI"],
+       ["Wulan Sari", "081200000003", "ORD-20261010-0003", "RSUD Solok"]].forEach(([name, phone, ord, inst], i) => {
+        b.call({ action: "registerFree", reg: { name, email: name.toLowerCase().replace(/\s+/g, ".") + "@contoh.id", phone, institution: inst,
+          profession: "Lainnya", province: "Sumatera Barat", city: "Padang", bookOrderId: ord, bookProof: ord ? null : ktm } });
       });
       b.gas.save();
     },

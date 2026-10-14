@@ -21,17 +21,22 @@
 </head>
 <body>
   <div class="box" id="box"><div class="spin"></div><div id="msg">Membuka materi…</div><div class="bar"><i id="bar"></i></div></div>
-  <script src="../assets/config.js?v=7"></script>
-  <script src="../assets/api.js?v=5"></script>
-  <script src="../assets/materi.js?v=5"></script>
+  <script src="../assets/config.js?v=11"></script>
+  <script src="../assets/api.js?v=11"></script>
+  <script src="../assets/materi.js?v=11"></script>
+  <script src="catalog.js?v=11"></script>
   <script>
   (async function () {
     const slug = (new URLSearchParams(location.search).get("d") || "").replace(/[^\w-]/g, "");
     const s = Session.get();
-    if (!s || !s.key) { location.replace("../masuk.html?next=" + encodeURIComponent("materi/view.html?d=" + slug)); return; }
+    if (!s || !(s.key || s.keyFree)) { location.replace("../masuk.html?next=" + encodeURIComponent("materi/view.html?d=" + slug)); return; }
     try {
       if (!slug) throw new Error("Modul tidak dipilih");
-      const buf = await Materi.open("enc/" + slug + ".bin", s.key, (p) => (document.getElementById("bar").style.width = Math.round(p * 100) + "%"));
+      // Deck pengenalan (kelas gratis) memakai kunci terpisah
+      const deck = ((window.MATERI || { parts: [] }).parts.flatMap((p) => p.decks)).find((d) => d.slug === slug) || {};
+      const key = deck.free ? s.keyFree : s.key;
+      if (!key) throw new Error("Modul ini termasuk pelatihan penuh. Daftar pelatihan penuh untuk membukanya (pembeli buku mendapat potongan).");
+      const buf = await Materi.open("enc/" + slug + ".bin", key, (p) => (document.getElementById("bar").style.width = Math.round(p * 100) + "%"));
       let html = new TextDecoder().decode(buf);
       await API.track(slug);
       // Tombol kembali ke portal & tanda pengguna (watermark ringan)

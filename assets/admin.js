@@ -56,8 +56,10 @@
 
   // ---------- Ringkasan ----------
   function renderAll() {
-    const live = regs.filter((r) => r.status !== "Dibatalkan");
-    const by = (s) => regs.filter((r) => r.status === s);
+    const isFree = (r) => r.program === "Gratis";
+    const live = regs.filter((r) => r.status !== "Dibatalkan" && !isFree(r));
+    const freeLive = regs.filter((r) => r.status !== "Dibatalkan" && isFree(r));
+    const by = (s) => regs.filter((r) => r.status === s && !isFree(r));
     const paid = live.filter((r) => r.status === "Aktif" || r.status === "Lulus");
     const revenue = paid.reduce((n, r) => n + (Number(r.paidAmount) || Number(r.total) || 0), 0);
     const kpi = [
@@ -67,6 +69,9 @@
       [paid.length, "Peserta aktif + lulus"],
       [by("Lulus").length, "Lulus (sertifikat)"],
       [rupiah(revenue), "Pendapatan terverifikasi"],
+      [freeLive.length + (stats.free ? " / " + stats.free.quota : ""), "Kelas gratis (pembeli buku)", ""],
+      [freeLive.filter((r) => r.status === "Menunggu Verifikasi").length, "Kelas gratis perlu verifikasi"],
+      [live.filter((r) => r.bookVerified === "Ya").length, "Pelatihan penuh dari pembeli buku"],
     ];
     $("kpis").innerHTML = kpi.map(([v, l, f]) => '<div class="kpi' + (f ? " pill" : "") + '"' + (f ? ' data-f="' + f + '" style="border-color:rgba(248,113,113,.6)"' : "") +
       '><div class="v">' + esc(v) + '</div><div class="l">' + esc(l) + "</div></div>").join("");
@@ -110,6 +115,7 @@
   // ---------- Tabel ----------
   $("q").addEventListener("input", renderTable);
   $("fCat").addEventListener("change", renderTable);
+  $("fProg").addEventListener("change", renderTable);
   function renderTable() {
     $("pills").innerHTML = ["", ...STATUSES].map((s) => {
       const n = s ? regs.filter((r) => r.status === s).length : regs.length;
@@ -122,7 +128,8 @@
       const mism = r.paidAmount && Number(r.paidAmount) !== Number(r.total);
       return "<tr><td><span class=\"mono\">" + esc(r.id) + '</span><br><span class="small muted">' + esc(fmtDate(r.createdAt, true)) + "</span></td>" +
         "<td><b style=\"color:#fff\">" + esc(r.name) + '</b><br><span class="small muted">' + esc(r.institution) + "<br>" + esc(r.email) + " · " + esc(r.phone) + "</span></td>" +
-        "<td class=\"small\">" + esc(r.category) + '</td><td class="num">' + rupiah(r.total) + "</td>" +
+        "<td class=\"small\">" + (r.program === "Gratis" ? '<span class="badge st-aktif">Gratis</span><br>' : "") + esc(r.category) +
+          (r.bookVerified === "Ya" ? '<br><span style="color:var(--good)">📗 pembeli buku</span>' : "") + '</td><td class="num">' + (r.program === "Gratis" ? "—" : rupiah(r.total)) + "</td>" +
         '<td class="num' + (mism ? " mismatch" : "") + '">' + (r.paidAmount ? rupiah(r.paidAmount) + (mism ? " ⚠" : "") : '<span class="muted">—</span>') + "</td>" +
         "<td>" + statusBadge(r.status) + "</td><td class=\"small\">" + progressCount(r) + "/" + TOTAL_DECKS + (r.evalAt ? '<br><span style="color:var(--good)">✓ evaluasi</span>' : "") + "</td>" +
         '<td><button class="btn btn-sm" type="button" data-id="' + esc(r.id) + '">Detail</button></td></tr>';
@@ -131,7 +138,8 @@
     $("count").textContent = list.length + " dari " + regs.length + " pendaftar";
   }
   function filtered(q, cat) {
-    return regs.filter((r) => (!fStatus || r.status === fStatus) && (!cat || r.category === cat) &&
+    const prog = $("fProg").value;
+    return regs.filter((r) => (!fStatus || r.status === fStatus) && (!cat || r.category === cat) && (!prog || (r.program || "Penuh") === prog) &&
       (!q || [r.id, r.name, r.email, r.phone, r.institution, r.city, r.province, r.payerName].join(" ").toLowerCase().includes(q)));
   }
   function progressCount(r) { return String(r.progress || "").split(",").filter((s) => DECK_SLUGS.has(s)).length; }
@@ -147,7 +155,10 @@
       ["No. pendaftaran", '<span class="mono">' + esc(r.id) + "</span>"], ["Tanggal daftar", esc(fmtDate(r.createdAt, true))],
       ["Email", esc(r.email)], ["WhatsApp", '<a target="_blank" rel="noopener" href="https://wa.me/62' + esc(String(r.phone).replace(/\D/g, "").replace(/^(62|0)+/, "")) + '">' + esc(r.phone) + "</a>"],
       ["Jenis kelamin", esc(r.gender)], ["Profesi", esc(r.profession)], ["Instansi", esc(r.institution)], ["Domisili", esc(r.city + ", " + r.province)],
-      ["Kategori", esc(r.category)], ["Tagihan", rupiah(r.price) + " + kode unik " + esc(r.uniqueCode) + " = <b>" + rupiah(r.total) + "</b>"],
+      ["Program", r.program === "Gratis" ? "Kelas gratis (pembeli buku)" : "Pelatihan penuh"],
+      ["Kategori", esc(r.category)],
+      ["Pembeli buku", r.bookVerified === "Ya" ? "✓ terverifikasi" + (r.bookOrderId ? " · " + esc(r.bookOrderId) : "") : r.bookOrderId ? esc(r.bookOrderId) + " (belum terverifikasi)" : r.bookProofFileId ? "Bukti foto (perlu dicek)" : "—"],
+      ["Tagihan", r.program === "Gratis" ? "Gratis" : rupiah(r.price) + (Number(r.discount) ? " − potongan buku " + rupiah(r.discount) : "") + " + kode unik " + esc(r.uniqueCode) + " = <b>" + rupiah(r.total) + "</b>"],
       ["Transfer", r.paidAmount ? '<span class="' + (mism ? "mismatch" : "") + '">' + rupiah(r.paidAmount) + (mism ? " ⚠ tidak sama dengan tagihan" : " ✓ sesuai") + "</span> a.n. " + esc(r.payerName) + "<br><span class=\"small muted\">" + esc(fmtDate(r.proofAt, true)) + "</span>" : '<span class="muted">Belum ada bukti</span>'],
       ["Kode akses", r.accessCode ? '<span class="code-box" style="font-size:18px">' + esc(r.accessCode) + "</span>" : '<span class="muted">Terbit otomatis saat status Aktif</span>'],
       ["Login terakhir", r.lastLogin ? esc(fmtDate(r.lastLogin, true)) + " (" + esc(r.loginCount) + "×)" : '<span class="muted">Belum pernah</span>'],
@@ -159,19 +170,21 @@
     ];
     const st = r.status;
     const actions = [];
-    actions.push('<button class="btn btn-sm" data-act="doc">' + (st === "Aktif" || st === "Lulus" ? "🧾 Cetak kuitansi" : "📄 Cetak invoice") + "</button>");
+    const FREEROW = r.program === "Gratis";
+    if (!FREEROW) actions.push('<button class="btn btn-sm" data-act="doc">' + (st === "Aktif" || st === "Lulus" ? "🧾 Cetak kuitansi" : "📄 Cetak invoice") + "</button>");
+    if (r.bookProofFileId) actions.push('<button class="btn btn-sm" data-act="book">📗 Lihat bukti buku</button>');
     if (r.proofFileId) actions.push('<button class="btn btn-sm" data-act="proof">🖼 Lihat bukti transfer</button>');
     if (r.ktmFileId) actions.push('<button class="btn btn-sm" data-act="ktm">🪪 Lihat KTM</button>');
-    if (st === "Menunggu Pembayaran" || st === "Menunggu Verifikasi") actions.push('<button class="btn btn-sm btn-primary" data-act="Aktif">✓ Verifikasi & aktifkan akses</button>');
-    if (st === "Aktif") actions.push('<button class="btn btn-sm btn-primary" data-act="Lulus">🎓 Tandai Lulus (terbitkan sertifikat)</button>');
+    if (st === "Menunggu Pembayaran" || st === "Menunggu Verifikasi") actions.push('<button class="btn btn-sm btn-primary" data-act="Aktif">' + (FREEROW ? "✓ Verifikasi buku & aktifkan kelas gratis" : "✓ Verifikasi & aktifkan akses") + "</button>");
+    if (st === "Aktif" && !FREEROW) actions.push('<button class="btn btn-sm btn-primary" data-act="Lulus">🎓 Tandai Lulus (terbitkan sertifikat)</button>');
     if (st === "Lulus") actions.push('<button class="btn btn-sm" data-act="Aktif">↩ Batalkan kelulusan</button>');
     if (st === "Aktif" || st === "Lulus") {
       actions.push('<button class="btn btn-sm" data-act="resend">✉ Kirim ulang email kode</button>');
       actions.push('<a class="btn btn-sm btn-good" target="_blank" rel="noopener" href="' + waAccess(r) + '">💬 Kirim kode via WA</a>');
       actions.push('<button class="btn btn-sm" data-act="reset">🔑 Ganti kode akses</button>');
     }
-    if (st === "Menunggu Verifikasi") actions.push('<button class="btn btn-sm" data-act="Menunggu Pembayaran">↩ Tolak bukti (minta transfer ulang)</button>');
-    if (st === "Menunggu Pembayaran") actions.push('<a class="btn btn-sm" target="_blank" rel="noopener" href="' + waRemind(r) + '">💬 Ingatkan pembayaran via WA</a>');
+    if (st === "Menunggu Verifikasi" && !FREEROW) actions.push('<button class="btn btn-sm" data-act="Menunggu Pembayaran">↩ Tolak bukti (minta transfer ulang)</button>');
+    if (st === "Menunggu Pembayaran" && !FREEROW) actions.push('<a class="btn btn-sm" target="_blank" rel="noopener" href="' + waRemind(r) + '">💬 Ingatkan pembayaran via WA</a>');
     if (st !== "Dibatalkan") actions.push('<button class="btn btn-sm btn-bad" data-act="Dibatalkan">Batalkan</button>');
     else actions.push('<button class="btn btn-sm" data-act="Menunggu Pembayaran">Pulihkan</button>');
     actions.push('<button class="btn btn-sm btn-bad" data-act="delete">🗑 Hapus</button>');
@@ -192,7 +205,7 @@
       if (a === "doc") {
         sessionStorage.setItem("mad_doc", JSON.stringify({ id: r.id, admin: key }));
         window.open("invoice.html", "_blank");
-      } else if (a === "proof" || a === "ktm") {
+      } else if (a === "proof" || a === "ktm" || a === "book") {
         const f = await API.file(key, r.id, a);
         $("fileView").innerHTML = (f.mimeType === "application/pdf" ? '<iframe src="' + f.dataUrl + '"></iframe>' : '<img src="' + f.dataUrl + '" alt="">') +
           (f.url ? '<p class="small"><a href="' + esc(f.url) + '" target="_blank" rel="noopener">Buka di Google Drive</a></p>' : "");
@@ -225,6 +238,10 @@
 
   function waNum(p) { return "62" + String(p).replace(/\D/g, "").replace(/^(62|0)+/, ""); }
   function waAccess(r) {
+    if (r.program === "Gratis") return "https://wa.me/" + waNum(r.phone) + "?text=" + encodeURIComponent(
+      "Halo " + r.name + ",\n\nTerima kasih telah membeli buku kami. Pendaftaran *Kelas Gratis Pengenalan R, RStudio & Quarto* (" + r.id + ") sudah aktif.\n\n" +
+      "Masuk ke Portal Peserta:\n" + API.base + "masuk.html\n\nEmail: " + r.email + "\nKode akses: *" + r.accessCode + "*\n\n" +
+      "Jadwal: " + C.FREE_CLASS.date + ", " + C.FREE_CLASS.time + ". Tautan Zoom & modul pengenalan tersedia di portal.");
     return "https://wa.me/" + waNum(r.phone) + "?text=" + encodeURIComponent(
       "Halo " + r.name + ",\n\nPembayaran pelatihan *" + C.TRAINING.title + " " + C.TRAINING.subtitle + "* (" + r.id + ") telah kami verifikasi. Terima kasih!\n\n" +
       "Masuk ke Portal Peserta:\n" + API.base + "masuk.html\n\nEmail: " + r.email + "\nKode akses: *" + r.accessCode + "*\n\nDi portal tersedia 20 modul, paket latihan, jadwal & tautan Zoom. Mohon kode akses tidak dibagikan.");

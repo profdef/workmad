@@ -10,7 +10,7 @@
   <meta property="og:image" content="assets/cover.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=10">
+  <link rel="stylesheet" href="assets/style.css?v=12">
 </head>
 <body>
   <div id="topbar"></div>
@@ -52,6 +52,16 @@
       </div>
     </section>
 
+    <section class="container section" id="kelasGratis">
+      <div class="card free-banner">
+        <div><div class="eyebrow">Sudah punya bukunya?</div>
+          <h2 style="margin:.35em 0 .3em">Ikuti <span class="grad">Kelas Pengenalan GRATIS</span> R, RStudio &amp; Quarto</h2>
+          <p class="muted" style="margin:0" id="fcLine"></p></div>
+        <div class="free-cta"><a class="btn btn-primary btn-lg" href="kelas-gratis.html">Daftar Kelas Gratis →</a>
+          <a class="small" id="fcBuy" target="_blank" rel="noopener">Belum punya buku? Pesan di sini</a></div>
+      </div>
+    </section>
+
     <section class="container section" id="manfaat">
       <div class="section-head"><div class="eyebrow">Yang Anda Dapatkan</div><h2>Fasilitas peserta</h2></div>
       <div class="features" id="benefits"></div>
@@ -86,10 +96,10 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=9"></script>
-  <script src="assets/api.js?v=5"></script>
-  <script src="assets/common.js?v=9"></script>
-  <script src="materi/catalog.js?v=5"></script>
+  <script src="assets/config.js?v=11"></script>
+  <script src="assets/api.js?v=11"></script>
+  <script src="assets/common.js?v=12"></script>
+  <script src="materi/catalog.js?v=11"></script>
   <script>
   (function () {
     const C = APP_CONFIG, T = C.TRAINING;
@@ -114,9 +124,14 @@
     const cats = Object.entries(C.CATEGORIES);
     $("prices").innerHTML = cats.map(([name, c], i) =>
       '<div class="price-card' + (i === 1 ? " featured" : "") + '"><div class="cat">' + esc(name) + '</div><div class="amt grad">' + rupiah(c.price) +
-      '</div><div class="note">' + esc(c.note || "Akses penuh seluruh fasilitas") + '</div><a class="btn btn-block' + (i === 1 ? " btn-primary" : "") +
+      '</div><div class="note">' + esc(c.note || "Akses penuh seluruh fasilitas") + (C.FREE_CLASS && C.FREE_CLASS.bookDiscount ? '<br><span style="color:var(--good)">Pembeli buku: ' + rupiah(Math.max(0, c.price - C.FREE_CLASS.bookDiscount)) + "</span>" : "") + '</div><a class="btn btn-block' + (i === 1 ? " btn-primary" : "") +
       '" style="margin-top:14px" href="daftar.html?kategori=' + encodeURIComponent(name) + '">Pilih</a></div>').join("");
 
+    const FC = C.FREE_CLASS;
+    if (FC && FC.enabled) {
+      $("fcLine").innerHTML = esc(FC.date) + " · " + esc(FC.time) + " · " + esc(FC.mode) + ". Pembeli buku juga mendapat <b style=\"color:#fff\">potongan " + rupiah(FC.bookDiscount) + "</b> untuk pelatihan penuh.";
+      $("fcBuy").href = FC.bookUrl;
+    } else $("kelasGratis").remove();
     $("faqList").innerHTML = C.FAQ.map(([q, a]) => '<details class="faq"><summary>' + esc(q) + "</summary><p>" + esc(a) + "</p></details>").join("");
 
     async function loadStats() {

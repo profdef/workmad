@@ -25,6 +25,10 @@ const PPT = path.resolve(process.argv[2] || path.join(ROOT, "..", "ppt"));
 const OUT = path.join(ROOT, "materi");
 const ENC = path.join(OUT, "enc");
 const KEY_FILE = path.join(ROOT, ".materi-key");
+const KEY_FREE_FILE = path.join(ROOT, ".materi-key-free");
+// Deck pengenalan R, RStudio & Quarto yang terbuka untuk kelas gratis (pembeli buku).
+// Dienkripsi dengan kunci terpisah (MATERI_KEY_FREE); peserta penuh menerima kedua kunci.
+const FREE_DECKS = ["00-tentang-buku", "01-pendahuluan", "bab-06-mengenal-r-rstudio", "bab-07-dasar-pemrograman-r", "bab-08-reproducible-quarto"];
 
 if (!fs.existsSync(path.join(PPT, "index.qmd"))) {
   console.error("Folder ppt tidak ditemukan / tidak berisi index.qmd: " + PPT);
@@ -32,23 +36,29 @@ if (!fs.existsSync(path.join(PPT, "index.qmd"))) {
 }
 
 // ---------- Kunci ----------
-let keyB64;
-if (fs.existsSync(KEY_FILE)) keyB64 = fs.readFileSync(KEY_FILE, "utf8").trim();
-else {
-  keyB64 = crypto.randomBytes(32).toString("base64");
-  fs.writeFileSync(KEY_FILE, keyB64 + "\n", { mode: 0o600 });
-  console.log("Kunci baru dibuat: .materi-key");
+function loadKey(file) {
+  let b64;
+  if (fs.existsSync(file)) b64 = fs.readFileSync(file, "utf8").trim();
+  else {
+    b64 = crypto.randomBytes(32).toString("base64");
+    fs.writeFileSync(file, b64 + "\n", { mode: 0o600 });
+    console.log("Kunci baru dibuat: " + path.basename(file));
+  }
+  const k = Buffer.from(b64, "base64");
+  if (k.length !== 32) throw new Error(path.basename(file) + " tidak valid (harus 32 byte base64)");
+  return { b64, k };
 }
-const KEY = Buffer.from(keyB64, "base64");
-if (KEY.length !== 32) throw new Error(".materi-key tidak valid (harus 32 byte base64)");
+const { b64: keyB64, k: KEY } = loadKey(KEY_FILE);
+const { b64: keyFreeB64, k: KEY_FREE } = loadKey(KEY_FREE_FILE);
 // Kunci untuk MODE DEMO lokal saja (file ini ada di .gitignore)
 fs.writeFileSync(path.join(ROOT, "assets", "demo-key.js"),
-  "// DIBUAT OTOMATIS — hanya untuk mode demo lokal. Jangan di-commit.\nwindow.DEMO_MATERI_KEY = " + JSON.stringify(keyB64) + ";\n");
+  "// DIBUAT OTOMATIS — hanya untuk mode demo lokal. Jangan di-commit.\nwindow.DEMO_MATERI_KEY = " + JSON.stringify(keyB64) +
+  ";\nwindow.DEMO_MATERI_KEY_FREE = " + JSON.stringify(keyFreeB64) + ";\n");
 
 // Format file terenkripsi: "MAD1" + iv(12) + ciphertext + tag(16); isi = gzip(data)
-function encrypt(buf) {
+function encrypt(buf, key) {
   const iv = crypto.randomBytes(12);
-  const c = crypto.createCipheriv("aes-256-gcm", KEY, iv);
+  const c = crypto.createCipheriv("aes-256-gcm", key || KEY, iv);
   const body = Buffer.concat([c.update(zlib.gzipSync(buf, { level: 9 })), c.final(), c.getAuthTag()]);
   return Buffer.concat([Buffer.from("MAD1"), iv, body]);
 }
@@ -98,7 +108,8 @@ for (const d of decks) {
   // Laporkan referensi lokal yang tersisa (selain libs/)
   for (const m of html.matchAll(/(?:src|href)="(?!https?:|data:|#|mailto:|libs\/|view\.html|javascript:)([^"]+)"/g))
     if (m[1]) warnings.push(d.slug + ": referensi lokal tidak ditangani " + m[1]);
-  const enc = encrypt(Buffer.from(html, "utf8"));
+  d.free = FREE_DECKS.includes(d.slug);
+  const enc = encrypt(Buffer.from(html, "utf8"), d.free ? KEY_FREE : KEY);
   fs.writeFileSync(path.join(ENC, d.slug + ".bin"), enc);
   totalIn += html.length; totalOut += enc.length;
 }
@@ -138,5 +149,6 @@ console.log(`✓ ${decks.filter((d) => !d.missing).length} deck terenkripsi (${m
 console.log(`✓ Paket latihan: ${mb(kitSize)} → ${mb(zipEnc.length)}`);
 console.log(`✓ Output: ${path.relative(ROOT, OUT)}/`);
 if (warnings.length) console.log("\nPeringatan:\n  " + [...new Set(warnings)].join("\n  "));
-console.log("\nKunci enkripsi ada di file .materi-key — tempel isinya ke Script Properties Apps Script sebagai MATERI_KEY.\n" +
+console.log(`✓ ${decks.filter((d) => d.free).length} deck pengenalan (kelas gratis) memakai kunci .materi-key-free`);
+console.log("\nKunci enkripsi: .materi-key → Script Property MATERI_KEY; .materi-key-free → MATERI_KEY_FREE.\n" +
   "(Kunci tetap sama di setiap build selama .materi-key tidak dihapus.)");

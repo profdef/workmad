@@ -28,7 +28,13 @@ var CONFIG = {
   STUDENT_CATEGORY: "Mahasiswa (S1/S2/S3)", // kategori yang wajib unggah KTM
   QUOTA: 100,
   CLOSE_DATE: "2026-11-05",                 // pendaftaran ditutup setelah tanggal ini (WIB)
-  UNIQUE_CODE: { MIN: 101, MAX: 499 },      // 3 digit kode unik ditambahkan ke tagihan
+  UNIQUE_CODE: { MIN: 101, MAX: 499 },
+  // Kelas pra-pelatihan GRATIS khusus pembeli buku (samakan dengan FREE_CLASS di assets/config.js)
+  FREE_CLASS: { ENABLED: true, CATEGORY: "Kelas Gratis (Pembeli Buku)", QUOTA: 300, CLOSE_DATE: "2026-10-31" },
+  // Potongan biaya pelatihan penuh bagi pembeli buku (Rp)
+  BOOK_DISCOUNT: 100000,
+  // Status pesanan buku (aplikasi orderbuku) yang dianggap sudah membeli
+  BOOK_PAID_STATUSES: ["Dibayar", "Diproses", "Dikirim", "Selesai"],      // 3 digit kode unik ditambahkan ke tagihan
   SITE_URL: "https://profdef.github.io/workmad/", // alamat GitHub Pages (untuk tautan di email)
   PAYMENT: "Bank BNI 46 · 0214815784 · a.n. Defriman Djafri",
   ADMIN_WA: "6281310603106",
@@ -51,7 +57,8 @@ var HEADERS = ["id", "createdAt", "status", "name", "email", "phone", "gender", 
   "category", "province", "city", "source", "note", "price", "uniqueCode", "total",
   "payerName", "paidAmount", "proofAt", "proofUrl", "proofFileId", "ktmFileId",
   "accessCode", "activatedAt", "lastLogin", "loginCount", "progress", "certNo", "certDate", "adminNote",
-  "receiptNo", "evalAt"];
+  "receiptNo", "evalAt", "program", "bookOrderId", "bookVerified", "bookProofFileId", "discount"];
+var FREE = "Gratis", FULL = "Penuh";
 var STATUSES = ["Menunggu Pembayaran", "Menunggu Verifikasi", "Aktif", "Lulus", "Dibatalkan"];
 var ACTIVE = ["Aktif", "Lulus"];
 
@@ -82,15 +89,20 @@ function setup() {
   });
   if (CONFIG.SEND_EMAIL) Logger.log("Sisa kuota email hari ini: " + MailApp.getRemainingDailyQuota());
   try { materiKey(); Logger.log("MATERI_KEY valid (format OK)."); } catch (e) { Logger.log("PERINGATAN: " + e.message); }
+  try { if (materiKey("MATERI_KEY_FREE")) Logger.log("MATERI_KEY_FREE valid (format OK)."); else Logger.log("Info: MATERI_KEY_FREE kosong (kelas gratis tidak bisa membuka materi)."); } catch (e) { Logger.log("PERINGATAN: " + e.message); }
 }
 
 // Ambil MATERI_KEY: buang spasi/baris baru/tanda kutip yang ikut tertempel, lalu periksa formatnya
-function materiKey() {
-  var raw = PropertiesService.getScriptProperties().getProperty("MATERI_KEY");
-  if (!raw) throw new Error("Materi belum disiapkan admin (MATERI_KEY kosong)");
+function materiKey(prop) {
+  prop = prop || "MATERI_KEY";
+  var raw = PropertiesService.getScriptProperties().getProperty(prop);
+  if (!raw) {
+    if (prop === "MATERI_KEY_FREE") return "";
+    throw new Error("Materi belum disiapkan admin (MATERI_KEY kosong)");
+  }
   var key = String(raw).replace(/\s+|["'`]/g, "");
   if (!/^[A-Za-z0-9+\/]{43}=$/.test(key))
-    throw new Error("MATERI_KEY di server tidak valid. Admin: salin ulang seluruh isi file .materi-key (44 karakter, diakhiri '=') ke Script Properties.");
+    throw new Error(prop + " di server tidak valid. Admin: salin ulang seluruh isi file " + (prop === "MATERI_KEY" ? ".materi-key" : ".materi-key-free") + " (44 karakter, diakhiri '=') ke Script Properties.");
   return key;
 }
 
@@ -104,6 +116,8 @@ function doPost(e) {
     switch (body.action) {
       case "stats":    return json(stats());
       case "register": return json(register(body.reg || {}));
+      case "registerFree": return json(registerFree(body.reg || {}));
+      case "checkBook": return json(checkBookPublic(body));
       case "confirm":  return json(confirmPayment(body));
       case "status":   return json(checkStatus(body));
       case "login":    return json(login(body));
@@ -129,14 +143,21 @@ function doPost(e) {
 /* ======================= Aksi publik ======================= */
 
 // Hanya angka — tanpa data pribadi
+function isFree(r) { return r.program === FREE; }
+
 function stats(rows) {
   rows = rows || readAll();
-  var active = rows.filter(function (r) { return r.status !== "Dibatalkan"; });
+  var active = rows.filter(function (r) { return r.status !== "Dibatalkan" && !isFree(r); });
+  var free = rows.filter(function (r) { return r.status !== "Dibatalkan" && isFree(r); });
   var today = Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd");
   var remaining = Math.max(0, CONFIG.QUOTA - active.length);
+  var F = CONFIG.FREE_CLASS, freeRemaining = Math.max(0, F.QUOTA - free.length);
   return {
     ok: true, quota: CONFIG.QUOTA, registered: active.length, remaining: remaining,
-    closed: remaining <= 0 || today > CONFIG.CLOSE_DATE
+    closed: remaining <= 0 || today > CONFIG.CLOSE_DATE,
+    free: { enabled: F.ENABLED, quota: F.QUOTA, registered: free.length, remaining: freeRemaining,
+      closed: !F.ENABLED || freeRemaining <= 0 || today > F.CLOSE_DATE },
+    bookDiscount: CONFIG.BOOK_DISCOUNT
   };
 }
 
@@ -146,12 +167,15 @@ function register(o) {
     name: s(o.name, 100), email: s(o.email, 120).toLowerCase(), phone: s(o.phone, 20).replace(/[^\d+]/g, ""),
     gender: s(o.gender, 20), institution: s(o.institution, 150), profession: s(o.profession, 60),
     category: s(o.category, 60), province: s(o.province, 60), city: s(o.city, 80),
-    source: s(o.source, 60), note: s(o.note, 500)
+    source: s(o.source, 60), note: s(o.note, 500), bookOrderId: s(o.bookOrderId, 40).toUpperCase()
   };
   if (!reg.name || !reg.institution || !reg.city) throw new Error("Data pendaftaran belum lengkap");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(reg.email)) throw new Error("Alamat email tidak valid");
   if (!/^(\+?62|0)8\d{7,12}$/.test(reg.phone)) throw new Error("Nomor WhatsApp tidak valid");
   if (!(reg.category in CONFIG.CATEGORIES)) throw new Error("Kategori peserta tidak valid");
+  // Pembeli buku: cek no. pesanan (atau keikutsertaan kelas gratis terverifikasi) → potongan
+  var book = reg.bookOrderId ? checkBookOrder(reg.bookOrderId, reg.phone) : null;
+  if (reg.bookOrderId && !book.ok) throw new Error(book.reason + " Kosongkan kolom no. pesanan buku bila tidak memilikinya.");
   var ktm = null;
   if (o.ktm && o.ktm.data) ktm = checkFile(o.ktm);
   if (reg.category === CONFIG.STUDENT_CATEGORY && !ktm) throw new Error("Mahasiswa wajib mengunggah foto KTM aktif");
@@ -163,7 +187,8 @@ function register(o) {
     var rows = readAll(sheet);
     var st = stats(rows);
     if (st.closed) throw new Error(st.remaining <= 0 ? "Maaf, kuota peserta sudah penuh." : "Maaf, pendaftaran sudah ditutup.");
-    var dup = rows.filter(function (r) { return r.status !== "Dibatalkan" && String(r.email).toLowerCase() === reg.email; })[0];
+    var dup = rows.filter(function (r) { return r.status !== "Dibatalkan" && !isFree(r) && String(r.email).toLowerCase() === reg.email; })[0];
+    var freeVerified = rows.filter(function (r) { return isFree(r) && r.bookVerified === "Ya" && r.status !== "Dibatalkan" && String(r.email).toLowerCase() === reg.email; })[0];
     if (dup) throw new Error("Email ini sudah terdaftar dengan no. pendaftaran " + dup.id +
       " (status: " + dup.status + "). Gunakan halaman Konfirmasi Pembayaran atau Portal Peserta.");
 
@@ -171,16 +196,20 @@ function register(o) {
     reg.createdAt = new Date().toISOString();
     reg.status = STATUSES[0];
     reg.price = CONFIG.CATEGORIES[reg.category];
+    reg.program = FULL;
+    if (book && book.ok) { reg.bookVerified = "Ya"; }
+    else if (freeVerified) { reg.bookOrderId = freeVerified.bookOrderId || "Kelas Gratis " + freeVerified.id; reg.bookVerified = "Ya"; }
+    reg.discount = reg.bookVerified === "Ya" ? Math.min(CONFIG.BOOK_DISCOUNT, reg.price) : 0;
     // Kode unik yang belum dipakai pendaftar lain yang belum membayar dengan tarif sama
     var used = {};
     rows.forEach(function (r) { if (r.status === STATUSES[0] || r.status === STATUSES[1]) used[Number(r.total)] = 1; });
     var U = CONFIG.UNIQUE_CODE, code = 0;
     for (var i = 0; i < 50; i++) {
       code = U.MIN + Math.floor(Math.random() * (U.MAX - U.MIN + 1));
-      if (!used[reg.price + code]) break;
+      if (!used[reg.price - reg.discount + code]) break;
     }
     reg.uniqueCode = code;
-    reg.total = reg.price + code;
+    reg.total = reg.price - reg.discount + code;
     reg.loginCount = 0;
     if (ktm) {
       var f = saveFile(ktm, reg.id + "_KTM");
@@ -193,13 +222,91 @@ function register(o) {
 
   sendMail(reg.email, "Tagihan Pendaftaran " + reg.id + " — Pelatihan " + shortName(),
     mailTemplate("Pendaftaran berhasil", "Halo <b>" + h(reg.name) + "</b>, terima kasih telah mendaftar.",
-      [["No. pendaftaran", reg.id], ["Kategori", reg.category], ["Biaya", rp(reg.price)], ["Kode unik", rp(reg.uniqueCode)],
-       ["<b>Total transfer</b>", "<b style='font-size:18px;color:#e879f9'>" + rp(reg.total) + "</b>"], ["Rekening", CONFIG.PAYMENT]],
+      [["No. pendaftaran", reg.id], ["Kategori", reg.category], ["Biaya", rp(reg.price)]].concat(reg.discount ? [["Potongan pembeli buku", "− " + rp(reg.discount)]] : []).concat([["Kode unik", rp(reg.uniqueCode)],
+       ["<b>Total transfer</b>", "<b style='font-size:18px;color:#e879f9'>" + rp(reg.total) + "</b>"], ["Rekening", CONFIG.PAYMENT]]),
       "Mohon transfer <b>tepat " + rp(reg.total) + "</b> (termasuk kode unik agar mudah diverifikasi), lalu unggah bukti transfer di:",
       CONFIG.SITE_URL + "konfirmasi.html?id=" + encodeURIComponent(reg.id), "Konfirmasi Pembayaran"));
   notifyAdmin("Pendaftar baru: " + reg.id, reg.name + " · " + reg.institution + "\n" + reg.category + " · " + rp(reg.total));
 
   return { ok: true, reg: publicReg(reg) };
+}
+
+/* ------- Kelas pra-pelatihan gratis (pembeli buku) ------- */
+function registerFree(o) {
+  var F = CONFIG.FREE_CLASS;
+  var s = function (v, max) { return String(v == null ? "" : v).trim().slice(0, max || 200); };
+  var reg = {
+    name: s(o.name, 100), email: s(o.email, 120).toLowerCase(), phone: s(o.phone, 20).replace(/[^\d+]/g, ""),
+    institution: s(o.institution, 150), profession: s(o.profession, 60), province: s(o.province, 60), city: s(o.city, 80),
+    source: s(o.source, 60), note: s(o.note, 500), bookOrderId: s(o.bookOrderId, 40).toUpperCase()
+  };
+  if (!reg.name || !reg.institution || !reg.city) throw new Error("Data pendaftaran belum lengkap");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(reg.email)) throw new Error("Alamat email tidak valid");
+  if (!/^(\+?62|0)8\d{7,12}$/.test(reg.phone)) throw new Error("Nomor WhatsApp tidak valid");
+  var proof = (o.bookProof && o.bookProof.data) ? checkFile(o.bookProof) : null;
+  var book = reg.bookOrderId ? checkBookOrder(reg.bookOrderId, reg.phone) : null;
+  if (reg.bookOrderId && !book.ok && !proof) throw new Error(book.reason + " Atau unggah foto bukti pembelian buku.");
+  if (!reg.bookOrderId && !proof) throw new Error("Masukkan no. pesanan buku, atau unggah foto bukti pembelian buku.");
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  var verified;
+  try {
+    var sheet = getSheet(), rows = readAll(sheet), st = stats(rows).free;
+    if (st.closed) throw new Error(!F.ENABLED ? "Kelas gratis belum dibuka." : st.remaining <= 0 ? "Maaf, kuota kelas gratis sudah penuh." : "Maaf, pendaftaran kelas gratis sudah ditutup.");
+    var dup = rows.filter(function (r) { return r.status !== "Dibatalkan" && isFree(r) && String(r.email).toLowerCase() === reg.email; })[0];
+    if (dup) throw new Error("Email ini sudah terdaftar di kelas gratis (no. " + dup.id + ", status: " + dup.status + "). Cek email Anda atau gunakan Lupa kode akses di halaman Masuk.");
+    var usedOrder = reg.bookOrderId && rows.filter(function (r) { return isFree(r) && r.status !== "Dibatalkan" && r.bookOrderId === reg.bookOrderId; })[0];
+    if (usedOrder) throw new Error("No. pesanan buku ini sudah dipakai untuk mendaftar kelas gratis.");
+
+    verified = !!(book && book.ok);
+    reg.id = newId();
+    reg.createdAt = new Date().toISOString();
+    reg.program = FREE;
+    reg.category = F.CATEGORY;
+    reg.price = 0; reg.uniqueCode = 0; reg.total = 0; reg.discount = 0; reg.loginCount = 0;
+    reg.bookVerified = verified ? "Ya" : "";
+    if (proof) reg.bookProofFileId = saveFile(proof, reg.id + "_BUKU").getId();
+    if (verified) { reg.status = "Aktif"; reg.accessCode = newAccessCode(); reg.activatedAt = new Date().toISOString(); }
+    else reg.status = "Menunggu Verifikasi";
+    writeRow(sheet, sheet.getLastRow() + 1, reg);
+  } finally {
+    lock.releaseLock();
+  }
+  var mailed = verified ? sendAccessMail(reg) : sendMail(reg.email, "Pendaftaran Kelas Gratis " + reg.id + " — publichealth.id",
+    mailTemplate("Pendaftaran kelas gratis diterima", "Halo <b>" + h(reg.name) + "</b>, terima kasih telah mendaftar kelas pra-pelatihan gratis.",
+      [["No. pendaftaran", reg.id], ["Status", "Menunggu verifikasi bukti pembelian buku"]],
+      "Admin akan memverifikasi bukti pembelian buku Anda (umumnya 1×24 jam). Kode akses dikirim ke email ini setelah diverifikasi.",
+      CONFIG.SITE_URL + "kelas-gratis.html", "Info Kelas Gratis"));
+  notifyAdmin("Pendaftar kelas gratis: " + reg.id, reg.name + " · " + reg.institution + (verified ? " (pesanan buku terverifikasi otomatis)" : " (perlu verifikasi bukti buku)"));
+  return { ok: true, reg: { id: reg.id, name: reg.name, status: reg.status, verified: verified }, mailed: mailed };
+}
+
+// Verifikasi pesanan buku ke Google Sheet aplikasi orderbuku (Script Property BOOK_SHEET_ID)
+function checkBookOrder(orderId, phone) {
+  var sid = PropertiesService.getScriptProperties().getProperty("BOOK_SHEET_ID");
+  if (!sid) return { ok: false, reason: "Verifikasi otomatis no. pesanan belum tersedia." };
+  var ss;
+  try { ss = SpreadsheetApp.openById(sid); } catch (e) { return { ok: false, reason: "Data pesanan buku tidak dapat dibaca." }; }
+  var sh = ss.getSheetByName("Orders");
+  if (!sh || sh.getLastRow() < 2) return { ok: false, reason: "No. pesanan buku tidak ditemukan." };
+  var vals = sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).getValues();
+  var H = vals[0].map(String), iId = H.indexOf("id"), iSt = H.indexOf("status"), iPh = H.indexOf("phone");
+  var id = String(orderId || "").trim().toUpperCase();
+  for (var i = 1; i < vals.length; i++) {
+    if (String(vals[i][iId]).toUpperCase() !== id) continue;
+    if (normPhone(vals[i][iPh]) !== normPhone(phone)) { Utilities.sleep(600); return { ok: false, reason: "No. pesanan dan no. WhatsApp tidak cocok dengan data pesanan buku." }; }
+    if (CONFIG.BOOK_PAID_STATUSES.indexOf(String(vals[i][iSt])) < 0) return { ok: false, reason: "Pesanan buku " + id + " belum lunas (status: " + vals[i][iSt] + ")." };
+    return { ok: true, status: vals[i][iSt] };
+  }
+  Utilities.sleep(600);
+  return { ok: false, reason: "No. pesanan buku " + id + " tidak ditemukan." };
+}
+
+// Cek publik (untuk pratinjau potongan di formulir): hanya ya/tidak, tanpa data pribadi
+function checkBookPublic(b) {
+  var r = checkBookOrder(b.orderId, b.phone);
+  return { ok: true, valid: r.ok, reason: r.ok ? "" : r.reason, discount: r.ok ? CONFIG.BOOK_DISCOUNT : 0 };
 }
 
 function confirmPayment(b) {
@@ -249,8 +356,8 @@ function login(b) {
   lock.waitLock(20000);
   try {
     var sheet = getSheet();
-    var hit = findByEmail(sheet, email);
-    if (!hit || !hit.rec.accessCode || normCode(hit.rec.accessCode) !== code) {
+    var hit = findByEmailCode(sheet, email, code);
+    if (!hit) {
       Utilities.sleep(1000);
       throw new Error("Email atau kode akses salah");
     }
@@ -261,11 +368,11 @@ function login(b) {
       rec.loginCount = (Number(rec.loginCount) || 0) + 1;
       writeRow(sheet, hit.row, rec);
     }
-    var P = PropertiesService.getScriptProperties();
-    var key = materiKey();
+    var P = PropertiesService.getScriptProperties(), free = isFree(rec);
+    var keyFree = materiKey("MATERI_KEY_FREE");
     return {
-      ok: true, key: key,
-      zoom: P.getProperty("ZOOM_LINK") || "", waGroup: P.getProperty("WA_GROUP_LINK") || "",
+      ok: true, key: free ? "" : materiKey(), keyFree: keyFree,
+      zoom: P.getProperty(free ? "ZOOM_LINK_FREE" : "ZOOM_LINK") || "", waGroup: P.getProperty(free ? "WA_GROUP_LINK_FREE" : "WA_GROUP_LINK") || "",
       participant: participantView(rec)
     };
   } finally {
@@ -275,8 +382,9 @@ function login(b) {
 
 function forgot(b) {
   var email = String(b.email || "").trim().toLowerCase();
-  var hit = email ? findByEmail(getSheet(), email) : null;
-  if (hit && ACTIVE.indexOf(hit.rec.status) >= 0 && hit.rec.accessCode) sendAccessMail(hit.rec);
+  if (email) readAll().forEach(function (r) {
+    if (String(r.email).toLowerCase() === email && ACTIVE.indexOf(r.status) >= 0 && r.accessCode) sendAccessMail(r);
+  });
   Utilities.sleep(600);
   // Jawaban sama untuk semua kasus agar email terdaftar tidak bisa ditebak
   return { ok: true, message: "Jika email terdaftar dan akses sudah aktif, kode akses telah dikirim ulang ke email tersebut." };
@@ -289,8 +397,8 @@ function track(b) {
   lock.waitLock(20000);
   try {
     var sheet = getSheet();
-    var hit = findByEmail(sheet, String(b.email || "").trim().toLowerCase());
-    if (!hit || normCode(hit.rec.accessCode) !== normCode(b.code) || ACTIVE.indexOf(hit.rec.status) < 0) return { ok: false, error: "Sesi tidak valid" };
+    var hit = findByEmailCode(sheet, String(b.email || "").trim().toLowerCase(), normCode(b.code));
+    if (!hit || ACTIVE.indexOf(hit.rec.status) < 0) return { ok: false, error: "Sesi tidak valid" };
     var list = String(hit.rec.progress || "").split(",").filter(String);
     if (list.indexOf(slug) < 0) {
       list.push(slug);
@@ -316,12 +424,13 @@ function invoice(b) {
   var sheet = getSheet(), id = String(b.id || "").trim().toUpperCase(), rec;
   if (b.key) { requireAdmin(b.key); rec = readRow(sheet, findRow(sheet, id)); }
   else rec = findOwned(sheet, id, b.contact).rec;
+  if (isFree(rec)) throw new Error("Kelas gratis tidak memiliki invoice/kuitansi.");
   var paid = ACTIVE.indexOf(rec.status) >= 0;
   return { ok: true, doc: {
     id: rec.id, invoiceNo: "INV/" + rec.id, receiptNo: paid ? rec.receiptNo : "", status: rec.status, paid: paid,
     createdAt: rec.createdAt, paidAt: paid ? rec.activatedAt : "", name: rec.name, email: rec.email, phone: rec.phone,
     institution: rec.institution, city: rec.city, province: rec.province, category: rec.category,
-    price: Number(rec.price), uniqueCode: Number(rec.uniqueCode), total: Number(rec.total),
+    price: Number(rec.price), uniqueCode: Number(rec.uniqueCode), total: Number(rec.total), discount: Number(rec.discount) || 0, bookOrderId: rec.bookOrderId,
     payerName: rec.payerName, paidAmount: Number(rec.paidAmount) || 0, proofAt: rec.proofAt,
     training: CONFIG.TRAINING, batch: CONFIG.BATCH, payment: CONFIG.PAYMENT
   } };
@@ -330,9 +439,9 @@ function invoice(b) {
 /* ------- Evaluasi pelatihan ------- */
 function sessionRec(b) {
   var sheet = getSheet();
-  var hit = findByEmail(sheet, String(b.email || "").trim().toLowerCase());
-  if (!hit || !hit.rec.accessCode || normCode(hit.rec.accessCode) !== normCode(b.code) || ACTIVE.indexOf(hit.rec.status) < 0)
-    throw new Error("Sesi tidak valid. Silakan masuk kembali.");
+  var hit = findByEmailCode(sheet, String(b.email || "").trim().toLowerCase(), normCode(b.code));
+  if (!hit || ACTIVE.indexOf(hit.rec.status) < 0) throw new Error("Sesi tidak valid. Silakan masuk kembali.");
+  if (isFree(hit.rec)) throw new Error("Evaluasi hanya untuk peserta pelatihan penuh.");
   return { sheet: sheet, row: hit.row, rec: hit.rec };
 }
 
@@ -418,7 +527,9 @@ function updateReg(id, fields) {
         rec.activatedAt = new Date().toISOString();
         becameActive = true;
       }
-      if (ACTIVE.indexOf(fields.status) >= 0 && !rec.receiptNo) rec.receiptNo = newSeqNo("RECEIPT_SEQ", CONFIG.RECEIPT_PREFIX);
+      if (ACTIVE.indexOf(fields.status) >= 0 && !rec.receiptNo && !isFree(rec)) rec.receiptNo = newSeqNo("RECEIPT_SEQ", CONFIG.RECEIPT_PREFIX);
+      if (fields.status === "Lulus" && isFree(rec)) throw new Error("Peserta kelas gratis tidak memiliki status Lulus/sertifikat pelatihan penuh");
+      if (ACTIVE.indexOf(fields.status) >= 0 && isFree(rec) && !rec.bookVerified) rec.bookVerified = "Ya";
       if (fields.status === "Lulus" && !rec.certNo) {
         rec.certNo = newCertNo();
         rec.certDate = Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd");
@@ -450,7 +561,7 @@ function resendAccess(id) {
 function getFile(id, kind) {
   var sheet = getSheet();
   var rec = readRow(sheet, findRow(sheet, id));
-  var fid = kind === "ktm" ? rec.ktmFileId : rec.proofFileId;
+  var fid = kind === "ktm" ? rec.ktmFileId : kind === "book" ? rec.bookProofFileId : rec.proofFileId;
   if (!fid) throw new Error("File tidak ditemukan");
   var file = DriveApp.getFileById(fid);
   var blob = file.getBlob();
@@ -475,6 +586,14 @@ function deleteReg(id) {
 /* ======================= Email ======================= */
 
 function sendAccessMail(rec) {
+  if (isFree(rec)) {
+    return sendMail(rec.email, "Kode Akses Kelas Gratis — publichealth.id · " + rec.id, mailTemplate("Akses kelas gratis aktif 🎉",
+      "Halo <b>" + h(rec.name) + "</b>, terima kasih telah membeli buku kami. Selamat bergabung di kelas pra-pelatihan gratis!",
+      [["No. pendaftaran", rec.id], ["Email login", rec.email],
+       ["<b>Kode akses</b>", "<b style='font-family:monospace;font-size:20px;letter-spacing:2px;color:#e879f9'>" + h(rec.accessCode) + "</b>"]],
+      "Masuk ke Portal Peserta untuk membuka materi pengenalan R, RStudio & Quarto serta tautan Zoom kelas gratis:",
+      CONFIG.SITE_URL + "masuk.html?email=" + encodeURIComponent(rec.email), "Buka Portal Peserta"));
+  }
   var body = mailTemplate("Akses pelatihan aktif 🎉",
     "Halo <b>" + h(rec.name) + "</b>, pembayaran Anda telah kami verifikasi. Selamat bergabung!",
     [["No. pendaftaran", rec.id], ["Email login", rec.email],
@@ -519,12 +638,12 @@ function mailTemplate(title, intro, rows, ctaText, ctaUrl, ctaLabel) {
 
 function publicReg(r) {
   // Data minimal untuk publik (tanpa kontak & kode akses)
-  return { id: r.id, name: r.name, category: r.category, status: r.status, price: Number(r.price),
+  return { id: r.id, name: r.name, category: r.category, status: r.status, price: Number(r.price), discount: Number(r.discount) || 0, program: r.program || FULL,
     uniqueCode: Number(r.uniqueCode), total: Number(r.total), createdAt: r.createdAt };
 }
 
 function participantView(r) {
-  return { id: r.id, name: r.name, email: r.email, institution: r.institution, category: r.category, status: r.status,
+  return { program: isFree(r) ? FREE : FULL, bookDiscount: CONFIG.BOOK_DISCOUNT, id: r.id, name: r.name, email: r.email, institution: r.institution, category: r.category, status: r.status,
     evalDone: !!r.evalAt, evalOpen: CONFIG.EVAL_OPEN, evalRequired: CONFIG.EVAL_REQUIRED_FOR_CERT,
     // Sertifikat ditahan sampai evaluasi diisi (bila diwajibkan)
     certIssued: r.status === "Lulus" && !!r.certNo,
@@ -561,6 +680,18 @@ function findOwned(sheet, id, contact) {
     throw new Error("No. pendaftaran dan email/WhatsApp tidak cocok");
   }
   return { row: row, rec: rec };
+}
+
+// Baris peserta dengan email & kode akses yang cocok (satu email bisa terdaftar di kelas gratis & pelatihan penuh)
+function findByEmailCode(sheet, email, code) {
+  var n = sheet.getLastRow() - 1;
+  if (n < 1 || !email || !code) return null;
+  var iEmail = HEADERS.indexOf("email"), iCode = HEADERS.indexOf("accessCode"), iStatus = HEADERS.indexOf("status");
+  var vals = sheet.getRange(2, 1, n, HEADERS.length).getValues();
+  for (var i = vals.length - 1; i >= 0; i--)
+    if (String(vals[i][iEmail]).toLowerCase() === email && vals[i][iCode] && normCode(vals[i][iCode]) === code && vals[i][iStatus] !== "Dibatalkan")
+      return { row: i + 2, rec: rowToObj(vals[i]) };
+  return null;
 }
 
 function findByEmail(sheet, email) {

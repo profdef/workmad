@@ -170,6 +170,33 @@ GitHub Actions di repo `phid` merender & menerbitkan publichealth.id otomatis.
 di repo `workmad` buat file `CNAME` berisi `pelatihan.publichealth.id`, lalu Settings → Pages → Custom domain → *Enforce HTTPS*.
 Setelah itu ganti `training-url` (phid) dan `CONFIG.SITE_URL` (Code.gs) ke `https://pelatihan.publichealth.id/`.
 
+## Kelas pra-pelatihan GRATIS untuk pembeli buku
+
+Halaman `kelas-gratis.html` (menu **Kelas Gratis** & banner di beranda). Alurnya:
+1. Pembeli buku mendaftar dengan **no. pesanan buku** (aplikasi orderbuku) + no. WhatsApp yang sama → server mencocokkan ke
+   Google Sheet orderbuku; bila pesanan berstatus *Dibayar/Diproses/Dikirim/Selesai* → **langsung Aktif** & kode akses dikirim.
+   Buku dibeli di tempat lain → unggah **foto bukti pembelian** → admin memverifikasi di dashboard (filter *Kelas gratis*).
+2. Peserta gratis login di Portal: hanya **5 modul pengenalan** (Tentang Buku, Pendahuluan, Bab 6–8) yang terbuka; modul lain
+   terkunci (dienkripsi dengan kunci berbeda). Tab **Jadwal & Zoom** menampilkan kelas gratis; tab **⭐ Pelatihan Penuh** berisi penawaran.
+3. Saat mendaftar pelatihan penuh dengan **email yang sama** atau **no. pesanan buku** yang valid, server memberi **potongan**
+   (`CONFIG.BOOK_DISCOUNT`), tercantum di tagihan, email, dan invoice. Kode akses kelas gratis tetap berlaku terpisah.
+
+Pengaturan:
+- `FREE_CLASS` di `assets/config.js` (judul, tanggal, agenda, kuota, potongan, tautan toko buku) dan `CONFIG.FREE_CLASS`,
+  `CONFIG.BOOK_DISCOUNT` di `Code.gs` (samakan kuota, tanggal tutup, potongan).
+- Daftar modul gratis: `FREE_DECKS` di `tools/build-materi.mjs` (lalu build ulang).
+- **Script Properties** tambahan:
+
+  | Property | Isi |
+  |---|---|
+  | `MATERI_KEY_FREE` | isi file `.materi-key-free` (`tr -d '\n' < .materi-key-free \| pbcopy`) |
+  | `BOOK_SHEET_ID` | ID Google Sheet aplikasi orderbuku (bagian URL di antara `/d/` dan `/edit`) |
+  | `ZOOM_LINK_FREE` | tautan Zoom kelas gratis |
+  | `WA_GROUP_LINK_FREE` | tautan grup WA kelas gratis (opsional) |
+
+  Sheet orderbuku harus milik akun Google yang sama dengan Apps Script ini. Setelah menempel `Code.gs` baru, jalankan `setup()`
+  sekali (izin membaca spreadsheet lain) lalu **Deploy → Manage deployments → Edit → New version**.
+
 ## Memperbarui situs (hindari cache browser)
 
 Setiap kali mengubah file situs lalu push, **naikkan versi** di dua tempat dengan nilai yang sama:

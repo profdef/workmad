@@ -8,7 +8,7 @@
   <title>Portal Peserta · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=10">
+  <link rel="stylesheet" href="assets/style.css?v=12">
 </head>
 <body>
   <div id="topbar"></div>
@@ -37,6 +37,7 @@
         <button type="button" data-tab="unduh">⬇ Paket Latihan</button>
         <button type="button" data-tab="evaluasi">📝 Evaluasi</button>
         <button type="button" data-tab="sertifikat">🎓 Sertifikat</button>
+        <button type="button" data-tab="upgrade" class="hidden">⭐ Pelatihan Penuh</button>
         <button type="button" data-tab="profil">👤 Profil</button>
       </div>
 
@@ -70,17 +71,19 @@
 
       <section data-pane="sertifikat" class="hidden"><div class="card" id="certBox"></div></section>
 
+      <section data-pane="upgrade" class="hidden"><div class="card" id="upgradeBox"></div></section>
+
       <section data-pane="profil" class="hidden"><div class="card"><dl class="kv" id="profile"></dl>
         <p class="small muted" style="margin:16px 0 0">Ada data yang salah (mis. penulisan nama untuk sertifikat)? <a id="waFix" target="_blank" rel="noopener">Hubungi admin via WhatsApp</a>.</p></div></section>
     </div>
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=9"></script>
-  <script src="assets/api.js?v=5"></script>
-  <script src="assets/common.js?v=9"></script>
-  <script src="assets/materi.js?v=5"></script>
-  <script src="materi/catalog.js?v=5"></script>
+  <script src="assets/config.js?v=11"></script>
+  <script src="assets/api.js?v=11"></script>
+  <script src="assets/common.js?v=12"></script>
+  <script src="assets/materi.js?v=11"></script>
+  <script src="materi/catalog.js?v=11"></script>
   <script>
   (async function () {
     const C = APP_CONFIG;
@@ -94,7 +97,8 @@
       const cached = sessionStorage.getItem("mad_login");
       data = cached ? JSON.parse(cached) : await API.login(s.email, s.code, true);
       sessionStorage.removeItem("mad_login");
-      if (data.key !== s.key) Session.set(Object.assign(s, { key: data.key })); // materi diperbarui → kunci baru
+      if (data.key !== s.key || data.keyFree !== s.keyFree || data.participant.program !== s.program)
+        Session.set(Object.assign(s, { key: data.key, keyFree: data.keyFree, program: data.participant.program })); // kunci terbaru
     } catch (e) {
       $("loading").classList.add("hidden");
       $("errBox").classList.remove("hidden");
@@ -110,6 +114,14 @@
     $("pName").textContent = p.name;
     $("pId").textContent = p.id;
     $("pStatus").innerHTML = statusBadge(p.status);
+    const FREEP = p.program === "Gratis", FC = C.FREE_CLASS;
+    if (FREEP) {
+      $("pBatch").textContent = "Kelas Gratis Pembeli Buku";
+      $("pStatus").insertAdjacentHTML("afterend", ' <span class="badge st-aktif">Kelas Gratis</span>');
+      // Kelas gratis: tanpa paket latihan, evaluasi & sertifikat; tampilkan ajakan pelatihan penuh
+      ["unduh", "evaluasi", "sertifikat"].forEach((t) => document.querySelector('[data-tab="' + t + '"]').classList.add("hidden"));
+      document.querySelector('[data-tab="upgrade"]').classList.remove("hidden");
+    }
     $("logout").addEventListener("click", (e) => { e.preventDefault(); Session.clear(); location.href = "index.html"; });
 
     // Tab
@@ -125,12 +137,20 @@
     // Materi + progres
     const M = window.MATERI || { parts: [], downloads: [] };
     const done = new Set(p.progress || []);
-    const all = M.parts.flatMap((x) => x.decks);
+    const all = M.parts.flatMap((x) => x.decks).filter((d) => !FREEP || d.free);
+    if (FREEP) $("decks").insertAdjacentHTML("beforebegin", '<div class="alert alert-warn" style="margin-top:0">Kelas gratis membuka <b>' + all.length +
+      ' modul pengenalan</b> (bertanda “gratis”). Modul lain 🔒 terbuka di pelatihan penuh — pembeli buku mendapat potongan ' + rupiah(p.bookDiscount || FC.bookDiscount) +
+      '. <a href="#" id="toUpgrade">Lihat penawaran →</a></div>');
     $("decks").innerHTML = M.parts.map((part) =>
       '<h3 class="part"><span>' + esc(part.label) + "</span> " + esc(part.title) + '</h3><div class="grid">' +
-      part.decks.map((d) => '<a class="deck' + (done.has(d.slug) ? " done" : "") + '" href="materi/view.html?d=' + encodeURIComponent(d.slug) +
-        '"><div class="n">' + esc(d.n) + '</div><div><div class="tt">' + esc(d.title) + '</div><div class="ds">' + esc(d.desc) +
-        '</div></div><div class="tick">' + (done.has(d.slug) ? "✓ dibuka" : "baru") + "</div></a>").join("") + "</div>").join("");
+      part.decks.map((d) => {
+        const locked = FREEP && !d.free;
+        const inner = '<div class="n">' + esc(d.n) + '</div><div><div class="tt">' + esc(d.title) + '</div><div class="ds">' + esc(d.desc) + "</div></div>";
+        return locked
+          ? '<div class="deck locked" title="Terbuka di pelatihan penuh">' + inner + '<div class="tick">pelatihan penuh</div></div>'
+          : '<a class="deck' + (done.has(d.slug) ? " done" : "") + '" href="materi/view.html?d=' + encodeURIComponent(d.slug) + '">' + inner +
+            '<div class="tick">' + (done.has(d.slug) ? "✓ dibuka" : FREEP ? "gratis" : "baru") + "</div></a>";
+      }).join("") + "</div>").join("");
     const n = all.filter((d) => done.has(d.slug)).length, pct = all.length ? Math.round((n / all.length) * 100) : 0;
     $("pDone").textContent = n; $("pTotal").textContent = all.length; $("pPct").textContent = pct + "%";
     $("ring").setAttribute("stroke-dasharray", pct + " 100");
@@ -140,9 +160,13 @@
       ? '<div class="bank"><div><div class="small muted">' + icon + " " + label + '</div><div style="word-break:break-all"><a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(url) + "</a></div></div>" +
         '<button class="btn btn-sm" type="button" data-copy="' + esc(url) + '">Salin</button></div>'
       : '<div class="bank"><div><div class="small muted">' + icon + " " + label + "</div><div class=\"muted\">Akan diumumkan admin</div></div></div>";
-    $("links").innerHTML = link("Zoom Meeting", data.zoom, "🎥") + link("Grup WhatsApp peserta", data.waGroup, "💬");
+    $("links").innerHTML = link(FREEP ? "Zoom Kelas Gratis" : "Zoom Meeting", data.zoom, "🎥") + link(FREEP ? "Grup WhatsApp kelas gratis" : "Grup WhatsApp peserta", data.waGroup, "💬");
     bindCopy($("links"));
-    $("sessions").innerHTML = C.SESSIONS.map((x, i) =>
+    if (FREEP) $("sessions").innerHTML =
+      '<div class="tl"><div class="no">KELAS</div><div><div class="t">' + esc(FC.title) + '</div><div class="d">' + esc(FC.mode) +
+      '</div></div><div class="w"><b>' + esc(FC.date) + "</b><br>" + esc(FC.time) + "</div></div>" +
+      FC.agenda.map(([t, a]) => '<div class="tl"><div class="no">' + esc(t) + '</div><div><div class="t" style="font-weight:500">' + esc(a) + "</div></div><div></div></div>").join("");
+    else $("sessions").innerHTML = C.SESSIONS.map((x, i) =>
       '<div class="tl"><div class="no">SESI ' + (i + 1) + '</div><div><div class="t">' + esc(x.topic) + '</div><div class="d">' + esc(x.decks) +
       '</div></div><div class="w"><b>' + esc(x.date) + "</b><br>" + esc(x.time) + "</div></div>").join("");
 
@@ -184,11 +208,24 @@
       : "<h3>Sertifikat belum tersedia</h3><p class=\"muted\">E-sertifikat (" + p.jp + " JP) terbit setelah Anda mengikuti sesi live dan menyelesaikan tugas akhir. " +
         "Admin akan mengubah status Anda menjadi <b>Lulus</b>, lalu sertifikat dapat diunduh di sini.</p>";
 
+    // Ajakan pelatihan penuh (kelas gratis)
+    if (FREEP) {
+      const cats = Object.entries(C.CATEGORIES), disc = p.bookDiscount || FC.bookDiscount;
+      $("upgradeBox").innerHTML = '<div class="eyebrow">Penawaran Pembeli Buku</div><h2 style="margin-top:.4em">Lanjutkan ke Pelatihan Penuh</h2>' +
+        '<p class="muted">20 modul lengkap, 6 sesi live, paket latihan RStudio, evaluasi, dan e-sertifikat 18 JP. Sebagai pembeli buku, Anda mendapat potongan <b style="color:#fff">' + rupiah(disc) + "</b>.</p>" +
+        '<div class="prices" style="margin:14px 0">' + cats.map(([n, c]) => '<div class="price-card"><div class="cat">' + esc(n) +
+          '</div><div class="small muted" style="text-decoration:line-through">' + rupiah(c.price) + '</div><div class="amt grad">' + rupiah(Math.max(0, c.price - disc)) + "</div></div>").join("") + "</div>" +
+        '<a class="btn btn-primary btn-lg" href="daftar.html?buku=1">Daftar Pelatihan Penuh dengan Potongan →</a>' +
+        '<p class="small muted" style="margin-top:10px">Gunakan email yang sama (' + esc(p.email) + ") agar potongan otomatis diterapkan.</p>";
+      const tu = document.getElementById("toUpgrade");
+      if (tu) tu.addEventListener("click", (e) => { e.preventDefault(); show("upgrade"); });
+    }
+
     // Profil
     $("profile").innerHTML = [["No. pendaftaran", p.id], ["Nama", p.name], ["Email", p.email], ["Instansi", p.institution], ["Kategori", p.category]]
       .map(([k, v]) => "<dt>" + k + "</dt><dd>" + esc(v) + "</dd>").join("") + "<dt>Status</dt><dd>" + statusBadge(p.status) + "</dd>" +
-      '<dt>Pembayaran</dt><dd><button class="btn btn-sm" type="button" id="docBtn">🧾 Cetak kuitansi pembayaran</button></dd>';
-    $("docBtn").addEventListener("click", () => { sessionStorage.setItem("mad_doc", JSON.stringify({ id: p.id, contact: p.email })); location.href = "invoice.html"; });
+      (FREEP ? "" : '<dt>Pembayaran</dt><dd><button class="btn btn-sm" type="button" id="docBtn">🧾 Cetak kuitansi pembayaran</button></dd>');
+    if (!FREEP) $("docBtn").addEventListener("click", () => { sessionStorage.setItem("mad_doc", JSON.stringify({ id: p.id, contact: p.email })); location.href = "invoice.html"; });
     $("waFix").href = "https://wa.me/" + C.ADMIN_WA + "?text=" + encodeURIComponent("Halo Admin, saya " + p.name + " (" + p.id + ") ingin memperbaiki data: ");
   })();
   </script>
