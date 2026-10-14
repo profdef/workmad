@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="assets/brand/favicon.png">
   <title>Pelatihan Online · Manajemen & Analisis Data Epidemiologi dengan R, RStudio & Quarto</title>
   <meta name="description" content="Pelatihan online Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat menggunakan R, RStudio & Quarto bersama Prof. Defriman Djafri, SKM, MKM, PhD.">
   <meta property="og:title" content="Pelatihan Online: Manajemen & Analisis Data Epidemiologi dengan R, RStudio & Quarto">
   <meta property="og:image" content="assets/cover.jpg">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23a855f7'/><text x='16' y='23' font-size='18' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>R</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css?v=1">
@@ -26,7 +26,9 @@
           <a class="btn btn-primary btn-lg" href="daftar.html" id="ctaDaftar">Daftar Sekarang →</a>
           <a class="btn btn-lg" href="#kurikulum">Lihat Kurikulum</a>
         </div>
-        <div class="author"><b id="instr"></b><br><span id="aff"></span></div>
+        <div class="author"><span class="muted">Narasumber</span><br><b id="instr"></b></div>
+        <a class="organizer" href="https://publichealth.id/id/index.html" target="_blank" rel="noopener">
+          <span>Diselenggarakan oleh</span><img src="assets/brand/logo-full-dark.png" alt="publichealth.id — Better Health, Brighter Future"></a>
       </div>
       <div class="book"><img src="assets/cover.jpg" alt="Sampul buku Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat"></div>
     </section>
@@ -95,7 +97,6 @@
     const $ = (id) => document.getElementById(id);
     $("batch").textContent = T.batch;
     $("instr").textContent = T.instructor;
-    $("aff").textContent = T.affiliation;
     $("closeDate").textContent = fmtDate(T.closeDate + "T12:00:00+07:00");
     $("chips").innerHTML = ["🖥 " + T.mode, "⏱ " + T.hours, "🎓 E-sertifikat"].map((t) => '<span class="chip">' + esc(t) + "</span>").join("");
     $("benefits").innerHTML = C.BENEFITS.map((b, i) => '<div class="feature"><div class="ic">' + "✦▣◎✎⌘∞"[i % 6] + "</div><div>" + esc(b) + "</div></div>").join("");

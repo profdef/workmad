@@ -13,14 +13,22 @@ window.APP_CONFIG = {
   TRAINING: {
     title: "Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat",
     subtitle: "Menggunakan R, RStudio & Quarto",
-    tagline: "Better Data · Better Analysis · Healthier Society",
     batch: "Angkatan I · November 2026",
     mode: "Online (Zoom) + akses materi mandiri",
     hours: "6 sesi × 3 jam (18 JP)",
     instructor: "Prof. Defriman Djafri, SKM, MKM, PhD",
-    affiliation: "Fakultas Kesehatan Masyarakat, Universitas Andalas",
     email: "defrimandjafri@ph.unand.ac.id",
     closeDate: "2026-11-05", // pendaftaran ditutup setelah tanggal ini (YYYY-MM-DD, WIB)
+  },
+
+  // Penyelenggara (logo & moto dari https://publichealth.id)
+  ORGANIZER: {
+    name: "publichealth.id",
+    url: "https://publichealth.id/id/index.html",
+    motto: "Better Health, Brighter Future",
+    logo: "assets/brand/logo-full.png",          // untuk latar terang (sertifikat)
+    logoDark: "assets/brand/logo-full-dark.png", // untuk latar gelap (web)
+    icon: "assets/brand/favicon.png",
   },
 
   // Kategori peserta & biaya (Rp). Samakan dengan CONFIG.CATEGORIES di Code.gs.

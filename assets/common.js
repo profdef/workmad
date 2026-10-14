@@ -2,6 +2,7 @@
 (function () {
   const C = window.APP_CONFIG;
   const T = C.TRAINING;
+  const O = C.ORGANIZER;
 
   window.renderChrome = function (active) {
     const s = window.Session && Session.get();
@@ -19,15 +20,17 @@
     if (top) top.outerHTML =
       (API.isDemo ? '<div class="demo-banner">Mode demo: data hanya tersimpan di browser ini. Kunci admin <b>admin123</b>. Isi <span class="mono">API_URL</span> di assets/config.js untuk produksi.</div>' : "") +
       '<header class="topbar"><div class="container">' +
-        '<a class="brand" href="index.html"><span class="logo">R</span><span>Pelatihan MAD-R<small>' + esc(T.batch) + "</small></span></a>" +
+        '<a class="brand" href="index.html"><img class="logo" src="' + O.icon + '" alt="publichealth.id"><span>Pelatihan MAD-R<small>' + esc(O.name) + " · " + esc(T.batch) + "</small></span></a>" +
         "<nav>" + nav + right + "</nav>" +
       "</div></header>";
     const foot = document.getElementById("footer");
     if (foot) foot.outerHTML =
       '<footer class="foot"><div class="container">' +
-        "<div><b style=\"color:#fff\">" + esc(T.title) + "</b><br>" + esc(T.subtitle) + " · " + esc(T.instructor) + "<br>" + esc(T.affiliation) + "</div>" +
+        '<div class="foot-brand"><a href="' + esc(O.url) + '" target="_blank" rel="noopener"><img src="' + O.logoDark + '" alt="publichealth.id — ' + esc(O.motto) + '"></a>' +
+        "<div>Pelatihan Online <b style=\"color:#fff\">" + esc(T.title) + " " + esc(T.subtitle) + "</b><br>Narasumber: " + esc(T.instructor) + "<br>Diselenggarakan oleh " +
+        '<a href="' + esc(O.url) + '" target="_blank" rel="noopener">publichealth.id</a></div></div>' +
         '<div>WhatsApp admin: <a href="https://wa.me/' + C.ADMIN_WA + '" target="_blank" rel="noopener">+' + C.ADMIN_WA + "</a><br>" +
-        'Email: <a href="mailto:' + esc(T.email) + '">' + esc(T.email) + "</a><br>" + esc(T.tagline) + "</div>" +
+        'Email: <a href="mailto:' + esc(T.email) + '">' + esc(T.email) + "</a><br>Web: <a href=\"" + esc(O.url) + "\" target=\"_blank\" rel=\"noopener\">publichealth.id</a><br><i>" + esc(O.motto) + "</i></div>" +
       "</div></footer>";
   };
 

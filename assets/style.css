@@ -286,3 +286,14 @@ dialog .dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px
 @media print {
   .no-print, .topbar, footer.foot { display: none !important; }
 }
+
+/* ---------- Penyelenggara: publichealth.id ---------- */
+.brand img.logo { width: 34px; height: 34px; border-radius: 50%; background: none; box-shadow: 0 0 14px rgba(239,68,68,.35); }
+.organizer { display: inline-flex; align-items: center; gap: 14px; margin-top: 16px; padding: 10px 16px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--border-soft); text-decoration: none; transition: border-color .15s; }
+.organizer:hover { border-color: rgba(239,68,68,.6); }
+.organizer span { font-size: 12px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.organizer img { height: 38px; width: auto; display: block; }
+.foot-brand { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; max-width: 640px; }
+.foot-brand img { height: 44px; width: auto; display: block; }
+@media (max-width: 480px) { .organizer { flex-direction: column; align-items: flex-start; gap: 6px; } .organizer img { height: 32px; } }

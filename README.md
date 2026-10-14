@@ -4,6 +4,9 @@
 
 Frontend statis di **GitHub Pages**, backend **Google Apps Script** (Google Sheets + Drive + Gmail): gratis, tanpa server.
 Desain mengikuti template slide `../ppt/theme/mad-theme.scss` (navy–nila, ungu–magenta–cyan, Poppins + Plus Jakarta Sans).
+Penyelenggara: **publichealth.id** — *Better Health, Brighter Future*. Logo di `assets/brand/` (disalin dari repo `phid/images`)
+tampil di header, hero, footer, email, dan sertifikat; nama/moto/tautan diatur di `ORGANIZER` (`assets/config.js`) dan
+`CONFIG.ORGANIZER`/`MOTTO` (`Code.gs`).
 
 | Halaman | Untuk | Fungsi |
 |---|---|---|
@@ -45,6 +48,7 @@ yang login dengan kode akses benar; browser peserta lalu mendekripsi materi. Pus
 │   ├── materi.js      ← dekripsi materi di browser
 │   ├── admin.js       ← dashboard
 │   ├── gas-mock.js    ← tiruan layanan Google (mode demo & uji)
+│   ├── brand/         ← logo publichealth.id (terang, gelap, ikon .id)
 │   └── cover.jpg
 ├── materi/            ← HASIL BUILD (jangan diedit manual)
 │   ├── enc/*.bin      ← 20 deck + paket latihan terenkripsi

@@ -32,6 +32,8 @@ var CONFIG = {
   SITE_URL: "https://profdef.github.io/workmad/", // alamat GitHub Pages (untuk tautan di email)
   PAYMENT: "Bank BNI 46 · 0214815784 · a.n. Defriman Djafri",
   ADMIN_WA: "6281310603106",
+  ORGANIZER: "publichealth.id",
+  MOTTO: "Better Health, Brighter Future",
   CERT_PREFIX: "MAD-R/2026/",
   CERT_JP: 18,
   PROOF_MAX_MB: 5,
@@ -359,7 +361,7 @@ function sendMail(to, subject, html) {
   if (!CONFIG.SEND_EMAIL || !to) return false;
   try {
     if (MailApp.getRemainingDailyQuota() < 1) return false;
-    MailApp.sendEmail({ to: to, subject: subject, htmlBody: html, name: "Pelatihan MAD-R · Prof. Defriman Djafri" });
+    MailApp.sendEmail({ to: to, subject: subject, htmlBody: html, name: "Pelatihan MAD-R · publichealth.id" });
     return true;
   } catch (e) { return false; }
 }
@@ -375,13 +377,15 @@ function mailTemplate(title, intro, rows, ctaText, ctaUrl, ctaLabel) {
   }).join("");
   return "<div style='background:#070b2b;padding:28px 12px;font-family:Arial,Helvetica,sans-serif'>" +
     "<div style='max-width:560px;margin:0 auto;background:#0d1340;border:1px solid #5b2bd6;border-radius:16px;padding:28px;color:#e9e8ff'>" +
+    "<img src='" + CONFIG.SITE_URL + "assets/brand/logo-full-dark.png' alt='publichealth.id — " + h(CONFIG.MOTTO) + "' width='200' style='display:block;width:200px;height:auto;margin-bottom:18px'>" +
     "<div style='font-size:11px;letter-spacing:3px;color:#38bdf8;text-transform:uppercase;font-weight:bold'>Pelatihan Online · " + h(CONFIG.BATCH) + "</div>" +
     "<div style='font-size:15px;font-weight:bold;color:#fff;margin:6px 0 18px'>" + h(CONFIG.TRAINING) + "</div>" +
     "<h2 style='color:#fff;margin:0 0 8px;font-size:22px'>" + title + "</h2><p style='line-height:1.6'>" + intro + "</p>" +
     "<table style='border-collapse:collapse;font-size:14px;margin:12px 0'>" + tr + "</table>" +
     "<p style='line-height:1.6'>" + ctaText + "</p>" +
     "<p><a href='" + ctaUrl + "' style='display:inline-block;background:linear-gradient(90deg,#a855f7,#e879f9);color:#fff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:999px'>" + ctaLabel + "</a></p>" +
-    "<p style='font-size:12px;color:#a9acd9;margin-top:24px'>Pertanyaan? WhatsApp admin: +" + CONFIG.ADMIN_WA + "</p></div></div>";
+    "<p style='font-size:12px;color:#a9acd9;margin-top:24px'>Pertanyaan? WhatsApp admin: +" + CONFIG.ADMIN_WA + "<br>" +
+    "Diselenggarakan oleh <a href='https://publichealth.id' style='color:#38bdf8'>publichealth.id</a> · <i>" + h(CONFIG.MOTTO) + "</i></p></div></div>";
 }
 
 /* ======================= Helper ======================= */

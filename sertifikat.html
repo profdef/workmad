@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="assets/brand/favicon.png">
   <title>Sertifikat · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Great+Vibes&display=swap" rel="stylesheet">
@@ -17,13 +18,20 @@
       background: radial-gradient(500px 400px at 100% 0, rgba(91,43,214,.7), transparent 60%), linear-gradient(170deg, #070b2b, #0d1340 55%, #1c1a6e); }
     .cert .band::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.14) 1.2px, transparent 1.3px); background-size: 22px 22px; }
     .cert .band img { position: absolute; left: 40px; bottom: 60px; width: 170px; border-radius: 4px; box-shadow: 0 0 40px rgba(168,85,247,.6); }
-    .cert .band .lg { position: absolute; left: 40px; top: 56px; color: #fff; font: 800 15px Poppins, sans-serif; letter-spacing: .2em; line-height: 1.6; }
+    .cert .band .lg { position: absolute; left: 40px; top: 52px; color: #fff; font: 800 15px Poppins, sans-serif; letter-spacing: .2em; line-height: 1.6; }
+    .cert .band .lg img { width: 64px; height: 64px; display: block; margin-bottom: 14px; border-radius: 50%; box-shadow: 0 0 24px rgba(239,68,68,.45); }
     .cert .band .lg span { display: block; color: #38bdf8; font-size: 11px; letter-spacing: .28em; }
-    .cert .body { position: absolute; left: 310px; right: 70px; top: 64px; bottom: 56px; display: flex; flex-direction: column; }
+    .cert .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+    .cert .org-logo { width: 260px; height: auto; display: block; margin-top: 2px; }
+    .cert .org-by { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #5b5f8a; text-align: right; margin-bottom: 6px; }
+    .cert .motto { position: absolute; left: 250px; right: 0; bottom: 0; height: 34px; display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+      padding: 0 70px; color: #fff; font: italic 600 13px Poppins, sans-serif; letter-spacing: .06em;
+      background: linear-gradient(90deg, #5b2bd6, #a855f7 45%, #c0141a); }
+    .cert .body { position: absolute; left: 310px; right: 70px; top: 56px; bottom: 66px; display: flex; flex-direction: column; }
     .cert .kicker { font: 700 13px Poppins, sans-serif; letter-spacing: .32em; color: #a855f7; text-transform: uppercase; }
     .cert h1 { font: 800 54px Poppins, sans-serif; color: #0d1340; margin: 6px 0 0; letter-spacing: .02em; }
     .cert .no { font: 500 13px "JetBrains Mono", monospace; color: #5b5f8a; margin-top: 4px; }
-    .cert .given { margin-top: 30px; font-size: 16px; color: #5b5f8a; }
+    .cert .given { margin-top: 22px; font-size: 16px; color: #5b5f8a; }
     .cert .nm { font: 400 64px "Great Vibes", cursive; color: #0d1340; line-height: 1.15; margin: 6px 0 2px; border-bottom: 2px solid; border-image: linear-gradient(90deg, #a855f7, #e879f9, #38bdf8) 1; padding-bottom: 6px; }
     .cert .inst { font-size: 15px; color: #5b5f8a; }
     .cert .desc { margin-top: 22px; font-size: 16px; line-height: 1.6; color: #1c1a6e; }
@@ -79,14 +87,17 @@
     const verifyUrl = API.base + "sertifikat.html?no=";
 
     function render(c) {
+      const O = C.ORGANIZER, date = fmtDate(c.date + "T12:00:00+07:00");
       $("cert").innerHTML =
-        '<div class="band"><div class="lg">MAD-R<span>PELATIHAN ONLINE</span></div><img src="assets/cover.jpg" alt=""></div>' +
-        '<div class="body"><div class="kicker">Sertifikat Pelatihan</div><h1>SERTIFIKAT</h1><div class="no">No. ' + esc(c.no) + '</div>' +
+        '<div class="band"><div class="lg"><img src="' + O.icon + '" alt="">MAD-R<span>PELATIHAN ONLINE</span></div><img src="assets/cover.jpg" alt=""></div>' +
+        '<div class="body"><div class="top"><div><div class="kicker">Sertifikat Pelatihan</div><h1>SERTIFIKAT</h1><div class="no">No. ' + esc(c.no) + "</div></div>" +
+        '<div><div class="org-by">Penyelenggara</div><img class="org-logo" src="' + O.logo + '" alt="publichealth.id — ' + esc(O.motto) + '"></div></div>' +
         '<div class="given">Diberikan kepada</div><div class="nm">' + esc(c.name) + '</div><div class="inst">' + esc(c.institution) + "</div>" +
         '<div class="desc">atas partisipasinya sebagai <b>Peserta</b> dan telah menyelesaikan Pelatihan Online<br><b>' + esc(T.title) + " " + esc(T.subtitle) +
-        "</b><br>" + esc(c.batch) + " · " + esc(c.jp) + " Jam Pelajaran (JP)</div>" +
-        '<div class="foot"><div class="verify">Verifikasi keaslian:<br><b>' + esc(verifyUrl + encodeURIComponent(c.no)) + "</b><br>Diterbitkan " + esc(fmtDate(c.date + "T12:00:00+07:00")) + "</div>" +
-        '<div class="sign"><span>Padang, ' + esc(fmtDate(c.date + "T12:00:00+07:00")) + '</span><div class="sp"></div><b>' + esc(T.instructor) + "</b><span>Narasumber</span></div></div></div>";
+        "</b><br>yang diselenggarakan oleh <b>publichealth.id</b> · " + esc(c.batch) + " · " + esc(c.jp) + " Jam Pelajaran (JP)</div>" +
+        '<div class="foot"><div class="verify">Verifikasi keaslian:<br><b>' + esc(verifyUrl + encodeURIComponent(c.no)) + "</b><br>Diterbitkan " + esc(date) + "</div>" +
+        '<div class="sign"><span>Padang, ' + esc(date) + '</span><div class="sp"></div><b>' + esc(T.instructor) + "</b><span>Narasumber · publichealth.id</span></div></div></div>" +
+        '<div class="motto">publichealth.id · ' + esc(O.motto) + "</div>";
       $("certWrap").classList.remove("hidden");
       fit();
     }
@@ -104,7 +115,7 @@
       try {
         const r = await API.verify(no);
         if (!r.valid) { $("vOut").innerHTML = '<div class="alert alert-err">✗ Nomor sertifikat <b>' + esc(no) + "</b> tidak terdaftar.</div>"; $("certWrap").classList.add("hidden"); return; }
-        $("vOut").innerHTML = '<div class="alert alert-ok">✓ Sertifikat <b>SAH</b> — diterbitkan untuk <b>' + esc(r.cert.name) + "</b> (" + esc(r.cert.institution) + "), " + esc(fmtDate(r.cert.date + "T12:00:00+07:00")) + ".</div>";
+        $("vOut").innerHTML = '<div class="alert alert-ok">✓ Sertifikat <b>SAH</b> — diterbitkan untuk <b>' + esc(r.cert.name) + "</b> (" + esc(r.cert.institution) + "), " + esc(fmtDate(r.cert.date + "T12:00:00+07:00")) + ", diterbitkan oleh publichealth.id.</div>";
         render(r.cert);
       } catch (e) { $("vOut").innerHTML = '<div class="alert alert-err">' + esc(e.message) + "</div>"; }
     }
