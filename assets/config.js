@@ -141,3 +141,14 @@ window.fmtDate = (iso, withTime) => {
   if (withTime) Object.assign(o, { hour: "2-digit", minute: "2-digit" });
   return d.toLocaleString("id-ID", o);
 };
+
+// Uji lokal tanpa menyentuh server produksi: di localhost, buka …/?demo=1 untuk mode demo, …/?demo=0 untuk kembali.
+(function () {
+  if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  try {
+    const q = new URLSearchParams(location.search).get("demo");
+    if (q === "1") localStorage.setItem("mad_force_demo", "1");
+    if (q === "0") localStorage.removeItem("mad_force_demo");
+    if (localStorage.getItem("mad_force_demo") === "1") window.APP_CONFIG.API_URL = "";
+  } catch (e) {}
+})();
