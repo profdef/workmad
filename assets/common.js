@@ -1,6 +1,23 @@
 /* Komponen bersama: header, footer, banner demo, rekening, unggah file */
 (function () {
   const C = window.APP_CONFIG;
+
+  // Pemeriksa versi: bila halaman ini versi lama dari cache, muat ulang ke versi terbaru (sekali per versi)
+  (function () {
+    if (!window.fetch || !C.APP_VERSION) return;
+    fetch(new URL("../version.json", document.currentScript.src).href + "?t=" + Date.now(), { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!j || !j.v || j.v === C.APP_VERSION) return;
+        let tried = "";
+        try { tried = sessionStorage.getItem("mad_ver_reload"); sessionStorage.setItem("mad_ver_reload", j.v); } catch (e) {}
+        if (tried === j.v) return; // cegah putaran muat ulang
+        const u = new URL(location.href);
+        u.searchParams.set("_v", j.v);
+        location.replace(u.toString());
+      })
+      .catch(() => {});
+  })();
   const T = C.TRAINING;
   const O = C.ORGANIZER;
 

@@ -170,6 +170,13 @@ GitHub Actions di repo `phid` merender & menerbitkan publichealth.id otomatis.
 di repo `workmad` buat file `CNAME` berisi `pelatihan.publichealth.id`, lalu Settings → Pages → Custom domain → *Enforce HTTPS*.
 Setelah itu ganti `training-url` (phid) dan `CONFIG.SITE_URL` (Code.gs) ke `https://pelatihan.publichealth.id/`.
 
+## Memperbarui situs (hindari cache browser)
+
+Setiap kali mengubah file situs lalu push, **naikkan versi** di dua tempat dengan nilai yang sama:
+`APP_VERSION` di `assets/config.js` dan `version.json` (mis. `"2026.10.14-3"`). Halaman yang terbuka dari cache lama
+akan otomatis memuat ulang dirinya ke versi terbaru. Bila mengubah file `.js`/`.css`, naikkan juga angka `?v=` pada tag
+`<script>`/`<link>` di halaman HTML.
+
 ## Operasional harian
 
 - Chip merah **Perlu verifikasi** di dashboard → **Detail → Lihat bukti** → cocokkan dengan mutasi rekening (nominal unik) → **✓ Verifikasi & aktifkan akses**.

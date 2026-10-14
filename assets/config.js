@@ -6,6 +6,10 @@
    karena server menghitung ulang tagihan agar tidak bisa dimanipulasi.
    ========================================================= */
 window.APP_CONFIG = {
+  // Versi rilis — naikkan bersamaan dengan version.json setiap kali situs diperbarui,
+  // agar browser peserta otomatis memuat ulang halaman versi terbaru (bukan dari cache).
+  APP_VERSION: "2026.10.14-2",
+
   // URL Web App Google Apps Script (lihat README).
   // Biarkan kosong "" untuk MODE DEMO (data disimpan di browser saja).
   API_URL: "https://script.google.com/macros/s/AKfycbzwUaZ6NYVPwNe-A9OV_AilgujQLiwoVx-4we33sSWNGlGbk0sKDJcPU1R7--X1pkKCWw/exec",
