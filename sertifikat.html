@@ -26,7 +26,7 @@
     .cert .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
     .cert .org-logo { width: 260px; height: auto; display: block; margin-top: 2px; }
     .cert .org-by { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); text-align: right; margin-bottom: 6px; }
-    .cert .motto { position: absolute; left: 250px; right: 0; bottom: 0; height: 34px; display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+    .cert .motto { position: absolute; left: 241px; right: 0; z-index: 2; bottom: 0; height: 34px; display: flex; align-items: center; justify-content: flex-end; gap: 10px;
       padding: 0 70px; color: #fff; font: italic 600 13px Poppins, sans-serif; letter-spacing: .06em;
       background: linear-gradient(90deg, #2f2f31, #505050 55%, var(--red)); }
     .cert .body { position: absolute; left: 310px; right: 70px; top: 56px; bottom: 66px; display: flex; flex-direction: column; }
@@ -52,6 +52,37 @@
     .cert .verify b { font-family: "JetBrains Mono", monospace; color: var(--char); font-size: 10px; overflow-wrap: anywhere; }
     .cert .qr { width: 84px; height: 84px; flex: none; padding: 4px; background: #fff; border: 1px solid #d9d9e6; }
     .cert .qr img, .cert .qr canvas { width: 100% !important; height: 100% !important; display: block; }
+    /* ===== Halaman belakang: rincian materi & jam pelajaran ===== */
+    .cert + .cert { margin-top: 24px; }
+    .cert.back .body { top: 52px; bottom: 58px; }
+    .cert.back .bk-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 16px; }
+    .cert.back .bk-head h2 { font: 800 27px Poppins, sans-serif; color: var(--char); margin: 4px 0 0; letter-spacing: .01em; white-space: nowrap; }
+    .cert.back .bk-who { text-align: right; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .cert.back .bk-who b { display: block; font: 600 14px Poppins, sans-serif; color: var(--char); white-space: nowrap; }
+    .cert.back .bk-who span { font-family: "JetBrains Mono", monospace; }
+    .cert.back .bk-line { height: 2px; background: linear-gradient(90deg, var(--red), #505050 70%, #c9c9cc); margin-bottom: 14px; }
+    .cert table.mt { width: 100%; border-collapse: collapse; font-size: 11.5px; color: #3a3a3d; }
+    .cert table.mt th { background: #3a3a3d; color: #fff !important; font: 600 10.5px Poppins, sans-serif; letter-spacing: .14em;
+      text-transform: uppercase; padding: 9px 10px; text-align: left; }
+    .cert table.mt th:first-child { border-left: 4px solid var(--red); }
+    .cert table.mt td { padding: 6px 10px; border-bottom: 1px solid #e6e6e9; vertical-align: top; }
+    .cert table.mt tbody tr:nth-child(even) td { background: #f7f7f8; }
+    .cert table.mt .no { width: 54px; text-align: center; }
+    .cert table.mt .no b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--red); color: #fff; font: 700 13px Poppins, sans-serif; }
+    .cert table.mt .wk { width: 150px; white-space: nowrap; font-size: 11px; }
+    .cert table.mt .wk b { display: block; color: var(--char); font-weight: 600; }
+    .cert table.mt .tp b { display: block; font: 700 12.5px Poppins, sans-serif; color: var(--char); margin-bottom: 2px; }
+    .cert table.mt .mods { font-size: 10.8px; line-height: 1.5; }
+    .cert table.mt .mods i { font-style: normal; color: var(--red); font-weight: 700; margin-right: 3px; white-space: nowrap; }
+    .cert table.mt .mods .sep { color: #b8b8bc; margin: 0 6px; }
+    .cert table.mt td.jp { width: 64px; text-align: center; font: 700 15px Poppins, sans-serif; color: var(--char); }
+    .cert table.mt th.jp { width: 64px; text-align: center; }
+    .cert table.mt tfoot td { border-top: 2px solid; border-image: linear-gradient(90deg, var(--red), #505050 70%, #c9c9cc) 1; border-bottom: 0;
+      font: 700 13px Poppins, sans-serif; color: var(--char); padding-top: 10px; }
+    .cert table.mt tfoot .jp { font-size: 18px; color: var(--red); }
+    .cert.back .bk-note { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+    .cert.back .bk-note b { color: var(--char); }
+
     @media print {
       @page { size: A4 landscape; margin: 0; }
       html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; min-height: 0 !important; height: auto !important; }
@@ -63,6 +94,7 @@
       main > :not(#certWrap) { display: none !important; }
       .cert-wrap { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
       .cert { box-shadow: none !important; transform: none !important; margin: 0 !important; break-inside: avoid; }
+      .cert + .cert { break-before: page; page-break-before: always; }
     }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   </style>
@@ -82,15 +114,16 @@
     <div id="printBar" class="no-print hidden" style="display:flex;gap:10px;justify-content:center;margin-bottom:16px;flex-wrap:wrap">
       <button class="btn btn-primary" type="button" onclick="print()">🖨 Cetak / Simpan PDF</button>
       <a class="btn" href="portal.html#sertifikat">← Kembali ke Portal</a>
-      <div class="small muted" style="width:100%;text-align:center">Di dialog cetak pilih <b>Save as PDF</b>, ukuran <b>A4</b>, orientasi <b>Landscape</b>, margin <b>None</b>, skala <b>100%</b>, aktifkan <b>Background graphics</b> — hasilnya 1 halaman.</div>
+      <div class="small muted" style="width:100%;text-align:center">Di dialog cetak pilih <b>Save as PDF</b>, ukuran <b>A4</b>, orientasi <b>Landscape</b>, margin <b>None</b>, skala <b>100%</b>, aktifkan <b>Background graphics</b> — hasilnya 2 halaman (depan &amp; rincian materi).</div>
     </div>
-    <div class="cert-wrap hidden" id="certWrap"><div class="cert" id="cert"></div></div>
+    <div class="cert-wrap hidden" id="certWrap"><div class="cert" id="cert"></div><div class="cert back" id="certBack"></div></div>
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=14"></script>
+  <script src="assets/config.js?v=16"></script>
   <script src="assets/api.js?v=11"></script>
   <script src="assets/common.js?v=12"></script>
+  <script src="materi/catalog.js?v=11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
   (async function () {
@@ -243,11 +276,39 @@
         '<div class="motto">publichealth.id · ' + esc(O.motto) + "</div>";
       try { new QRCode($("qr"), { text: vurl, width: 256, height: 256, colorDark: "#2f2f31", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); }
       catch (e) { $("qr").remove(); }
+      renderBack(c);
       $("certWrap").classList.remove("hidden");
       fitName();
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitName);
       fit();
     }
+    // Halaman belakang: tabel rincian materi & jam pelajaran per sesi
+    function renderBack(c) {
+      const O = C.ORGANIZER, S = C.SESSIONS || [];
+      const decks = Object.fromEntries((window.MATERI || { parts: [] }).parts.flatMap((p) => p.decks).map((d) => [d.slug, d]));
+      const total = S.reduce((n, x) => n + (Number(x.jp) || 0), 0) || c.jp;
+      const label = (d) => (/^\d+$/.test(d.n) ? "Bab " + d.n : "Pengantar");
+      const rows = S.map((x, i) =>
+        '<tr><td class="no"><b>' + (i + 1) + '</b></td><td class="wk"><b>' + esc(x.date) + "</b>" + esc(x.time) + "</td>" +
+        '<td class="tp"><b>' + esc(x.topic) + '</b><div class="mods">' +
+          (x.modules || []).filter((m) => decks[m]).map((m) => "<i>" + esc(label(decks[m])) + "</i>" + esc(decks[m].title)).join('<span class="sep">·</span>') +
+        '</div></td><td class="jp">' + esc(x.jp) + "</td></tr>").join("");
+      $("certBack").innerHTML =
+        '<div class="band">' + bandArt() + "</div>" +
+        '<div class="body">' +
+          '<div class="bk-head"><div><div class="kicker">Lampiran Sertifikat</div><h2>Rincian Materi &amp; Jam Pelajaran</h2></div>' +
+            '<div class="bk-who"><b>' + esc(c.name) + "</b>No. <span>" + esc(c.no) + "</span></div></div>" +
+          '<div class="bk-line"></div>' +
+          '<table class="mt"><thead><tr><th class="no">Sesi</th><th class="wk">Waktu</th><th>Topik &amp; Modul Pembelajaran</th><th class="jp">JP</th></tr></thead>' +
+            "<tbody>" + rows + "</tbody>" +
+            '<tfoot><tr><td></td><td colspan="2">Total Jam Pelajaran (JP) · ' + S.length + " sesi · " + (window.MATERI ? window.MATERI.parts.reduce((n, p) => n + p.decks.length, 0) : 20) + " modul</td><td class=\"jp\">" + esc(total) + "</td></tr></tfoot></table>" +
+          '<div class="bk-note"><div><b>Metode:</b> sesi live daring (Zoom) dan belajar mandiri melalui modul interaktif serta paket latihan RStudio.<br>' +
+            "<b>1 JP</b> = 60 menit · Narasumber: " + esc(T.instructor) + " · Penyelenggara: publichealth.id</div>" +
+            '<div style="white-space:nowrap">Halaman 2 dari 2</div></div>' +
+        "</div>" +
+        '<div class="motto">publichealth.id · ' + esc(O.motto) + "</div>";
+    }
+
     function fitName() {
       const nm = document.querySelector("#cert .nm");
       if (!nm) return;
@@ -256,11 +317,12 @@
       while (nm.scrollWidth > nm.clientWidth && size > 34) nm.style.fontSize = (size -= 2) + "px";
     }
     function fit() {
-      const w = $("certWrap").clientWidth, el = $("cert");
-      const k = Math.min(1, w / 1122);
-      el.style.transform = k < 1 ? "scale(" + k + ")" : "";
-      el.style.marginBottom = k < 1 ? -(792 * (1 - k)) + "px" : "";
-      el.style.marginLeft = k < 1 ? "0" : "";
+      const k = Math.min(1, $("certWrap").clientWidth / 1122);
+      document.querySelectorAll("#certWrap .cert").forEach((el) => {
+        el.style.transform = k < 1 ? "scale(" + k + ")" : "";
+        el.style.marginBottom = k < 1 ? -(792 * (1 - k)) + "px" : "";
+        el.style.marginLeft = k < 1 ? "0" : "";
+      });
     }
     addEventListener("resize", () => $("cert").innerHTML && fit());
 
