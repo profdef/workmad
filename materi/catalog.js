@@ -1,6 +1,6 @@
 // DIBUAT OTOMATIS oleh tools/build-materi.mjs
 window.MATERI = {
- "builtAt": "2026-10-14T14:17:35.211Z",
+ "builtAt": "2026-10-15T02:52:56.131Z",
  "parts": [
   {
    "label": "Pengantar",
@@ -179,13 +179,134 @@ window.MATERI = {
    ]
   }
  ],
- "downloads": [
-  {
-   "id": "paket-latihan",
-   "file": "paket-latihan-mad.zip",
-   "title": "Paket Latihan RStudio",
-   "desc": "Dataset (CSV, Excel, SPSS, Stata, GeoJSON), R/setup.R, dan semua file .qmd untuk dirender sendiri",
-   "size": 6002319
+ "kit": {
+  "pdfs": [
+   {
+    "slug": "00-tentang-buku",
+    "file": "00 - Tentang Buku Ini.pdf",
+    "size": 3633246,
+    "free": true
+   },
+   {
+    "slug": "01-pendahuluan",
+    "file": "01 - Pendahuluan Epidemiologi, Kesehatan Masyarakat, dan Era Data.pdf",
+    "size": 3144776,
+    "free": true
+   },
+   {
+    "slug": "bab-01-konsep-dasar-data",
+    "file": "Bab 01 - Konsep Dasar Data dalam Epidemiologi.pdf",
+    "size": 3553182,
+    "free": false
+   },
+   {
+    "slug": "bab-02-siklus-hidup-data",
+    "file": "Bab 02 - Siklus Hidup Data Penelitian.pdf",
+    "size": 3439933,
+    "free": false
+   },
+   {
+    "slug": "bab-03-tata-kelola-data",
+    "file": "Bab 03 - Tata Kelola Data yang Baik.pdf",
+    "size": 3040719,
+    "free": false
+   },
+   {
+    "slug": "bab-04-etika-privasi-keamanan",
+    "file": "Bab 04 - Etika, Privasi, dan Keamanan Data Kesehatan.pdf",
+    "size": 3732801,
+    "free": false
+   },
+   {
+    "slug": "bab-05-jenis-sumber-data",
+    "file": "Bab 05 - Jenis dan Sumber Data Epidemiologi.pdf",
+    "size": 2939948,
+    "free": false
+   },
+   {
+    "slug": "bab-06-mengenal-r-rstudio",
+    "file": "Bab 06 - Mengenal R dan RStudio.pdf",
+    "size": 6073026,
+    "free": true
+   },
+   {
+    "slug": "bab-07-dasar-pemrograman-r",
+    "file": "Bab 07 - Dasar Pemrograman R untuk Epidemiologi.pdf",
+    "size": 4471014,
+    "free": true
+   },
+   {
+    "slug": "bab-08-reproducible-quarto",
+    "file": "Bab 08 - Reproducible Research dengan Quarto.pdf",
+    "size": 4001060,
+    "free": true
+   },
+   {
+    "slug": "bab-09-impor-ekspor-data",
+    "file": "Bab 09 - Impor, Ekspor, dan Struktur Data.pdf",
+    "size": 3829499,
+    "free": false
+   },
+   {
+    "slug": "bab-10-pembersihan-transformasi",
+    "file": "Bab 10 - Pembersihan dan Transformasi Data.pdf",
+    "size": 4851050,
+    "free": false
+   },
+   {
+    "slug": "bab-11-penggabungan-rekode",
+    "file": "Bab 11 - Penggabungan, Rekode, dan Manajemen Variabel.pdf",
+    "size": 4481391,
+    "free": false
+   },
+   {
+    "slug": "bab-12-analisis-univariat",
+    "file": "Bab 12 - Analisis Univariat.pdf",
+    "size": 5577068,
+    "free": false
+   },
+   {
+    "slug": "bab-13-analisis-bivariat",
+    "file": "Bab 13 - Analisis Bivariat.pdf",
+    "size": 4986833,
+    "free": false
+   },
+   {
+    "slug": "bab-14-tabel-2x2-asosiasi",
+    "file": "Bab 14 - Tabulasi Tabel 2×2 dan Ukuran Asosiasi.pdf",
+    "size": 5301599,
+    "free": false
+   },
+   {
+    "slug": "bab-15-analisis-multivariat",
+    "file": "Bab 15 - Analisis Multivariat.pdf",
+    "size": 5622653,
+    "free": false
+   },
+   {
+    "slug": "bab-16-studi-kasus-surveilans",
+    "file": "Bab 16 - Studi Kasus Surveilans Penyakit Menular.pdf",
+    "size": 8455910,
+    "free": false
+   },
+   {
+    "slug": "bab-17-studi-kasus-survei",
+    "file": "Bab 17 - Studi Kasus Survei Kesehatan Masyarakat.pdf",
+    "size": 4781281,
+    "free": false
+   },
+   {
+    "slug": "bab-18-laporan-otomatis-quarto",
+    "file": "Bab 18 - Studi Kasus Laporan Epidemiologi Otomatis.pdf",
+    "size": 4013463,
+    "free": false
+   }
+  ],
+  "data": {
+   "id": "data-latihan",
+   "file": "data-latihan-mad.zip",
+   "size": 108862,
+   "free": true
   }
- ]
+ }
 };

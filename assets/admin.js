@@ -244,7 +244,7 @@
       "Jadwal: " + C.FREE_CLASS.date + ", " + C.FREE_CLASS.time + ". Tautan Zoom & modul pengenalan tersedia di portal.");
     return "https://wa.me/" + waNum(r.phone) + "?text=" + encodeURIComponent(
       "Halo " + r.name + ",\n\nPembayaran pelatihan *" + C.TRAINING.title + " " + C.TRAINING.subtitle + "* (" + r.id + ") telah kami verifikasi. Terima kasih!\n\n" +
-      "Masuk ke Portal Peserta:\n" + API.base + "masuk.html\n\nEmail: " + r.email + "\nKode akses: *" + r.accessCode + "*\n\nDi portal tersedia 20 modul, paket latihan, jadwal & tautan Zoom. Mohon kode akses tidak dibagikan.");
+      "Masuk ke Portal Peserta:\n" + API.base + "masuk.html\n\nEmail: " + r.email + "\nKode akses: *" + r.accessCode + "*\n\nDi portal tersedia 20 modul, bahan presentasi PDF & data latihan, jadwal & tautan Zoom. Mohon kode akses tidak dibagikan.");
   }
   function waRemind(r) {
     return "https://wa.me/" + waNum(r.phone) + "?text=" + encodeURIComponent(

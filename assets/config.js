@@ -11,7 +11,7 @@ if (location.protocol === "http:" && !/^(localhost|127\.0\.0\.1)$/.test(location
 window.APP_CONFIG = {
   // Versi rilis — naikkan bersamaan dengan version.json setiap kali situs diperbarui,
   // agar browser peserta otomatis memuat ulang halaman versi terbaru (bukan dari cache).
-  APP_VERSION: "2026.10.15-5",
+  APP_VERSION: "2026.10.15-6",
 
   // URL Web App Google Apps Script (lihat README).
   // Biarkan kosong "" untuk MODE DEMO (data disimpan di browser saja).
@@ -61,6 +61,7 @@ window.APP_CONFIG = {
     benefits: [
       "Sesi live 2,5 jam bersama penulis buku",
       "Akses 5 modul pengenalan (Tentang Buku, Pendahuluan, Bab 6–8)",
+      "Bahan presentasi PDF 5 modul pengenalan + data latihan",
       "Potongan biaya pelatihan penuh untuk pembeli buku",
       "Grup WhatsApp diskusi kelas gratis",
     ],
@@ -96,7 +97,7 @@ window.APP_CONFIG = {
 
   BENEFITS: [
     "Akses 20 modul presentasi interaktif (slide Quarto revealjs)",
-    "Paket latihan RStudio: dataset epidemiologi, R/setup.R & file .qmd",
+    "Paket latihan: bahan presentasi PDF 20 modul (R Code & Output) + data latihan",
     "6 sesi live via Zoom bersama narasumber",
     "E-sertifikat 18 JP dengan nomor verifikasi online",
     "Grup diskusi WhatsApp peserta",

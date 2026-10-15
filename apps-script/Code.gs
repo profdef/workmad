@@ -591,14 +591,14 @@ function sendAccessMail(rec) {
       "Halo <b>" + h(rec.name) + "</b>, terima kasih telah membeli buku kami. Selamat bergabung di kelas pra-pelatihan gratis!",
       [["No. pendaftaran", rec.id], ["Email login", rec.email],
        ["<b>Kode akses</b>", "<b style='font-family:monospace;font-size:20px;letter-spacing:2px;color:#e879f9'>" + h(rec.accessCode) + "</b>"]],
-      "Masuk ke Portal Peserta untuk membuka materi pengenalan R, RStudio & Quarto serta tautan Zoom kelas gratis:",
+      "Masuk ke Portal Peserta untuk membuka 5 modul pengenalan R, RStudio & Quarto, mengunduh bahan PDF & data latihan, serta tautan Zoom kelas gratis:",
       CONFIG.SITE_URL + "masuk.html?email=" + encodeURIComponent(rec.email), "Buka Portal Peserta"));
   }
   var body = mailTemplate("Akses pelatihan aktif 🎉",
     "Halo <b>" + h(rec.name) + "</b>, pembayaran Anda telah kami verifikasi. Selamat bergabung!",
     [["No. pendaftaran", rec.id], ["Email login", rec.email],
      ["<b>Kode akses</b>", "<b style='font-family:monospace;font-size:20px;letter-spacing:2px;color:#e879f9'>" + h(rec.accessCode) + "</b>"]],
-    "Masuk ke Portal Peserta untuk membuka 20 modul presentasi, paket latihan RStudio, jadwal & tautan Zoom:",
+    "Masuk ke Portal Peserta untuk membuka 20 modul presentasi, mengunduh bahan presentasi PDF & data latihan, serta melihat jadwal & tautan Zoom:",
     CONFIG.SITE_URL + "masuk.html?email=" + encodeURIComponent(rec.email), "Buka Portal Peserta");
   return sendMail(rec.email, "Kode Akses Pelatihan " + shortName() + " — " + rec.id, body);
 }

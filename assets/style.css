@@ -404,3 +404,11 @@ dialog .dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px
   background: linear-gradient(120deg, rgba(74,222,128,.10), rgba(168,85,247,.10) 60%, rgba(255,255,255,.03)); }
 .free-cta { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 @media (max-width: 760px) { .free-banner { grid-template-columns: 1fr; } .free-cta { align-items: flex-start; } }
+
+/* ---------- Daftar unduhan paket latihan ---------- */
+.dl-row { display: grid; grid-template-columns: 44px 1fr auto auto; gap: 12px; align-items: center; padding: 10px 18px; border-bottom: 1px solid var(--border-soft); }
+.dl-row:last-child { border-bottom: 0; }
+.dl-row .n { font: 800 20px var(--head); text-align: center; background: linear-gradient(180deg,#fff,#e879f9 55%,#5b2bd6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.dl-row .t { color: var(--white); font-weight: 600; font-size: 14px; min-width: 0; }
+.dl-row .t .small { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 560px) { .dl-row { grid-template-columns: 34px 1fr auto; } .dl-row > span { display: none; } }

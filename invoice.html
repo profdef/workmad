@@ -8,7 +8,7 @@
   <title>Invoice & Kuitansi · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=12">
+  <link rel="stylesheet" href="assets/style.css?v=22">
   <style>
     .doc-wrap { overflow: hidden; padding: 4px 0 24px; }
     .doc { width: 794px; min-height: 1123px; margin: 0 auto; background: #fff; color: #1f2340; position: relative; transform-origin: top left;
@@ -89,7 +89,7 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=21"></script>
+  <script src="assets/config.js?v=22"></script>
   <script src="assets/api.js?v=11"></script>
   <script src="assets/common.js?v=12"></script>
   <script>
@@ -144,7 +144,7 @@
           '<div class="grand"><span>' + (receipt ? "Total diterima" : "Total tagihan") + "</span><span>" + rupiah(amount) + "</span></div></div></div>" +
         '<div class="words">Terbilang: ' + cap(terbilang(amount)) + " rupiah</div>" +
         (receipt
-          ? '<div class="box">Pembayaran melalui transfer ke <b>' + esc(r.payment) + "</b> telah <b>diverifikasi</b>. Peserta memperoleh akses penuh ke Portal Peserta: 20 modul, paket latihan, sesi live, dan e-sertifikat.</div>"
+          ? '<div class="box">Pembayaran melalui transfer ke <b>' + esc(r.payment) + "</b> telah <b>diverifikasi</b>. Peserta memperoleh akses penuh ke Portal Peserta: 20 modul, bahan presentasi PDF &amp; data latihan, sesi live, dan e-sertifikat.</div>"
           : '<div class="box"><b>Cara pembayaran:</b> transfer <b>tepat ' + rupiah(r.total) + "</b> (termasuk kode unik) ke <b>" + esc(r.payment) +
             "</b>, lalu unggah bukti transfer di " + esc(API.base) + "konfirmasi.html. Kode akses materi dikirim ke email setelah pembayaran diverifikasi.</div>") +
         '<div class="ft"><div class="note">Dokumen ini diterbitkan secara elektronik oleh sistem pelatihan publichealth.id dan sah tanpa tanda tangan basah.<br>Dicetak ' +

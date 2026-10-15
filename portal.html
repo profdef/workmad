@@ -8,7 +8,7 @@
   <title>Portal Peserta · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=12">
+  <link rel="stylesheet" href="assets/style.css?v=22">
 </head>
 <body>
   <div id="topbar"></div>
@@ -62,7 +62,7 @@
             <li>Instal <b>R</b> dari <a href="https://cran.r-project.org" target="_blank" rel="noopener">cran.r-project.org</a></li>
             <li>Instal <b>RStudio Desktop</b> dari <a href="https://posit.co/download/rstudio-desktop/" target="_blank" rel="noopener">posit.co</a></li>
             <li>Instal <b>Quarto</b> dari <a href="https://quarto.org/docs/get-started/" target="_blank" rel="noopener">quarto.org</a></li>
-            <li>Ekstrak Paket Latihan, buka foldernya sebagai RStudio Project, lalu jalankan <span class="mono">R/setup.R</span></li>
+            <li>Buat RStudio Project baru, ekstrak <b>data latihan</b> ke dalamnya (folder <span class="mono">data/</span>), lalu ikuti contoh kode pada bahan presentasi PDF</li>
           </ol>
         </div>
       </section>
@@ -79,11 +79,11 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=21"></script>
+  <script src="assets/config.js?v=22"></script>
   <script src="assets/api.js?v=11"></script>
   <script src="assets/common.js?v=12"></script>
   <script src="assets/materi.js?v=11"></script>
-  <script src="materi/catalog.js?v=11"></script>
+  <script src="materi/catalog.js?v=22"></script>
   <script>
   (async function () {
     const C = APP_CONFIG;
@@ -118,8 +118,8 @@
     if (FREEP) {
       $("pBatch").textContent = "Kelas Gratis Pembeli Buku";
       $("pStatus").insertAdjacentHTML("afterend", ' <span class="badge st-aktif">Kelas Gratis</span>');
-      // Kelas gratis: tanpa paket latihan, evaluasi & sertifikat; tampilkan ajakan pelatihan penuh
-      ["unduh", "evaluasi", "sertifikat"].forEach((t) => document.querySelector('[data-tab="' + t + '"]').classList.add("hidden"));
+      // Kelas gratis: paket latihan terbatas (PDF modul pengenalan + data), tanpa evaluasi & sertifikat
+      ["evaluasi", "sertifikat"].forEach((t) => document.querySelector('[data-tab="' + t + '"]').classList.add("hidden"));
       document.querySelector('[data-tab="upgrade"]').classList.remove("hidden");
     }
     $("logout").addEventListener("click", (e) => { e.preventDefault(); Session.clear(); location.href = "index.html"; });
@@ -170,25 +170,58 @@
       '<div class="tl"><div class="no">SESI ' + (i + 1) + '</div><div><div class="t">' + esc(x.topic) + '</div><div class="d">' + esc(x.decks) +
       '</div></div><div class="w"><b>' + esc(x.date) + "</b><br>" + esc(x.time) + "</div></div>").join("");
 
-    // Unduhan terenkripsi
-    $("downloads").innerHTML = (M.downloads || []).map((d) =>
-      '<div class="card" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><h3 style="margin:0 0 4px">📦 ' + esc(d.title) +
-      '</h3><div class="muted small">' + esc(d.desc) + " · " + (d.size / 1048576).toFixed(1) + ' MB (.zip)</div><div class="small muted" data-prog="' + esc(d.id) + '"></div></div>' +
-      '<button class="btn btn-primary" type="button" data-dl="' + esc(d.id) + '" data-file="' + esc(d.file) + '">Unduh</button></div>').join("");
-    document.querySelectorAll("[data-dl]").forEach((b) => b.addEventListener("click", async () => {
-      const prog = document.querySelector('[data-prog="' + b.dataset.dl + '"]');
+    // Paket Latihan: bahan presentasi PDF per modul + data (terenkripsi)
+    const KIT = M.kit || { pdfs: [], data: null };
+    const myPdfs = KIT.pdfs.filter((x) => !FREEP || x.free);
+    const sz = (b) => (b / 1048576).toFixed(1) + " MB";
+    const keyFor = (free) => (free ? Session.get().keyFree : Session.get().key);
+    async function getFile(bin, file, free, mime, prog) {
+      const buf = await Materi.open("materi/enc/" + bin + ".bin", keyFor(free), (x) => prog && (prog.textContent = Math.round(x * 100) + "%"));
+      const url = URL.createObjectURL(new Blob([buf], { type: mime }));
+      const a = Object.assign(document.createElement("a"), { href: url, download: file });
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    }
+    const deckOf = Object.fromEntries(all.concat(M.parts.flatMap((x) => x.decks)).map((d) => [d.slug, d]));
+    $("downloads").innerHTML =
+      '<div class="card" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><div style="flex:1;min-width:240px">' +
+        "<h3 style=\"margin:0 0 4px\">📦 Paket Latihan: Bahan Presentasi (PDF) &amp; Data</h3><div class=\"muted small\">" + myPdfs.length + " PDF modul (" +
+        sz(myPdfs.reduce((n, x) => n + x.size, 0)) + ") · slide bertab dicetak lengkap: <b>R Code</b> dan <b>Output</b>" +
+        (KIT.data ? " · data latihan (" + sz(KIT.data.size) + ")" : "") + '</div><div class="small muted" id="allProg"></div></div>' +
+        (KIT.data ? '<button class="btn" type="button" id="dlData">⬇ Data latihan (.zip)</button>' : "") +
+        '<button class="btn btn-primary" type="button" id="dlAll">⬇ Unduh semua PDF</button></div>' +
+      '<div class="card" style="padding:8px 0">' + myPdfs.map((x) => {
+        const d = deckOf[x.slug] || { n: "", title: x.file };
+        return '<div class="dl-row"><div class="n">' + esc(d.n) + '</div><div class="t">' + esc(d.title) + '<div class="small muted">' + esc(x.file) + " · " + sz(x.size) +
+          '</div></div><span class="small muted" data-p="' + esc(x.slug) + '"></span><button class="btn btn-sm" type="button" data-pdf="' + esc(x.slug) + '">⬇ PDF</button></div>';
+      }).join("") + "</div>" +
+      (FREEP ? '<p class="small muted" style="margin-top:10px">PDF 15 modul lainnya tersedia di pelatihan penuh.</p>' : "");
+    const byslug = Object.fromEntries(myPdfs.map((x) => [x.slug, x]));
+    document.querySelectorAll("[data-pdf]").forEach((b) => b.addEventListener("click", async () => {
+      const x = byslug[b.dataset.pdf], prog = document.querySelector('[data-p="' + x.slug + '"]');
       b.disabled = true;
-      try {
-        const buf = await Materi.open("materi/enc/" + b.dataset.dl + ".bin", Session.get().key, (x) => (prog.textContent = "Mengunduh " + Math.round(x * 100) + "%"));
-        const url = URL.createObjectURL(new Blob([buf], { type: "application/zip" }));
-        const a = Object.assign(document.createElement("a"), { href: url, download: b.dataset.file });
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 30000);
-        prog.textContent = "✓ Selesai. Periksa folder Unduhan.";
-        API.track(b.dataset.dl);
-      } catch (e) { prog.innerHTML = '<span style="color:#fca5a5">' + esc(e.message) + "</span>"; }
+      try { await getFile("pdf-" + x.slug, x.file, x.free, "application/pdf", prog); prog.textContent = "✓"; API.track("pdf-" + x.slug); }
+      catch (e) { prog.innerHTML = '<span style="color:#fca5a5">' + esc(e.message) + "</span>"; }
       b.disabled = false;
     }));
+    if ($("dlData")) $("dlData").addEventListener("click", async () => {
+      $("dlData").disabled = true;
+      try { await getFile("data-latihan", KIT.data.file, true, "application/zip", $("allProg")); $("allProg").textContent = "✓ Data latihan terunduh."; API.track("data-latihan"); }
+      catch (e) { $("allProg").innerHTML = '<span style="color:#fca5a5">' + esc(e.message) + "</span>"; }
+      $("dlData").disabled = false;
+    });
+    $("dlAll").addEventListener("click", async () => {
+      $("dlAll").disabled = true;
+      for (let i = 0; i < myPdfs.length; i++) {
+        const x = myPdfs[i];
+        $("allProg").textContent = "Mengunduh " + (i + 1) + " dari " + myPdfs.length + ": " + x.file;
+        try { await getFile("pdf-" + x.slug, x.file, x.free, "application/pdf"); }
+        catch (e) { $("allProg").innerHTML = '<span style="color:#fca5a5">' + esc(e.message) + "</span>"; break; }
+        await new Promise((r) => setTimeout(r, 700)); // jeda agar browser tidak memblokir unduhan beruntun
+      }
+      if (!/color/.test($("allProg").innerHTML)) $("allProg").textContent = "✓ Semua PDF terunduh. Jika browser meminta izin mengunduh banyak file, pilih Izinkan.";
+      $("dlAll").disabled = false;
+    });
 
     // Evaluasi
     $("evalBox").innerHTML = '<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:240px">' +
@@ -212,7 +245,7 @@
     if (FREEP) {
       const cats = Object.entries(C.CATEGORIES), disc = p.bookDiscount || FC.bookDiscount;
       $("upgradeBox").innerHTML = '<div class="eyebrow">Penawaran Pembeli Buku</div><h2 style="margin-top:.4em">Lanjutkan ke Pelatihan Penuh</h2>' +
-        '<p class="muted">20 modul lengkap, 6 sesi live, paket latihan RStudio, evaluasi, dan e-sertifikat 18 JP. Sebagai pembeli buku, Anda mendapat potongan <b style="color:#fff">' + rupiah(disc) + "</b>.</p>" +
+        '<p class="muted">20 modul lengkap, 6 sesi live, bahan presentasi PDF &amp; data latihan, evaluasi, dan e-sertifikat 18 JP. Sebagai pembeli buku, Anda mendapat potongan <b style="color:#fff">' + rupiah(disc) + "</b>.</p>" +
         '<div class="prices" style="margin:14px 0">' + cats.map(([n, c]) => '<div class="price-card"><div class="cat">' + esc(n) +
           '</div><div class="small muted" style="text-decoration:line-through">' + rupiah(c.price) + '</div><div class="amt grad">' + rupiah(Math.max(0, c.price - disc)) + "</div></div>").join("") + "</div>" +
         '<a class="btn btn-primary btn-lg" href="daftar.html?buku=1">Daftar Pelatihan Penuh dengan Potongan →</a>' +

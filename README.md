@@ -14,7 +14,7 @@ tampil di header, hero, footer, email, dan sertifikat; nama/moto/tautan diatur d
 | `daftar.html` | Calon peserta | Formulir pendaftaran (unggah KTM untuk mahasiswa) → tagihan dengan **3 digit kode unik** → rekening → unggah bukti transfer |
 | `konfirmasi.html` | Calon peserta | Unggah bukti transfer belakangan & cek status (no. pendaftaran + email/WA) |
 | `masuk.html` | Peserta | Login dengan email + **kode akses**; kirim ulang kode ke email |
-| `portal.html` | Peserta aktif | 20 modul slide, progres belajar, jadwal + tautan Zoom & grup WA, unduh Paket Latihan, sertifikat, profil |
+| `portal.html` | Peserta aktif | 20 modul slide, progres belajar, jadwal + tautan Zoom & grup WA, unduh Paket Latihan (PDF per modul + data), sertifikat, profil |
 | `materi/view.html` | Peserta aktif | Membuka slide Quarto yang **terenkripsi** |
 | `invoice.html` | Peserta / admin | **Invoice** (tagihan, cap *BELUM DIBAYAR*) dan **Kuitansi** (bukti pembayaran diterima, nomor `KW/MAD-R/2026/0001`, cap *LUNAS*, terbilang) — A4, cetak/simpan PDF |
 | `evaluasi.html` | Peserta aktif | **Evaluasi pelatihan** (model Kirkpatrick level 1–2): penyelenggaraan, materi, narasumber, tiap sesi, kompetensi *sebelum vs sesudah*, kepuasan, NPS, masukan terbuka & testimoni |
@@ -35,7 +35,7 @@ Menunggu Pembayaran → (unggah bukti) → Menunggu Verifikasi → (admin verifi
 
 ### Bagaimana materi dilindungi
 Situs GitHub Pages bersifat publik, jadi slide **tidak** disalin apa adanya. `tools/build-materi.mjs` mengenkripsi setiap deck
-(AES-256-GCM, gambar & grafik ditanam di dalamnya) dan Paket Latihan (.zip). Kuncinya hanya ada di file lokal `.materi-key`
+(AES-256-GCM, gambar & grafik ditanam di dalamnya) serta Paket Latihan (PDF per modul + zip data). Kuncinya hanya ada di file lokal `.materi-key`
 (tidak di-commit) dan di Script Properties Apps Script. Server memberikan kunci hanya kepada peserta berstatus **Aktif/Lulus**
 yang login dengan kode akses benar; browser peserta lalu mendekripsi materi. Pustaka revealjs (publik) disimpan biasa di `materi/libs/`.
 
@@ -56,7 +56,7 @@ yang login dengan kode akses benar; browser peserta lalu mendekripsi materi. Pus
 │   ├── brand/         ← logo publichealth.id (terang, gelap, ikon .id)
 │   └── cover.jpg
 ├── materi/            ← HASIL BUILD (jangan diedit manual)
-│   ├── enc/*.bin      ← 20 deck + paket latihan terenkripsi
+│   ├── enc/*.bin      ← 20 deck, 20 PDF (pdf-*.bin) & data latihan terenkripsi
 │   ├── libs/          ← revealjs
 │   ├── catalog.js     ← judul modul (dibaca dari ppt/index.qmd)
 │   └── view.html
@@ -88,6 +88,14 @@ node tools/test-backend.mjs
 ```
 
 ## Langkah 2 — Build materi dari folder ppt
+
+**Paket Latihan = bahan presentasi PDF + data.** PDF dibuat dari deck Quarto (desain identik dengan slide;
+slide bertab dicetak lengkap: halaman *R Code* lalu halaman *Output*):
+```bash
+node tools/export-pdf.mjs ../ppt     # → .cache-pdf/*.pdf (perlu Google Chrome)
+```
+Lalu build materi (deck web + PDF + data `ppt/data`, semuanya terenkripsi). Peserta kelas gratis hanya mendapat PDF
+5 modul pengenalan + data.
 
 Setiap kali slide di `~/Github/ppt` diubah: render di RStudio/Quarto dulu, lalu
 ```bash
@@ -144,7 +152,7 @@ otomatis dialihkan). Dashboard di `…/admin.html`. Pastikan `CONFIG.SITE_URL` d
 1. Daftar sebagai peserta uji di situs → cek email tagihan.
 2. Unggah bukti (screenshot apa saja) → cek file muncul di folder Drive.
 3. Di `admin.html`: **Detail → Lihat bukti → ✓ Verifikasi & aktifkan akses** → cek email kode akses.
-4. Login di `masuk.html` → buka beberapa modul & unduh Paket Latihan → kolom *Modul* di dashboard bertambah.
+4. Login di `masuk.html` → buka beberapa modul & unduh PDF/data di tab Paket Latihan → kolom *Modul* di dashboard bertambah.
 5. **🎓 Tandai Lulus** → unduh sertifikat di portal → cek nomor di `sertifikat.html`.
 6. Hapus peserta uji (🗑) agar kuota kembali penuh.
 

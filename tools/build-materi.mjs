@@ -8,7 +8,8 @@
  *
  * - Gambar & grafik di dalam deck ditanam (data URI) lalu ikut terenkripsi.
  * - Pustaka revealjs (publik, bukan materi) digabung sekali di materi/libs/.
- * - Paket latihan (data, R, .qmd, tema) dikemas jadi zip terenkripsi.
+ * - Paket Latihan = bahan presentasi PDF per modul (dari .cache-pdf, hasil tools/export-pdf.mjs) + zip data,
+ *   masing-masing terenkripsi. PDF modul pengenalan & data memakai kunci kelas gratis (MATERI_KEY_FREE).
  * - Daftar judul (publik) ditulis ke materi/catalog.js dari ppt/index.qmd.
  * - Kunci disimpan di .materi-key (JANGAN di-commit). Salin nilainya ke
  *   Script Properties Apps Script: MATERI_KEY.
@@ -114,31 +115,41 @@ for (const d of decks) {
   totalIn += html.length; totalOut += enc.length;
 }
 
-// ---------- Paket latihan (zip terenkripsi) ----------
+// ---------- Paket Latihan: PDF per modul + data ----------
+const PDF_DIR = path.join(ROOT, ".cache-pdf");
+const pdfs = [];
+for (const d of decks) {
+  if (d.missing) continue;
+  const f = path.join(PDF_DIR, d.slug + ".pdf");
+  if (!fs.existsSync(f)) { warnings.push("PDF belum dibuat: " + d.slug + " (jalankan: node tools/export-pdf.mjs ../ppt)"); continue; }
+  const buf = fs.readFileSync(f);
+  const label = /^\d+$/.test(d.n) ? "Bab " + String(d.n).padStart(2, "0") : d.slug.startsWith("00") ? "00" : "01";
+  const file = (label + " - " + d.title).replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, " ").slice(0, 90) + ".pdf";
+  fs.writeFileSync(path.join(ENC, "pdf-" + d.slug + ".bin"), encrypt(buf, d.free ? KEY_FREE : KEY));
+  pdfs.push({ slug: d.slug, file, size: buf.length, free: !!d.free });
+}
+// Data latihan (folder ppt/data) → zip
 const tmp = fs.mkdtempSync(path.join(fs.realpathSync(process.env.TMPDIR || "/tmp"), "mad-"));
-const kit = path.join(tmp, "paket-latihan-mad");
+const kit = path.join(tmp, "data-latihan-mad");
 fs.mkdirSync(kit);
-for (const item of ["data", "R", "theme", "images", "img", "_quarto.yml"])
-  if (fs.existsSync(path.join(PPT, item))) fs.cpSync(path.join(PPT, item), path.join(kit, item), { recursive: true });
-for (const f of fs.readdirSync(PPT)) if (/^(bab-|0\d-).*\.qmd$/.test(f)) fs.copyFileSync(path.join(PPT, f), path.join(kit, f));
+if (fs.existsSync(path.join(PPT, "data"))) fs.cpSync(path.join(PPT, "data"), path.join(kit, "data"), { recursive: true });
 fs.writeFileSync(path.join(kit, "BACA-SAYA.txt"),
-  "Paket Latihan — Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat\n" +
-  "1. Ekstrak folder ini, buka di RStudio: File > New Project > Existing Directory.\n" +
-  "2. Jalankan R/setup.R untuk memasang paket yang dibutuhkan.\n" +
-  "3. Buka file bab-xx.qmd lalu klik Render untuk menghasilkan slide sendiri.\n" +
-  "Data latihan ada di folder data/.\n\nHanya untuk peserta pelatihan. Mohon tidak disebarluaskan.\n");
-const zipFile = path.join(tmp, "paket.zip");
-execFileSync("zip", ["-qr", "-X", zipFile, "paket-latihan-mad"], { cwd: tmp });
-const zipEnc = encrypt(fs.readFileSync(zipFile));
-fs.writeFileSync(path.join(ENC, "paket-latihan.bin"), zipEnc);
-const kitSize = fs.statSync(zipFile).size;
+  "Data Latihan — Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat (publichealth.id)\n\n" +
+  "Folder data/ berisi dataset yang dipakai dalam bahan presentasi (CSV, Excel, SPSS, Stata, GeoJSON).\n" +
+  "Salin folder data/ ke dalam folder RStudio Project Anda, lalu ikuti contoh kode pada bahan presentasi (PDF).\n\n" +
+  "Hanya untuk peserta pelatihan. Mohon tidak disebarluaskan.\n");
+const zipFile = path.join(tmp, "data.zip");
+execFileSync("zip", ["-qr", "-X", zipFile, "data-latihan-mad"], { cwd: tmp });
+const dataBuf = fs.readFileSync(zipFile);
+fs.writeFileSync(path.join(ENC, "data-latihan.bin"), encrypt(dataBuf, KEY_FREE));
 fs.rmSync(tmp, { recursive: true, force: true });
 
 // ---------- Katalog publik ----------
 const catalog = {
   builtAt: new Date().toISOString(),
   parts: parts.map((p) => ({ label: p.label, title: p.title, decks: p.decks.filter((d) => !d.missing).map(({ missing, ...d }) => d) })),
-  downloads: [{ id: "paket-latihan", file: "paket-latihan-mad.zip", title: "Paket Latihan RStudio", desc: "Dataset (CSV, Excel, SPSS, Stata, GeoJSON), R/setup.R, dan semua file .qmd untuk dirender sendiri", size: kitSize }],
+  // Paket Latihan: bahan presentasi PDF per modul + data (free = tersedia juga untuk kelas gratis)
+  kit: { pdfs, data: { id: "data-latihan", file: "data-latihan-mad.zip", size: dataBuf.length, free: true } },
 };
 fs.writeFileSync(path.join(OUT, "catalog.js"), "// DIBUAT OTOMATIS oleh tools/build-materi.mjs\nwindow.MATERI = " + JSON.stringify(catalog, null, 1) + ";\n");
 fs.copyFileSync(path.join(ROOT, "tools", "view.html"), path.join(OUT, "view.html"));
@@ -146,7 +157,7 @@ if (fs.existsSync(path.join(PPT, "img", "cover.jpg"))) fs.copyFileSync(path.join
 
 const mb = (n) => (n / 1048576).toFixed(1) + " MB";
 console.log(`✓ ${decks.filter((d) => !d.missing).length} deck terenkripsi (${mb(totalIn)} → ${mb(totalOut)})`);
-console.log(`✓ Paket latihan: ${mb(kitSize)} → ${mb(zipEnc.length)}`);
+console.log(`✓ Paket Latihan: ${pdfs.length} PDF (${mb(pdfs.reduce((n, p) => n + p.size, 0))}) + data (${mb(dataBuf.length)})`);
 console.log(`✓ Output: ${path.relative(ROOT, OUT)}/`);
 if (warnings.length) console.log("\nPeringatan:\n  " + [...new Set(warnings)].join("\n  "));
 console.log(`✓ ${decks.filter((d) => d.free).length} deck pengenalan (kelas gratis) memakai kunci .materi-key-free`);
