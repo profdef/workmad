@@ -87,6 +87,18 @@ Uji backend otomatis:
 node tools/test-backend.mjs
 ```
 
+## Memperbarui materi setelah slide berubah (ringkas)
+
+1. Edit `.qmd` di `~/Github/ppt`, lalu **Render** di RStudio/Quarto (`quarto render` di folder ppt).
+2. Modul baru? Tambahkan kartunya di `ppt/index.qmd` (katalog dibaca dari sana), jadwalkan di `SESSIONS[].modules`
+   (`assets/config.js`), dan bila termasuk kelas gratis tambahkan ke `FREE_DECKS` (`tools/build-materi.mjs`).
+3. Jalankan satu perintah:
+   ```bash
+   bash tools/update-materi.sh --push
+   ```
+   (ekspor PDF → build terenkripsi → naikkan versi → uji → commit & push). Tanpa `--push` untuk cek lokal dulu.
+4. Kunci tidak berubah → **tidak perlu** mengubah Apps Script. Peserta cukup memuat ulang portal.
+
 ## Langkah 2 — Build materi dari folder ppt
 
 **Paket Latihan = bahan presentasi PDF + data.** PDF dibuat dari deck Quarto (desain identik dengan slide;
