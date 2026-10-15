@@ -10,21 +10,23 @@
   <meta property="og:image" content="assets/cover.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=22">
+  <link rel="stylesheet" href="assets/style.css?v=24">
 </head>
 <body>
   <div id="topbar"></div>
   <main>
     <section class="container hero">
       <div>
+        <a class="promo-pill hidden" id="promoPill" href="#jalur">🎁 <b>Beli bukunya, ikuti Kelas Pengenalan GRATIS</b><span id="promoDisc"></span></a>
         <div class="eyebrow">Pelatihan Online · <span id="batch"></span></div>
         <h1>Manajemen &amp; Analisis Data <span class="grad">Epidemiologi &amp; Kesehatan Masyarakat</span></h1>
         <div class="sub">Menggunakan R, RStudio &amp; Quarto</div>
         <p class="lead">Dari data mentah surveilans dan survei hingga laporan epidemiologi otomatis yang dapat direproduksi. Praktik langsung dengan dataset nyata, 20 modul interaktif, dan pendampingan narasumber.</p>
         <div class="chips" id="chips"></div>
         <div class="cta">
-          <a class="btn btn-primary btn-lg" href="daftar.html" id="ctaDaftar">Daftar Sekarang →</a>
-          <a class="btn btn-lg" href="#kurikulum">Lihat Kurikulum</a>
+          <a class="btn btn-primary btn-lg hidden" href="kelas-gratis.html" id="ctaFree">🎁 Mulai dari Kelas Gratis →</a>
+          <a class="btn btn-lg" href="daftar.html" id="ctaDaftar">Daftar Pelatihan Penuh</a>
+          <a class="btn btn-lg" href="#kurikulum" id="ctaKur">Lihat Kurikulum</a>
         </div>
         <div class="author"><span class="muted">Narasumber</span><br><b id="instr"></b></div>
         <a class="organizer" href="https://publichealth.id/id/index.html" target="_blank" rel="noopener">
@@ -33,10 +35,44 @@
       <div class="book"><img src="assets/cover.jpg" alt="Sampul buku Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat"></div>
     </section>
 
+    <section class="container section hidden" id="jalur" style="padding-top:28px">
+      <div class="section-head center"><div class="eyebrow">Jalur Belajar</div>
+        <h2>Mulai dari buku, cicipi <span class="grad">gratis</span>, lanjutkan ke pelatihan penuh</h2>
+        <p class="muted" style="max-width:46em;margin:0 auto">Setiap pembeli buku mendapat kelas pengenalan R, RStudio &amp; Quarto secara gratis, plus potongan khusus bila melanjutkan ke pelatihan penuh.</p></div>
+      <div class="path">
+        <div class="path-card">
+          <div class="path-no">1</div><div class="path-ic">📘</div>
+          <h3>Miliki Bukunya</h3>
+          <p class="muted">Buku <i>Manajemen &amp; Analisis Data Epidemiologi &amp; Kesehatan Masyarakat Menggunakan R, RStudio &amp; Quarto</i>, panduan langkah demi langkah dengan contoh kode dan dataset nyata.</p>
+          <ul class="path-list"><li>Tiket masuk kelas gratis</li><li>Potongan pelatihan penuh</li></ul>
+          <a class="btn btn-block" id="pathBuy" target="_blank" rel="noopener">Pesan Buku</a>
+        </div>
+        <div class="path-arrow" aria-hidden="true">→</div>
+        <div class="path-card featured">
+          <div class="path-ribbon">GRATIS</div>
+          <div class="path-no">2</div><div class="path-ic">🎁</div>
+          <h3>Kelas Pengenalan R, RStudio &amp; Quarto</h3>
+          <p class="muted" id="pathFreeWhen"></p>
+          <ul class="path-list" id="pathFreeList"></ul>
+          <a class="btn btn-primary btn-block" href="kelas-gratis.html">Daftar Kelas Gratis →</a>
+          <div class="small muted center" style="margin-top:8px" id="pathFreeSeat"></div>
+        </div>
+        <div class="path-arrow" aria-hidden="true">→</div>
+        <div class="path-card">
+          <div class="path-no">3</div><div class="path-ic">🎓</div>
+          <h3>Pelatihan Penuh</h3>
+          <p class="muted">6 sesi live, 20 modul, bahan presentasi PDF &amp; data, evaluasi, dan e-sertifikat 18 JP.</p>
+          <div class="path-price"><span class="muted small">mulai</span> <s id="pathFrom"></s> <b class="grad" id="pathFromDisc"></b><div class="small" style="color:var(--good)">harga khusus pembeli buku</div></div>
+          <a class="btn btn-block" href="daftar.html">Daftar Pelatihan Penuh</a>
+        </div>
+      </div>
+      <p class="center small muted" style="margin-top:14px">Belum punya buku? Anda tetap dapat langsung <a href="daftar.html">mendaftar pelatihan penuh</a>.</p>
+    </section>
+
     <section class="container">
       <div class="quota" id="quota">
-        <div class="q"><b id="qReg">–</b><span>Peserta terdaftar</span></div>
-        <div class="q"><b id="qRem">–</b><span>Kursi tersisa</span><div class="meter"><i id="qBar" style="width:0"></i></div></div>
+        <div class="q"><b id="qReg">–</b><span>Peserta pelatihan penuh</span></div>
+        <div class="q"><b id="qRem">–</b><span>Kursi pelatihan penuh tersisa</span><div class="meter"><i id="qBar" style="width:0"></i></div></div>
         <div class="q"><b>20</b><span>Modul presentasi</span></div>
         <div class="q"><b id="qJp">18 JP</b><span>Sertifikat</span></div>
       </div>
@@ -49,16 +85,6 @@
         <div class="step"><b>Transfer</b><span>Bayar tepat sesuai tagihan (termasuk 3 digit kode unik) ke rekening resmi.</span></div>
         <div class="step"><b>Unggah bukti</b><span>Unggah foto/screenshot bukti transfer. Admin memverifikasi ≤ 1×24 jam.</span></div>
         <div class="step"><b>Masuk portal</b><span>Kode akses dikirim ke email. Buka 20 modul, unduh bahan presentasi PDF &amp; data, jadwal &amp; Zoom.</span></div>
-      </div>
-    </section>
-
-    <section class="container section" id="kelasGratis">
-      <div class="card free-banner">
-        <div><div class="eyebrow">Sudah punya bukunya?</div>
-          <h2 style="margin:.35em 0 .3em">Ikuti <span class="grad">Kelas Pengenalan GRATIS</span> R, RStudio &amp; Quarto</h2>
-          <p class="muted" style="margin:0" id="fcLine"></p></div>
-        <div class="free-cta"><a class="btn btn-primary btn-lg" href="kelas-gratis.html">Daftar Kelas Gratis →</a>
-          <a class="small" id="fcBuy" target="_blank" rel="noopener">Belum punya buku? Pesan di sini</a></div>
       </div>
     </section>
 
@@ -96,7 +122,7 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=22"></script>
+  <script src="assets/config.js?v=24"></script>
   <script src="assets/api.js?v=11"></script>
   <script src="assets/common.js?v=12"></script>
   <script src="materi/catalog.js?v=22"></script>
@@ -127,11 +153,23 @@
       '</div><div class="note">' + esc(c.note || "Akses penuh seluruh fasilitas") + (C.FREE_CLASS && C.FREE_CLASS.bookDiscount ? '<br><span style="color:var(--good)">Pembeli buku: ' + rupiah(Math.max(0, c.price - C.FREE_CLASS.bookDiscount)) + "</span>" : "") + '</div><a class="btn btn-block' + (i === 1 ? " btn-primary" : "") +
       '" style="margin-top:14px" href="daftar.html?kategori=' + encodeURIComponent(name) + '">Pilih</a></div>').join("");
 
+    // Jalur belajar: buku → kelas gratis → pelatihan penuh
     const FC = C.FREE_CLASS;
     if (FC && FC.enabled) {
-      $("fcLine").innerHTML = esc(FC.date) + " · " + esc(FC.time) + " · " + esc(FC.mode) + ". Pembeli buku juga mendapat <b style=\"color:#fff\">potongan " + rupiah(FC.bookDiscount) + "</b> untuk pelatihan penuh.";
-      $("fcBuy").href = FC.bookUrl;
-    } else $("kelasGratis").remove();
+      ["promoPill", "ctaFree", "jalur"].forEach((id) => $(id).classList.remove("hidden"));
+      $("ctaKur").classList.add("hidden");
+      $("promoDisc").textContent = " · hemat " + rupiah(FC.bookDiscount) + " untuk pelatihan penuh";
+      $("pathBuy").href = FC.bookUrl;
+      $("pathFreeWhen").innerHTML = "<b style=\"color:#fff\">" + esc(FC.date) + "</b><br>" + esc(FC.time) + " · Online via Zoom";
+      $("pathFreeList").innerHTML = FC.benefits.slice(0, 3).map((b) => "<li>" + esc(b) + "</li>").join("");
+      const minPrice = Math.min(...Object.values(C.CATEGORIES).map((c) => c.price));
+      $("pathFrom").textContent = rupiah(minPrice);
+      $("pathFromDisc").textContent = rupiah(Math.max(0, minPrice - FC.bookDiscount));
+      API.stats().then((st) => {
+        const f = st.free || {};
+        if (f.quota) $("pathFreeSeat").textContent = f.closed ? (f.remaining <= 0 ? "Kuota kelas gratis penuh" : "Pendaftaran kelas gratis ditutup") : "Sisa " + f.remaining + " dari " + f.quota + " kursi";
+      }).catch(() => {});
+    } else $("ctaDaftar").classList.add("btn-primary");
     $("faqList").innerHTML = C.FAQ.map(([q, a]) => '<details class="faq"><summary>' + esc(q) + "</summary><p>" + esc(a) + "</p></details>").join("");
 
     async function loadStats() {

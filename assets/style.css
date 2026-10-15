@@ -412,3 +412,31 @@ dialog .dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px
 .dl-row .t { color: var(--white); font-weight: 600; font-size: 14px; min-width: 0; }
 .dl-row .t .small { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 560px) { .dl-row { grid-template-columns: 34px 1fr auto; } .dl-row > span { display: none; } }
+
+/* ---------- Jalur belajar (buku → kelas gratis → pelatihan penuh) ---------- */
+.promo-pill { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 14px; padding: 7px 14px; border-radius: 999px;
+  font-size: 13.5px; color: var(--ink); text-decoration: none; background: rgba(74,222,128,.12); border: 1px solid rgba(74,222,128,.55); transition: border-color .15s; }
+.promo-pill b { color: #fff; } .promo-pill span { color: var(--good); }
+.promo-pill:hover { border-color: var(--good); }
+.path { display: grid; grid-template-columns: 1fr 34px 1.12fr 34px 1fr; align-items: stretch; gap: 8px; margin-top: 8px; }
+.path-card { position: relative; display: flex; flex-direction: column; padding: 24px 22px 22px; border-radius: 18px; border: 1px solid var(--border);
+  background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02)); }
+.path-card h3 { font-size: 18px; margin: 6px 0 8px; }
+.path-card p { font-size: 14px; }
+.path-card .btn { margin-top: auto; }
+.path-card.featured { border: 2px solid var(--good); box-shadow: 0 0 46px rgba(74,222,128,.18); background: linear-gradient(160deg, rgba(74,222,128,.13), rgba(168,85,247,.10) 70%); transform: translateY(-6px); }
+.path-no { position: absolute; top: 18px; right: 20px; font: 800 34px var(--head); color: rgba(255,255,255,.12); }
+.path-ic { font-size: 32px; line-height: 1; }
+.path-ribbon { position: absolute; top: -13px; left: 22px; padding: 4px 14px; border-radius: 999px; background: var(--good); color: #052e16; font: 800 12px var(--head); letter-spacing: .14em; }
+.path-list { list-style: none; margin: 0 0 16px; padding: 0; font-size: 13.5px; }
+.path-list li { padding-left: 22px; position: relative; margin-bottom: 5px; color: var(--ink); }
+.path-list li::before { content: "✓"; position: absolute; left: 0; color: var(--good); font-weight: 700; }
+.path-price { margin: 0 0 16px; font-size: 14px; }
+.path-price s { color: var(--muted); margin-right: 4px; }
+.path-price b { font: 800 24px var(--head); }
+.path-arrow { display: grid; place-items: center; font: 800 24px var(--head); color: var(--magenta); }
+@media (max-width: 960px) {
+  .path { grid-template-columns: 1fr; }
+  .path-arrow { transform: rotate(90deg); height: 26px; }
+  .path-card.featured { transform: none; }
+}
