@@ -11,7 +11,7 @@ if (location.protocol === "http:" && !/^(localhost|127\.0\.0\.1)$/.test(location
 window.APP_CONFIG = {
   // Versi rilis — naikkan bersamaan dengan version.json setiap kali situs diperbarui,
   // agar browser peserta otomatis memuat ulang halaman versi terbaru (bukan dari cache).
-  APP_VERSION: "2026.10.16-4",
+  APP_VERSION: "2026.10.16-5",
 
   // URL Web App Google Apps Script (lihat README).
   // Biarkan kosong "" untuk MODE DEMO (data disimpan di browser saja).
@@ -44,11 +44,11 @@ window.APP_CONFIG = {
   FREE_CLASS: {
     enabled: true,
     title: "Kelas Pengenalan R, RStudio & Quarto untuk Manajemen dan Analisis Data",
-    date: "Sabtu, 31 Oktober 2026",
+    date: "Sabtu, 28 November 2026",
     time: "09.00–11.30 WIB",
     mode: "Online via Zoom · gratis khusus pembeli buku",
     quota: 300,
-    closeDate: "2026-10-31",
+    closeDate: "2026-11-28",
     bookDiscount: 100000,                       // potongan biaya pelatihan penuh bagi pembeli buku (Rp)
     bookUrl: "https://profdef.github.io/orderbuku/", // halaman pemesanan buku
     agenda: [

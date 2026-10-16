@@ -30,7 +30,7 @@ var CONFIG = {
   CLOSE_DATE: "2026-11-05",                 // pendaftaran ditutup setelah tanggal ini (WIB)
   UNIQUE_CODE: { MIN: 101, MAX: 499 },
   // Kelas pra-pelatihan GRATIS khusus pembeli buku (samakan dengan FREE_CLASS di assets/config.js)
-  FREE_CLASS: { ENABLED: true, CATEGORY: "Kelas Gratis (Pembeli Buku)", QUOTA: 300, CLOSE_DATE: "2026-10-31" },
+  FREE_CLASS: { ENABLED: true, CATEGORY: "Kelas Gratis (Pembeli Buku)", QUOTA: 300, CLOSE_DATE: "2026-11-28" },
   // Potongan biaya pelatihan penuh bagi pembeli buku (Rp)
   BOOK_DISCOUNT: 100000,
   // Status pesanan buku (aplikasi orderbuku) yang dianggap sudah membeli
