@@ -11,7 +11,7 @@ if (location.protocol === "http:" && !/^(localhost|127\.0\.0\.1)$/.test(location
 window.APP_CONFIG = {
   // Versi rilis — naikkan bersamaan dengan version.json setiap kali situs diperbarui,
   // agar browser peserta otomatis memuat ulang halaman versi terbaru (bukan dari cache).
-  APP_VERSION: "2026.10.16-2",
+  APP_VERSION: "2026.10.16-3",
 
   // URL Web App Google Apps Script (lihat README).
   // Biarkan kosong "" untuk MODE DEMO (data disimpan di browser saja).
