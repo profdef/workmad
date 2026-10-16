@@ -43,14 +43,15 @@
         "<nav>" + nav + right + "</nav>" +
       "</div></header>";
     const foot = document.getElementById("footer");
+    // Footer seragam dengan publichealth.id: logo lengkap (dengan moto) di kiri, kontak di bawahnya
     if (foot) foot.outerHTML =
-      '<footer class="foot"><div class="container">' +
-        '<div class="foot-brand"><a href="' + esc(O.url) + '" target="_blank" rel="noopener"><img src="' + O.logoDark + '" alt="publichealth.id — ' + esc(O.motto) + '"></a>' +
-        "<div>Pelatihan Online <b style=\"color:#fff\">" + esc(T.title) + " " + esc(T.subtitle) + "</b><br>Narasumber: " + esc(T.instructor) + "<br>Diselenggarakan oleh " +
-        '<a href="' + esc(O.url) + '" target="_blank" rel="noopener">publichealth.id</a></div></div>' +
-        '<div>WhatsApp admin: <a href="https://wa.me/' + C.ADMIN_WA + '" target="_blank" rel="noopener">+' + C.ADMIN_WA + "</a><br>" +
-        'Email: <a href="mailto:' + esc(T.email) + '">' + esc(T.email) + "</a><br>Web: <a href=\"" + esc(O.url) + "\" target=\"_blank\" rel=\"noopener\">publichealth.id</a><br><i>" + esc(O.motto) + "</i></div>" +
-      "</div></footer>";
+      '<footer class="foot"><div class="container"><div class="ft-brand">' +
+        '<a href="' + esc(O.url) + '" target="_blank" rel="noopener"><img class="ft-logo" src="' + O.logoDark + '" alt="publichealth.id — ' + esc(O.motto) + '"></a>' +
+        '<div class="ft-info">' +
+          '<span><i>✆</i> WhatsApp admin: <a href="https://wa.me/' + C.ADMIN_WA + '" target="_blank" rel="noopener">+' + C.ADMIN_WA + "</a></span>" +
+          '<span><i>✉</i> Email: <a href="mailto:' + esc(T.email) + '">' + esc(T.email) + "</a></span>" +
+          '<span><i>⊕</i> Web: <a href="https://publichealth.id" target="_blank" rel="noopener">publichealth.id</a></span>' +
+        "</div></div></div></footer>";
   };
 
   window.renderPaymentInfo = function (el) {

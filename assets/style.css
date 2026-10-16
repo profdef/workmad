@@ -243,7 +243,14 @@ textarea { min-height: 80px; resize: vertical; }
 
 /* ---------- Footer ---------- */
 footer.foot { border-top: 1px solid var(--border-soft); margin-top: 48px; padding: 24px 0 32px; color: var(--muted); font-size: 13px; }
-footer.foot .container { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+footer.foot .container { display: block; }
+footer.foot .ft-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; }
+footer.foot .ft-logo { height: 46px; width: auto; display: block; }
+footer.foot .ft-info { display: flex; flex-direction: column; font-size: 13.5px; line-height: 1.35; color: var(--muted); }
+footer.foot .ft-info i { font-style: normal; color: #f87171; display: inline-block; width: 18px; }
+footer.foot .ft-info a { color: #f87171; text-decoration: none; }
+footer.foot .ft-info a:hover { text-decoration: underline; }
+@media (max-width: 560px) { footer.foot .ft-brand { align-items: center; } }
 
 /* ---------- Admin ---------- */
 .dash-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; padding: 28px 0 16px; }
