@@ -11,7 +11,7 @@ if (location.protocol === "http:" && !/^(localhost|127\.0\.0\.1)$/.test(location
 window.APP_CONFIG = {
   // Versi rilis — naikkan bersamaan dengan version.json setiap kali situs diperbarui,
   // agar browser peserta otomatis memuat ulang halaman versi terbaru (bukan dari cache).
-  APP_VERSION: "2026.10.16-5",
+  APP_VERSION: "2026.10.16-6",
 
   // URL Web App Google Apps Script (lihat README).
   // Biarkan kosong "" untuk MODE DEMO (data disimpan di browser saja).
@@ -20,13 +20,13 @@ window.APP_CONFIG = {
   TRAINING: {
     title: "Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat",
     subtitle: "Menggunakan R, RStudio & Quarto",
-    batch: "Angkatan I · November 2026",
+    batch: "Angkatan I · Desember 2026",
     mode: "Online (Zoom) + akses materi mandiri",
     hours: "6 sesi × 3 jam (18 JP)",
     instructor: "Prof. Defriman Djafri, SKM, MKM, PhD",
     signature: "assets/brand/ttd-narasumber.png", // tanda tangan narasumber di sertifikat (PNG transparan)
     email: "info@publichealth.id",          // email resmi penyelenggara (footer, invoice, kuitansi)
-    closeDate: "2026-11-05", // pendaftaran ditutup setelah tanggal ini (YYYY-MM-DD, WIB)
+    closeDate: "2026-12-03", // pendaftaran ditutup setelah tanggal ini (YYYY-MM-DD, WIB)
   },
 
   // Penyelenggara (logo & moto dari https://publichealth.id)
@@ -81,17 +81,17 @@ window.APP_CONFIG = {
   // Jadwal sesi live. `jp` = jam pelajaran per sesi (total tercetak di sertifikat), `modules` = slug modul (lihat materi/catalog.js)
   // yang dibahas — dipakai untuk tabel rincian materi di halaman belakang sertifikat.
   SESSIONS: [
-    { date: "Sabtu, 7 November 2026",  time: "09.00–12.00 WIB", topic: "Pengantar & Konsep Dasar Data", decks: "Pengantar, Bab 1–5", jp: 3,
+    { date: "Sabtu, 5 Desember 2026",  time: "09.00–12.00 WIB", topic: "Pengantar & Konsep Dasar Data", decks: "Pengantar, Bab 1–5", jp: 3,
       modules: ["00-tentang-buku", "01-pendahuluan", "bab-01-konsep-dasar-data", "bab-02-siklus-hidup-data", "bab-03-tata-kelola-data", "bab-04-etika-privasi-keamanan", "bab-05-jenis-sumber-data"] },
-    { date: "Minggu, 8 November 2026", time: "09.00–12.00 WIB", topic: "R, RStudio & Quarto", decks: "Bab 6–8", jp: 3,
+    { date: "Minggu, 6 Desember 2026", time: "09.00–12.00 WIB", topic: "R, RStudio & Quarto", decks: "Bab 6–8", jp: 3,
       modules: ["bab-06-mengenal-r-rstudio", "bab-07-dasar-pemrograman-r", "bab-08-reproducible-quarto"] },
-    { date: "Sabtu, 14 November 2026", time: "09.00–12.00 WIB", topic: "Manajemen Data di R", decks: "Bab 9–11", jp: 3,
+    { date: "Sabtu, 12 Desember 2026", time: "09.00–12.00 WIB", topic: "Manajemen Data di R", decks: "Bab 9–11", jp: 3,
       modules: ["bab-09-impor-ekspor-data", "bab-10-pembersihan-transformasi", "bab-11-penggabungan-rekode"] },
-    { date: "Minggu, 15 November 2026", time: "09.00–12.00 WIB", topic: "Analisis Univariat & Bivariat", decks: "Bab 12–13", jp: 3,
+    { date: "Minggu, 13 Desember 2026", time: "09.00–12.00 WIB", topic: "Analisis Univariat & Bivariat", decks: "Bab 12–13", jp: 3,
       modules: ["bab-12-analisis-univariat", "bab-13-analisis-bivariat"] },
-    { date: "Sabtu, 21 November 2026", time: "09.00–12.00 WIB", topic: "Tabel 2×2, Ukuran Asosiasi & Multivariat", decks: "Bab 14–15", jp: 3,
+    { date: "Sabtu, 19 Desember 2026", time: "09.00–12.00 WIB", topic: "Tabel 2×2, Ukuran Asosiasi & Multivariat", decks: "Bab 14–15", jp: 3,
       modules: ["bab-14-tabel-2x2-asosiasi", "bab-15-analisis-multivariat"] },
-    { date: "Minggu, 22 November 2026", time: "09.00–12.00 WIB", topic: "Studi Kasus & Laporan Otomatis Quarto", decks: "Bab 16–18", jp: 3,
+    { date: "Minggu, 20 Desember 2026", time: "09.00–12.00 WIB", topic: "Studi Kasus & Laporan Otomatis Quarto", decks: "Bab 16–18", jp: 3,
       modules: ["bab-16-studi-kasus-surveilans", "bab-17-studi-kasus-survei", "bab-18-laporan-otomatis-quarto"] },
   ],
 

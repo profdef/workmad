@@ -19,7 +19,7 @@
 
 var CONFIG = {
   TRAINING: "Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat Menggunakan R, RStudio & Quarto",
-  BATCH: "Angkatan I · November 2026",
+  BATCH: "Angkatan I · Desember 2026",
   CATEGORIES: {
     "Mahasiswa (S1/S2/S3)": 350000,
     "Dosen / Peneliti / Tenaga Kesehatan": 500000,
@@ -27,7 +27,7 @@ var CONFIG = {
   },
   STUDENT_CATEGORY: "Mahasiswa (S1/S2/S3)", // kategori yang wajib unggah KTM
   QUOTA: 100,
-  CLOSE_DATE: "2026-11-05",                 // pendaftaran ditutup setelah tanggal ini (WIB)
+  CLOSE_DATE: "2026-12-03",                 // pendaftaran ditutup setelah tanggal ini (WIB)
   UNIQUE_CODE: { MIN: 101, MAX: 499 },
   // Kelas pra-pelatihan GRATIS khusus pembeli buku (samakan dengan FREE_CLASS di assets/config.js)
   FREE_CLASS: { ENABLED: true, CATEGORY: "Kelas Gratis (Pembeli Buku)", QUOTA: 300, CLOSE_DATE: "2026-11-28" },
