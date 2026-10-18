@@ -216,5 +216,17 @@ ok(r.ok && r.key && r.keyFree === KF && r.participant.program === "Penuh", "kode
 r = call({ action: "login", email: "ani@contoh.id", code: freeRec.accessCode });
 ok(r.ok && r.participant.program === "Gratis", "kode kelas gratis tetap berfungsi terpisah");
 
+console.log("Notifikasi Telegram");
+props.TELEGRAM_BOT_TOKEN = "123:ABC"; props.TELEGRAM_CHAT_ID = "111, -222";
+const nTg = (be.gas.db().telegram || []).length;
+r = call({ action: "register", reg: Object.assign({}, base, { name: "Tele <Uji>", email: "tele@contoh.id", phone: "081299998888" }) });
+const tg = be.gas.db().telegram || [];
+ok(r.ok && tg.length === nTg + 2 && tg[0].body.parse_mode === "HTML" && /Pendaftar baru · Pelatihan Penuh/.test(tg[0].body.text) && /Tele &lt;Uji&gt;/.test(tg[0].body.text), "pendaftar penuh → 2 chat Telegram, HTML aman", tg[0] && tg[0].body);
+r = call({ action: "registerFree", reg: Object.assign({}, fbase, { email: "tele2@contoh.id", name: "Tele2", phone: "081277776666", bookProof: img }) });
+ok(r.ok && /Kelas Gratis/.test(be.gas.db().telegram[0].body.text) && /Perlu verifikasi/.test(be.gas.db().telegram[0].body.text), "pendaftar kelas gratis → notifikasi Telegram");
+delete props.TELEGRAM_BOT_TOKEN; const n2 = be.gas.db().telegram.length;
+call({ action: "register", reg: Object.assign({}, base, { email: "tele3@contoh.id", phone: "081266665555" }) });
+ok(be.gas.db().telegram.length === n2, "tanpa token → tidak mengirim, pendaftaran tetap jalan");
+
 console.log(`\n${pass} lulus, ${fail} gagal`);
 process.exit(fail ? 1 : 0);

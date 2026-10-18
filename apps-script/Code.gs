@@ -226,7 +226,11 @@ function register(o) {
        ["<b>Total transfer</b>", "<b style='font-size:18px;color:#e879f9'>" + rp(reg.total) + "</b>"], ["Rekening", CONFIG.PAYMENT]]),
       "Mohon transfer <b>tepat " + rp(reg.total) + "</b> (termasuk kode unik agar mudah diverifikasi), lalu unggah bukti transfer di:",
       CONFIG.SITE_URL + "konfirmasi.html?id=" + encodeURIComponent(reg.id), "Konfirmasi Pembayaran"));
-  notifyAdmin("Pendaftar baru: " + reg.id, reg.name + " · " + reg.institution + "\n" + reg.category + " · " + rp(reg.total));
+  notifyAdmin("Pendaftar baru: " + reg.id, reg.name + " · " + reg.institution + "\n" + reg.category + " · " + rp(reg.total), {
+    icon: "🎓", title: "Pendaftar baru · Pelatihan Penuh", id: reg.id,
+    rows: [["Nama", reg.name], ["Instansi", reg.institution], ["Domisili", reg.city + ", " + reg.province], ["WhatsApp", reg.phone], ["Email", reg.email],
+      ["Kategori", reg.category], ["Tagihan", rp(reg.total) + (reg.discount ? " (potongan buku " + rp(reg.discount) + ")" : "")]],
+    footer: "Status: Menunggu Pembayaran" });
 
   return { ok: true, reg: publicReg(reg) };
 }
@@ -278,7 +282,11 @@ function registerFree(o) {
       [["No. pendaftaran", reg.id], ["Status", "Menunggu verifikasi bukti pembelian buku"]],
       "Admin akan memverifikasi bukti pembelian buku Anda (umumnya 1×24 jam). Kode akses dikirim ke email ini setelah diverifikasi.",
       CONFIG.SITE_URL + "kelas-gratis.html", "Info Kelas Gratis"));
-  notifyAdmin("Pendaftar kelas gratis: " + reg.id, reg.name + " · " + reg.institution + (verified ? " (pesanan buku terverifikasi otomatis)" : " (perlu verifikasi bukti buku)"));
+  notifyAdmin("Pendaftar kelas gratis: " + reg.id, reg.name + " · " + reg.institution + (verified ? " (pesanan buku terverifikasi otomatis)" : " (perlu verifikasi bukti buku)"), {
+    icon: "🎁", title: "Pendaftar baru · Kelas Gratis", id: reg.id,
+    rows: [["Nama", reg.name], ["Instansi", reg.institution], ["Domisili", reg.city + ", " + reg.province], ["WhatsApp", reg.phone], ["Email", reg.email],
+      ["Bukti buku", reg.bookOrderId ? "Pesanan " + reg.bookOrderId : "Foto bukti pembelian"]],
+    footer: verified ? "✅ Pesanan buku terverifikasi — akses langsung aktif" : "⚠️ Perlu verifikasi bukti buku di dashboard" });
   return { ok: true, reg: { id: reg.id, name: reg.name, status: reg.status, verified: verified }, mailed: mailed };
 }
 
@@ -338,7 +346,10 @@ function confirmPayment(b) {
     lock.releaseLock();
   }
   notifyAdmin("Bukti transfer masuk: " + id, rec.name + " — transfer " + rp(paidAmount) + " a.n. " + payerName +
-    " (tagihan " + rp(rec.total) + ")\n" + rec.proofUrl);
+    " (tagihan " + rp(rec.total) + ")\n" + rec.proofUrl, {
+    icon: "💳", title: "Bukti transfer masuk", id: id,
+    rows: [["Nama", rec.name], ["Pengirim", payerName], ["Transfer", rp(paidAmount)], ["Tagihan", rp(rec.total)]],
+    footer: Number(paidAmount) === Number(rec.total) ? "✅ Nominal sesuai tagihan — silakan verifikasi" : "⚠️ Nominal BERBEDA dari tagihan — cek mutasi rekening" });
   return { ok: true, reg: publicReg(rec) };
 }
 
@@ -612,9 +623,58 @@ function sendMail(to, subject, html) {
   } catch (e) { return false; }
 }
 
-function notifyAdmin(subject, text) {
-  if (!CONFIG.NOTIFY_EMAIL) return;
-  try { MailApp.sendEmail(CONFIG.NOTIFY_EMAIL, subject, text); } catch (e) { /* abaikan */ }
+function notifyAdmin(subject, text, tg) {
+  if (CONFIG.NOTIFY_EMAIL) { try { MailApp.sendEmail(CONFIG.NOTIFY_EMAIL, subject, text); } catch (e) { /* abaikan */ } }
+  if (tg) notifyTelegram(tg);
+}
+
+/* ======================= Notifikasi Telegram =======================
+ * Script Properties: TELEGRAM_BOT_TOKEN (dari @BotFather) dan TELEGRAM_CHAT_ID
+ * (satu atau beberapa chat/grup, pisahkan dengan koma). Jalankan cariChatIdTelegram()
+ * untuk menemukan chat ID, lalu tesTelegram() untuk mengirim pesan uji. */
+function notifyTelegram(m) {
+  var P = PropertiesService.getScriptProperties();
+  var token = String(P.getProperty("TELEGRAM_BOT_TOKEN") || "").trim(), chats = String(P.getProperty("TELEGRAM_CHAT_ID") || "").trim();
+  if (!token || !chats) return false;
+  var lines = ["<b>" + h(m.icon || "🔔") + " " + h(m.title) + "</b>"];
+  if (m.id) lines.push("<code>" + h(m.id) + "</code>");
+  lines.push("");
+  (m.rows || []).forEach(function (r) { if (r[1]) lines.push("<b>" + h(r[0]) + ":</b> " + h(r[1])); });
+  if (m.footer) { lines.push(""); lines.push(h(m.footer)); }
+  lines.push(""); lines.push('<a href="' + CONFIG.SITE_URL + 'admin.html">Buka dashboard admin</a>');
+  var ok = false;
+  chats.split(",").forEach(function (chat) {
+    chat = chat.trim(); if (!chat) return;
+    try {
+      var r = UrlFetchApp.fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
+        method: "post", contentType: "application/json", muteHttpExceptions: true,
+        payload: JSON.stringify({ chat_id: chat, text: lines.join("\n"), parse_mode: "HTML", disable_web_page_preview: true })
+      });
+      ok = r.getResponseCode() === 200 || ok;
+      if (r.getResponseCode() !== 200) Logger.log("Telegram gagal (" + chat + "): " + r.getContentText());
+    } catch (e) { Logger.log("Telegram error: " + e); }
+  });
+  return ok;
+}
+
+// Jalankan dari editor setelah mengirim pesan apa saja ke bot (atau ke grup yang berisi bot)
+function cariChatIdTelegram() {
+  var token = String(PropertiesService.getScriptProperties().getProperty("TELEGRAM_BOT_TOKEN") || "").trim();
+  if (!token) { Logger.log("Isi dulu TELEGRAM_BOT_TOKEN di Script Properties."); return; }
+  var r = JSON.parse(UrlFetchApp.fetch("https://api.telegram.org/bot" + token + "/getUpdates", { muteHttpExceptions: true }).getContentText());
+  if (!r.ok) { Logger.log("Token tidak valid: " + JSON.stringify(r)); return; }
+  var seen = {};
+  (r.result || []).forEach(function (u) {
+    var c = (u.message || u.channel_post || u.my_chat_member || {}).chat;
+    if (c && !seen[c.id]) { seen[c.id] = 1; Logger.log("Chat ID: " + c.id + "  ·  " + (c.title || [c.first_name, c.last_name].join(" ")) + "  (" + c.type + ")"); }
+  });
+  if (!Object.keys(seen).length) Logger.log("Belum ada pesan. Kirim pesan (mis. /start) ke bot Anda di Telegram, lalu jalankan fungsi ini lagi.");
+}
+
+function tesTelegram() {
+  var ok = notifyTelegram({ icon: "✅", title: "Tes notifikasi Pelatihan MAD-R", rows: [["Waktu", Utilities.formatDate(new Date(), "Asia/Jakarta", "dd-MM-yyyy HH:mm") + " WIB"]],
+    footer: "Bot Telegram terhubung. Notifikasi pendaftar baru akan muncul di sini." });
+  Logger.log(ok ? "Terkirim — cek Telegram Anda." : "Gagal. Periksa TELEGRAM_BOT_TOKEN & TELEGRAM_CHAT_ID (lihat log di atas).");
 }
 
 function mailTemplate(title, intro, rows, ctaText, ctaUrl, ctaLabel) {

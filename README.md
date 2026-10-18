@@ -218,6 +218,18 @@ Pengaturan:
   Sheet orderbuku harus milik akun Google yang sama dengan Apps Script ini. Setelah menempel `Code.gs` baru, jalankan `setup()`
   sekali (izin membaca spreadsheet lain) lalu **Deploy → Manage deployments → Edit → New version**.
 
+## Notifikasi Telegram untuk admin
+
+Setiap **pendaftar pelatihan penuh**, **pendaftar kelas gratis**, dan **bukti transfer masuk** dikirim ke Telegram.
+1. Telegram → chat **@BotFather** → `/newbot` → beri nama & username (berakhiran `bot`) → salin **token**.
+2. Kirim pesan `/start` ke bot baru Anda (atau tambahkan bot ke grup panitia lalu kirim pesan di grup).
+3. Apps Script → Script Properties: `TELEGRAM_BOT_TOKEN` = token.
+4. Editor → pilih fungsi `cariChatIdTelegram` → ▶ Run → salin angka **Chat ID** dari log
+   (grup berawalan `-`). Isi Script Property `TELEGRAM_CHAT_ID` (beberapa chat dipisah koma).
+5. Jalankan `tesTelegram` → pesan uji masuk ke Telegram. Lalu **Deploy → Manage deployments → Edit → New version**.
+
+Kosongkan `TELEGRAM_BOT_TOKEN` untuk mematikan notifikasi (pendaftaran tetap berjalan).
+
 ## Memperbarui situs (hindari cache browser)
 
 Setiap kali mengubah file situs lalu push, **naikkan versi** di dua tempat dengan nilai yang sama:

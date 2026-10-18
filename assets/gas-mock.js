@@ -134,6 +134,14 @@
           createTextOutput: (s) => ({ setMimeType() { return this; }, getContent: () => s }),
         },
         Logger: { log: (...a) => console.log("[GAS]", ...a) },
+        UrlFetchApp: {
+          fetch(url, opt) {
+            db.telegram = db.telegram || [];
+            if (/api\.telegram\.org/.test(url)) db.telegram.unshift({ at: new Date().toISOString(), body: opt && opt.payload ? JSON.parse(opt.payload) : null });
+            db.telegram = db.telegram.slice(0, 50); save();
+            return { getResponseCode: () => 200, getContentText: () => '{"ok":true,"result":[]}' };
+          },
+        },
       },
       // Folder tiruan
       folder: {
