@@ -11,7 +11,7 @@ if (location.protocol === "http:" && !/^(localhost|127\.0\.0\.1)$/.test(location
 window.APP_CONFIG = {
   // Versi rilis — naikkan bersamaan dengan version.json setiap kali situs diperbarui,
   // agar browser peserta otomatis memuat ulang halaman versi terbaru (bukan dari cache).
-  APP_VERSION: "2026.10.16-6",
+  APP_VERSION: "2026.10.19-1",
 
   // URL Web App Google Apps Script (lihat README).
   // Biarkan kosong "" untuk MODE DEMO (data disimpan di browser saja).
@@ -50,7 +50,7 @@ window.APP_CONFIG = {
     quota: 300,
     closeDate: "2026-11-28",
     bookDiscount: 100000,                       // potongan biaya pelatihan penuh bagi pembeli buku (Rp)
-    bookUrl: "https://profdef.github.io/orderbuku/", // halaman pemesanan buku
+    bookUrl: "https://orderbuku.publichealth.id/", // halaman pemesanan buku
     agenda: [
       ["09.00", "Pembukaan: mengapa R, RStudio & Quarto untuk data kesehatan"],
       ["09.15", "Instalasi & tur RStudio: panel, project, paket"],
