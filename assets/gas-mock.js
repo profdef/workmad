@@ -124,7 +124,7 @@
           getRemainingDailyQuota: () => 100,
           sendEmail(a, subject, text) {
             const m = typeof a === "object" ? a : { to: a, subject, body: text };
-            db.mails.unshift({ at: new Date().toISOString(), to: m.to, subject: m.subject, html: m.htmlBody || "", text: m.body || "" });
+            db.mails.unshift({ at: new Date().toISOString(), to: m.to, name: m.name || "", replyTo: m.replyTo || "", subject: m.subject, html: m.htmlBody || "", text: m.body || "" });
             db.mails = db.mails.slice(0, 50);
             save();
           },

@@ -221,11 +221,7 @@ r = call({ action: "registerFree", reg: Object.assign({}, fbase, { email: "kode@
 ok(r.ok && r.reg.verified && /^[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(r.reg.accessCode), "pembeli terverifikasi → kode akses dikembalikan", r);
 r = call({ action: "registerFree", reg: Object.assign({}, fbase, { email: "foto@contoh.id", name: "Foto", phone: "081244443333", bookProof: img }) });
 ok(r.ok && !r.reg.verified && r.reg.accessCode === "", "bukti foto (belum diverifikasi) → kode TIDAK dikembalikan");
-ok(!be.gas.db().mails[0].from, "alias belum terdaftar → kirim via MailApp (tanpa from)");
-props.__aliases = "info@publichealth.id";
-call({ action: "forgot", email: "kode@contoh.id" });
-ok(be.gas.db().mails[0].from === "info@publichealth.id", "alias terdaftar → email dari info@publichealth.id", be.gas.db().mails[0]);
-delete props.__aliases;
+ok(be.gas.db().mails[0].to === "kode@contoh.id" || be.gas.db().mails[1].to === "kode@contoh.id", "email kode akses kelas gratis tetap dikirim (cadangan)");
 
 console.log("Notifikasi Telegram");
 props.TELEGRAM_BOT_TOKEN = "123:ABC"; props.TELEGRAM_CHAT_ID = "111, -222";

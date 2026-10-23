@@ -87,7 +87,7 @@ function setup() {
   ["ADMIN_KEY", "MATERI_KEY"].forEach(function (k) {
     if (!p.getProperty(k)) Logger.log("PERINGATAN: " + k + " belum diatur di Script Properties.");
   });
-  if (CONFIG.SEND_EMAIL) Logger.log("Sisa kuota email hari ini: " + MailApp.getRemainingDailyQuota() + " · alias " + CONFIG.CONTACT_EMAIL + ": " + (senderAliasAvailable() ? "TERDAFTAR" : "belum terdaftar"));
+  if (CONFIG.SEND_EMAIL) Logger.log("Sisa kuota email hari ini: " + MailApp.getRemainingDailyQuota() + " · pengirim: " + Session.getEffectiveUser().getEmail() + " · Reply-To: " + CONFIG.CONTACT_EMAIL);
   try { materiKey(); Logger.log("MATERI_KEY valid (format OK)."); } catch (e) { Logger.log("PERINGATAN: " + e.message); }
   try { if (materiKey("MATERI_KEY_FREE")) Logger.log("MATERI_KEY_FREE valid (format OK)."); else Logger.log("Info: MATERI_KEY_FREE kosong (kelas gratis tidak bisa membuka materi)."); } catch (e) { Logger.log("PERINGATAN: " + e.message); }
 }
@@ -616,35 +616,26 @@ function sendAccessMail(rec) {
   return sendMail(rec.email, "Kode Akses Pelatihan " + shortName() + " — " + rec.id, body);
 }
 
-// Kirim dari alias info@publichealth.id bila sudah terdaftar sebagai "Send mail as" di Gmail akun ini;
-// bila belum, kirim dari akun pemilik Apps Script (Reply-To tetap info@publichealth.id).
+// Email dikirim dari akun Gmail pemilik Apps Script (publichealth.id.portal@gmail.com) dengan nama
+// "Pelatihan MAD-R · publichealth.id"; balasan peserta diarahkan ke info@publichealth.id (Reply-To, diteruskan forwarding).
 function sendMail(to, subject, html) {
   if (!CONFIG.SEND_EMAIL || !to) return false;
-  var opt = { htmlBody: html, name: "Pelatihan MAD-R · publichealth.id", replyTo: CONFIG.CONTACT_EMAIL };
   try {
-    if (MailApp.getRemainingDailyQuota() < 1) return false;
-    if (senderAliasAvailable()) {
-      opt.from = CONFIG.CONTACT_EMAIL;
-      GmailApp.sendEmail(to, subject, "Buka email ini dalam format HTML.", opt);
-    } else {
-      opt.to = to; opt.subject = subject;
-      MailApp.sendEmail(opt);
-    }
+    if (MailApp.getRemainingDailyQuota() < 1) { Logger.log("Kuota email harian habis"); return false; }
+    MailApp.sendEmail({ to: to, subject: subject, htmlBody: html, name: "Pelatihan MAD-R · publichealth.id", replyTo: CONFIG.CONTACT_EMAIL });
     return true;
   } catch (e) { Logger.log("Email gagal: " + e); return false; }
 }
 
-function senderAliasAvailable() {
-  try { return GmailApp.getAliases().map(function (a) { return String(a).toLowerCase(); }).indexOf(String(CONFIG.CONTACT_EMAIL).toLowerCase()) >= 0; }
-  catch (e) { return false; }
-}
-
-// Jalankan dari editor: kirim email uji ke alamat Anda sendiri dan tampilkan alamat pengirim yang dipakai
+// Jalankan dari editor: kirim email uji (contoh email kode akses) ke alamat di TES_EMAIL_KE, atau ke akun ini
 function tesEmail() {
-  var to = Session.getEffectiveUser().getEmail();
-  var alias = senderAliasAvailable();
-  var ok = sendMail(to, "Tes email Pelatihan MAD-R", mailTemplate("Tes email", "Email uji dari sistem pelatihan.", [["Pengirim", alias ? CONFIG.CONTACT_EMAIL : to + " (alias belum terdaftar)"]], "Tautan portal:", CONFIG.SITE_URL + "masuk.html", "Buka Portal"));
-  Logger.log((ok ? "Terkirim ke " + to : "GAGAL") + " · pengirim: " + (alias ? CONFIG.CONTACT_EMAIL + " (alias)" : to + " — tambahkan " + CONFIG.CONTACT_EMAIL + " sebagai Send mail as di Gmail") + " · sisa kuota hari ini: " + MailApp.getRemainingDailyQuota());
+  var to = PropertiesService.getScriptProperties().getProperty("TES_EMAIL_KE") || Session.getEffectiveUser().getEmail();
+  var ok = sendMail(to, "Tes email · Kode Akses Pelatihan MAD-R",
+    mailTemplate("Tes email berhasil ✅", "Ini email uji dari sistem pelatihan publichealth.id. Tampilan ini sama dengan email kode akses peserta.",
+      [["Pengirim", Session.getEffectiveUser().getEmail()], ["Balas ke", CONFIG.CONTACT_EMAIL],
+       ["<b>Kode akses (contoh)</b>", "<b style='font-family:monospace;font-size:20px;letter-spacing:2px;color:#e879f9'>ABCD-2345</b>"]],
+      "Coba tekan Balas: alamat tujuan harus " + CONFIG.CONTACT_EMAIL + ".", CONFIG.SITE_URL + "masuk.html", "Buka Portal Peserta"));
+  Logger.log((ok ? "✓ Terkirim ke " + to : "✗ GAGAL kirim ke " + to) + " · sisa kuota hari ini: " + MailApp.getRemainingDailyQuota());
 }
 
 function notifyAdmin(subject, text, tg) {

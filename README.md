@@ -218,12 +218,11 @@ Pengaturan:
   Sheet orderbuku harus milik akun Google yang sama dengan Apps Script ini. Setelah menempel `Code.gs` baru, jalankan `setup()`
   sekali (izin membaca spreadsheet lain) lalu **Deploy → Manage deployments → Edit → New version**.
 
-## Email dari info@publichealth.id
+## Email otomatis
 
-Email otomatis dikirim dari **info@publichealth.id** bila alamat itu terdaftar sebagai *Send mail as* di Gmail akun
-pemilik Apps Script (Gmail → ⚙ Lihat semua setelan → **Akun dan Impor** → *Kirim email sebagai* → **Tambahkan alamat email
-lain**). Bila belum, email dikirim dari akun pemilik Apps Script dengan *Reply-To* info@publichealth.id. Jalankan `tesEmail`
-di editor untuk memeriksa alamat pengirim & kuota.
+Dikirim dari akun Gmail pemilik Apps Script (**publichealth.id.portal@gmail.com**) dengan nama tampilan
+"Pelatihan MAD-R · publichealth.id" dan **Reply-To info@publichealth.id** (domain hanya punya email forwarding, tanpa SMTP).
+Uji dengan fungsi `tesEmail` di editor (opsional: Script Property `TES_EMAIL_KE` = alamat tujuan uji). Kuota ±100 email/hari.
 
 Peserta kelas gratis yang pesanan bukunya terverifikasi otomatis langsung melihat **kode akses** di layar, dengan tombol
 **Masuk Portal Sekarang** dan **Simpan ke WhatsApp saya**; email tetap dikirim sebagai cadangan.
