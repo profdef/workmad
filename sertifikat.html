@@ -74,7 +74,7 @@
     .cert table.mt .no b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--red); color: #fff; font: 700 13px Poppins, sans-serif; }
     .cert table.mt .wk { width: 150px; white-space: nowrap; font-size: 11px; }
     .cert table.mt .wk b { display: block; color: var(--char); font-weight: 600; }
-    .cert table.mt .tp b { display: block; font: 700 12.5px Poppins, sans-serif; color: var(--char); margin-bottom: 2px; }
+    .cert table.mt .tp b { display: block; font: 700 12.5px Poppins, sans-serif; color: var(--red); margin-bottom: 2px; }
     .cert table.mt .mods { font-size: 10.8px; line-height: 1.5; }
     .cert table.mt .mods i { font-style: normal; color: var(--red); font-weight: 700; margin-right: 3px; white-space: nowrap; }
     .cert table.mt .mods .sep { color: #b8b8bc; margin: 0 6px; }
@@ -123,7 +123,7 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=31"></script>
+  <script src="assets/config.js?v=32"></script>
   <script src="assets/api.js?v=11"></script>
   <script src="assets/common.js?v=27"></script>
   <script src="materi/catalog.js?v=22"></script>
@@ -290,11 +290,13 @@
       const O = C.ORGANIZER, S = C.SESSIONS || [];
       const decks = Object.fromEntries((window.MATERI || { parts: [] }).parts.flatMap((p) => p.decks).map((d) => [d.slug, d]));
       const total = S.reduce((n, x) => n + (Number(x.jp) || 0), 0) || c.jp;
-      const label = (d) => (/^\d+$/.test(d.n) ? "Bab " + d.n : "Pengantar");
+      // Hanya substansi materi (tanpa nomor/kata "Bab")
+      const TITLE = { "00-tentang-buku": "Pengantar & Peta Materi" };
+      const ttl = (m) => TITLE[m] || decks[m].title;
       const rows = S.map((x, i) =>
         '<tr><td class="no"><b>' + (i + 1) + '</b></td><td class="wk"><b>' + esc(x.date) + "</b>" + esc(x.time) + "</td>" +
         '<td class="tp"><b>' + esc(x.topic) + '</b><div class="mods">' +
-          (x.modules || []).filter((m) => decks[m]).map((m) => "<i>" + esc(label(decks[m])) + "</i>" + esc(decks[m].title)).join('<span class="sep">·</span>') +
+          (x.modules || []).filter((m) => decks[m]).map((m) => esc(ttl(m))).join('<span class="sep">·</span>') +
         '</div></td><td class="jp">' + esc(x.jp) + "</td></tr>").join("");
       $("certBack").innerHTML =
         '<div class="band">' + bandArt() + "</div>" +
