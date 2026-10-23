@@ -10,7 +10,7 @@
   <meta name="description" content="Kelas pengenalan R, RStudio & Quarto gratis untuk pembeli buku Manajemen & Analisis Data Epidemiologi & Kesehatan Masyarakat.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=28">
+  <link rel="stylesheet" href="assets/style.css?v=33">
 </head>
 <body>
   <div id="topbar"></div>
@@ -88,7 +88,7 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=32"></script>
+  <script src="assets/config.js?v=33"></script>
   <script src="assets/api.js?v=11"></script>
   <script src="assets/common.js?v=27"></script>
   <script>
@@ -151,16 +151,43 @@
         $("fForm").parentElement.classList.add("hidden");
         $("done").classList.remove("hidden");
         $("done").innerHTML = '<div class="success-ic">✓</div><h2>Pendaftaran kelas gratis berhasil!</h2><p class="muted">No. pendaftaran <b class="mono" style="color:#fff">' + esc(r.reg.id) + "</b></p>" +
-          (r.reg.verified
-            ? '<div class="alert alert-ok">Pembelian buku terverifikasi. <b>Kode akses</b> telah dikirim ke <b>' + esc(reg.email) + '</b>. Masuk ke Portal Peserta untuk membuka modul pengenalan dan tautan Zoom.</div><p><a class="btn btn-primary btn-lg" href="masuk.html?email=' + encodeURIComponent(reg.email) + '">Masuk Portal Peserta →</a></p>'
+          (r.reg.verified && r.reg.accessCode
+            ? '<div class="alert alert-ok">Pembelian buku terverifikasi. Akses kelas gratis Anda <b>sudah aktif</b>.</div>' +
+              '<div class="code-card"><div class="small muted">Kode akses Anda</div><div class="code-box">' + esc(r.reg.accessCode) + '</div>' +
+              '<div class="small muted">Login: <b style="color:#fff">' + esc(reg.email) + '</b> + kode di atas</div>' +
+              '<button class="btn btn-sm" type="button" id="copyCode" data-copy="' + esc(r.reg.accessCode) + '">Salin kode</button></div>' +
+              '<div class="done-actions"><button class="btn btn-primary btn-lg" type="button" id="goPortal">Masuk Portal Sekarang →</button>' +
+              '<a class="btn btn-lg btn-wa" target="_blank" rel="noopener" href="' + waSelf(reg, r.reg) + '">💬 Simpan ke WhatsApp saya</a></div>' +
+              '<p class="small muted">Simpan kode ini. Salinannya juga dikirim ke email Anda (cek folder Spam/Promosi bila belum masuk).</p>'
+            : r.reg.verified
+            ? '<div class="alert alert-ok">Pembelian buku terverifikasi. <b>Kode akses</b> telah dikirim ke <b>' + esc(reg.email) + '</b>.</div><p><a class="btn btn-primary btn-lg" href="masuk.html?email=' + encodeURIComponent(reg.email) + '">Masuk Portal Peserta →</a></p>'
             : '<div class="alert alert-info">Bukti pembelian buku Anda sedang diverifikasi admin (umumnya 1×24 jam). Kode akses akan dikirim ke <b>' + esc(reg.email) + "</b>.</div>") +
           '<p class="small muted">Pertanyaan? <a target="_blank" rel="noopener" href="https://wa.me/' + C.ADMIN_WA + "?text=" + encodeURIComponent("Halo Admin, saya " + reg.name + " mendaftar kelas gratis (" + r.reg.id + ").") + '">Chat admin via WhatsApp</a></p>';
+        if (r.reg.accessCode) {
+          bindCopy($("done"));
+          $("goPortal").addEventListener("click", async () => {
+            $("goPortal").disabled = true; $("goPortal").textContent = "Membuka portal…";
+            try {
+              const l = await API.login(reg.email, r.reg.accessCode);
+              Session.set({ email: reg.email.toLowerCase(), code: r.reg.accessCode, key: l.key, keyFree: l.keyFree, program: l.participant.program, name: l.participant.name, id: l.participant.id, at: Date.now() });
+              location.href = "portal.html";
+            } catch (e) { location.href = "masuk.html?email=" + encodeURIComponent(reg.email); }
+          });
+        }
         $("done").scrollIntoView({ behavior: "smooth", block: "center" });
       } catch (ex) {
         fail(ex.message);
         $("submitBtn").disabled = false; $("submitBtn").textContent = "Daftar Kelas Gratis";
       }
     });
+    // Pesan WhatsApp ke nomor peserta sendiri (fitur "Kirim pesan ke diri sendiri") berisi kode & tautan portal
+    function waSelf(reg, r) {
+      const num = "62" + String(reg.phone).replace(/\D/g, "").replace(/^(62|0)+/, "");
+      const txt = "Kelas Gratis Pengenalan R, RStudio & Quarto (publichealth.id)\n" + FC.date + ", " + FC.time + "\n\n" +
+        "No. pendaftaran: " + r.id + "\nEmail login: " + reg.email + "\nKode akses: *" + r.accessCode + "*\n\n" +
+        "Portal Peserta: " + API.base + "masuk.html?email=" + encodeURIComponent(reg.email);
+      return "https://wa.me/" + num + "?text=" + encodeURIComponent(txt);
+    }
     function fail(m) { $("err").textContent = m; $("err").classList.remove("hidden"); $("err").scrollIntoView({ block: "center", behavior: "smooth" }); }
   })();
   </script>

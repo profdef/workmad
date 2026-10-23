@@ -87,7 +87,7 @@ function setup() {
   ["ADMIN_KEY", "MATERI_KEY"].forEach(function (k) {
     if (!p.getProperty(k)) Logger.log("PERINGATAN: " + k + " belum diatur di Script Properties.");
   });
-  if (CONFIG.SEND_EMAIL) Logger.log("Sisa kuota email hari ini: " + MailApp.getRemainingDailyQuota());
+  if (CONFIG.SEND_EMAIL) Logger.log("Sisa kuota email hari ini: " + MailApp.getRemainingDailyQuota() + " · alias " + CONFIG.CONTACT_EMAIL + ": " + (senderAliasAvailable() ? "TERDAFTAR" : "belum terdaftar"));
   try { materiKey(); Logger.log("MATERI_KEY valid (format OK)."); } catch (e) { Logger.log("PERINGATAN: " + e.message); }
   try { if (materiKey("MATERI_KEY_FREE")) Logger.log("MATERI_KEY_FREE valid (format OK)."); else Logger.log("Info: MATERI_KEY_FREE kosong (kelas gratis tidak bisa membuka materi)."); } catch (e) { Logger.log("PERINGATAN: " + e.message); }
 }
@@ -287,7 +287,9 @@ function registerFree(o) {
     rows: [["Nama", reg.name], ["Instansi", reg.institution], ["Domisili", reg.city + ", " + reg.province], ["WhatsApp", reg.phone], ["Email", reg.email],
       ["Bukti buku", reg.bookOrderId ? "Pesanan " + reg.bookOrderId : "Foto bukti pembelian"]],
     footer: verified ? "✅ Pesanan buku terverifikasi — akses langsung aktif" : "⚠️ Perlu verifikasi bukti buku di dashboard" });
-  return { ok: true, reg: { id: reg.id, name: reg.name, status: reg.status, verified: verified }, mailed: mailed };
+  // Pembeli terverifikasi otomatis: kode akses langsung ditampilkan ke pendaftar (yang mengetahui no. pesanan + no. WA)
+  return { ok: true, reg: { id: reg.id, name: reg.name, status: reg.status, verified: verified,
+    accessCode: verified ? reg.accessCode : "", email: verified ? reg.email : "", phone: verified ? reg.phone : "" }, mailed: mailed };
 }
 
 // Verifikasi pesanan buku ke Google Sheet aplikasi orderbuku (Script Property BOOK_SHEET_ID)
@@ -614,13 +616,35 @@ function sendAccessMail(rec) {
   return sendMail(rec.email, "Kode Akses Pelatihan " + shortName() + " — " + rec.id, body);
 }
 
+// Kirim dari alias info@publichealth.id bila sudah terdaftar sebagai "Send mail as" di Gmail akun ini;
+// bila belum, kirim dari akun pemilik Apps Script (Reply-To tetap info@publichealth.id).
 function sendMail(to, subject, html) {
   if (!CONFIG.SEND_EMAIL || !to) return false;
+  var opt = { htmlBody: html, name: "Pelatihan MAD-R · publichealth.id", replyTo: CONFIG.CONTACT_EMAIL };
   try {
     if (MailApp.getRemainingDailyQuota() < 1) return false;
-    MailApp.sendEmail({ to: to, subject: subject, htmlBody: html, name: "Pelatihan MAD-R · publichealth.id", replyTo: CONFIG.CONTACT_EMAIL });
+    if (senderAliasAvailable()) {
+      opt.from = CONFIG.CONTACT_EMAIL;
+      GmailApp.sendEmail(to, subject, "Buka email ini dalam format HTML.", opt);
+    } else {
+      opt.to = to; opt.subject = subject;
+      MailApp.sendEmail(opt);
+    }
     return true;
-  } catch (e) { return false; }
+  } catch (e) { Logger.log("Email gagal: " + e); return false; }
+}
+
+function senderAliasAvailable() {
+  try { return GmailApp.getAliases().map(function (a) { return String(a).toLowerCase(); }).indexOf(String(CONFIG.CONTACT_EMAIL).toLowerCase()) >= 0; }
+  catch (e) { return false; }
+}
+
+// Jalankan dari editor: kirim email uji ke alamat Anda sendiri dan tampilkan alamat pengirim yang dipakai
+function tesEmail() {
+  var to = Session.getEffectiveUser().getEmail();
+  var alias = senderAliasAvailable();
+  var ok = sendMail(to, "Tes email Pelatihan MAD-R", mailTemplate("Tes email", "Email uji dari sistem pelatihan.", [["Pengirim", alias ? CONFIG.CONTACT_EMAIL : to + " (alias belum terdaftar)"]], "Tautan portal:", CONFIG.SITE_URL + "masuk.html", "Buka Portal"));
+  Logger.log((ok ? "Terkirim ke " + to : "GAGAL") + " · pengirim: " + (alias ? CONFIG.CONTACT_EMAIL + " (alias)" : to + " — tambahkan " + CONFIG.CONTACT_EMAIL + " sebagai Send mail as di Gmail") + " · sisa kuota hari ini: " + MailApp.getRemainingDailyQuota());
 }
 
 function notifyAdmin(subject, text, tg) {

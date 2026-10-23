@@ -129,6 +129,14 @@
             save();
           },
         },
+        GmailApp: {
+          getAliases: () => db.props.__aliases ? db.props.__aliases.split(",") : [],
+          sendEmail(to, subject, text, opt) {
+            db.mails.unshift({ at: new Date().toISOString(), to, from: (opt && opt.from) || "", subject, html: (opt && opt.htmlBody) || "", text: text || "" });
+            db.mails = db.mails.slice(0, 50); save();
+          },
+        },
+        Session: { getEffectiveUser: () => ({ getEmail: () => "pemilik@contoh.id" }) },
         ContentService: {
           MimeType: { JSON: "JSON" },
           createTextOutput: (s) => ({ setMimeType() { return this; }, getContent: () => s }),

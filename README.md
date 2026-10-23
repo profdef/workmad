@@ -218,6 +218,16 @@ Pengaturan:
   Sheet orderbuku harus milik akun Google yang sama dengan Apps Script ini. Setelah menempel `Code.gs` baru, jalankan `setup()`
   sekali (izin membaca spreadsheet lain) lalu **Deploy → Manage deployments → Edit → New version**.
 
+## Email dari info@publichealth.id
+
+Email otomatis dikirim dari **info@publichealth.id** bila alamat itu terdaftar sebagai *Send mail as* di Gmail akun
+pemilik Apps Script (Gmail → ⚙ Lihat semua setelan → **Akun dan Impor** → *Kirim email sebagai* → **Tambahkan alamat email
+lain**). Bila belum, email dikirim dari akun pemilik Apps Script dengan *Reply-To* info@publichealth.id. Jalankan `tesEmail`
+di editor untuk memeriksa alamat pengirim & kuota.
+
+Peserta kelas gratis yang pesanan bukunya terverifikasi otomatis langsung melihat **kode akses** di layar, dengan tombol
+**Masuk Portal Sekarang** dan **Simpan ke WhatsApp saya**; email tetap dikirim sebagai cadangan.
+
 ## Notifikasi Telegram untuk admin
 
 Setiap **pendaftar pelatihan penuh**, **pendaftar kelas gratis**, dan **bukti transfer masuk** dikirim ke Telegram.

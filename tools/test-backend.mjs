@@ -216,6 +216,17 @@ ok(r.ok && r.key && r.keyFree === KF && r.participant.program === "Penuh", "kode
 r = call({ action: "login", email: "ani@contoh.id", code: freeRec.accessCode });
 ok(r.ok && r.participant.program === "Gratis", "kode kelas gratis tetap berfungsi terpisah");
 
+console.log("Kode akses kelas gratis & alias pengirim");
+r = call({ action: "registerFree", reg: Object.assign({}, fbase, { email: "kode@contoh.id", name: "Kode", phone: "081255556666", bookOrderId: "ORD-20261010-0003" }) });
+ok(r.ok && r.reg.verified && /^[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(r.reg.accessCode), "pembeli terverifikasi → kode akses dikembalikan", r);
+r = call({ action: "registerFree", reg: Object.assign({}, fbase, { email: "foto@contoh.id", name: "Foto", phone: "081244443333", bookProof: img }) });
+ok(r.ok && !r.reg.verified && r.reg.accessCode === "", "bukti foto (belum diverifikasi) → kode TIDAK dikembalikan");
+ok(!be.gas.db().mails[0].from, "alias belum terdaftar → kirim via MailApp (tanpa from)");
+props.__aliases = "info@publichealth.id";
+call({ action: "forgot", email: "kode@contoh.id" });
+ok(be.gas.db().mails[0].from === "info@publichealth.id", "alias terdaftar → email dari info@publichealth.id", be.gas.db().mails[0]);
+delete props.__aliases;
+
 console.log("Notifikasi Telegram");
 props.TELEGRAM_BOT_TOKEN = "123:ABC"; props.TELEGRAM_CHAT_ID = "111, -222";
 const nTg = (be.gas.db().telegram || []).length;

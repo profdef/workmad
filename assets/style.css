@@ -447,3 +447,10 @@ dialog .dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px
 .path-cover img { width: 100%; display: block; border-radius: 6px; box-shadow: 0 16px 34px rgba(0,0,0,.5), 0 0 40px rgba(168,85,247,.35); transform: rotate(3deg); transition: transform .2s; }
 .path-cover:hover img { transform: rotate(0) translateY(-3px); }
 @media (max-width: 700px) { .path-head { grid-template-columns: 1fr 96px; gap: 14px; } .path-cover { width: 96px; } }
+
+/* Kode akses di halaman sukses kelas gratis */
+.code-card { margin: 16px auto; max-width: 420px; padding: 18px; border-radius: 16px; border: 2px dashed rgba(232,121,249,.6); background: rgba(168,85,247,.1); display: grid; gap: 8px; justify-items: center; }
+.code-card .code-box { font-size: 34px; }
+.done-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 16px 0 10px; }
+.btn-wa { background: #25d366; border-color: #25d366; color: #052e16; }
+.btn-wa:hover { background: #1fb457; border-color: #1fb457; }
