@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Virtual background Zoom</title>
+<!-- Sumber virtual background Zoom (1920×1080). Ekspor: node tools/vbg/export.mjs → assets/vbg/*.jpg
+     ?d=1..4 (desain) & p=full|free (program). Area kiri atas di bawah logo sengaja kosong:
+     portal menulis nama & instansi peserta di sana (lihat VBG di assets/config.js). -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --navy:#070b2b; --navy2:#0d1340; --indigo:#1c1a6e; --violet:#5b2bd6; --purple:#a855f7; --magenta:#e879f9; --cyan:#38bdf8; --green:#4ade80; --ink:#e9e8ff; --muted:#a9acd9; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  #bg { position: relative; width: 1920px; height: 1080px; overflow: hidden; font-family: "Plus Jakarta Sans", sans-serif; color: var(--ink); }
+  .logo { position: absolute; left: 80px; top: 64px; height: 66px; }
+  .badge { position: absolute; right: 80px; top: 72px; display: flex; align-items: center; gap: 14px; font: 700 22px Poppins; letter-spacing: .14em; text-transform: uppercase; padding: 14px 26px; border-radius: 999px; }
+  .badge i { width: 12px; height: 12px; border-radius: 50%; background: currentColor; box-shadow: 0 0 14px currentColor; }
+  .foot { position: absolute; right: 80px; bottom: 60px; display: flex; align-items: center; gap: 18px; font: 700 22px Poppins; }
+  .foot img { height: 40px; }
+  .foot span { margin-left: 8px; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(110px); }
+  .dots { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.07) 2px, transparent 2.2px); background-size: 48px 48px; }
+  .tag { position: absolute; font: 600 20px "Plus Jakarta Sans"; letter-spacing: .1em; text-transform: uppercase; }
+
+  /* 1 · Aurora */
+  .d1 { background: linear-gradient(150deg, var(--navy) 0%, var(--navy2) 55%, var(--indigo) 100%); }
+  /* 2 · Terang */
+  .d2 { background: linear-gradient(135deg, #fbfaff 0%, #f1edff 55%, #e8f6ff 100%); color: #1f2340; }
+  .d2 .grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(91,43,214,.06) 2px, transparent 2px), linear-gradient(90deg, rgba(91,43,214,.06) 2px, transparent 2px); background-size: 80px 80px; mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,.25) 35%, rgba(0,0,0,.25) 65%, #000 100%); }
+  /* 3 · Studio data */
+  .d3 { background: radial-gradient(1200px 800px at 50% 55%, #141a52 0%, var(--navy) 70%); }
+  .panel { position: absolute; border-radius: 26px; background: rgba(255,255,255,.05); border: 2px solid rgba(168,85,247,.35); backdrop-filter: blur(6px); }
+  .code { font: 600 24px/1.75 Menlo, "SF Mono", monospace; color: #e9d5ff; white-space: pre; font-variant-ligatures: none; }
+  .code .k { color: #7dd3fc; } .code .s { color: #86efac; } .code .c { color: #8b8fb8; }
+  .art { position: absolute; }
+  .motto { position: absolute; right: 80px; bottom: 116px; font: italic 700 22px Poppins; letter-spacing: .01em; white-space: nowrap; }
+  .art .cap { margin-top: 18px; font: 600 18px "Plus Jakarta Sans"; letter-spacing: .18em; text-transform: uppercase; text-align: right; }
+  .fadeB { -webkit-mask-image: linear-gradient(180deg, #000 70%, rgba(0,0,0,.35) 100%); mask-image: linear-gradient(180deg, #000 70%, rgba(0,0,0,.35) 100%); }
+  .fadeL { -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,.25) 0%, #000 22%); mask-image: linear-gradient(90deg, rgba(0,0,0,.25) 0%, #000 22%); }
+  /* 4 · Buku */
+  .d4 { background: linear-gradient(120deg, #0b0f33 0%, #1a1452 60%, #3b1a6e 100%); }
+  .cover { position: absolute; right: 150px; top: 270px; width: 330px; border-radius: 10px; transform: perspective(1400px) rotateY(-18deg) rotate(2deg); box-shadow: 30px 40px 90px rgba(0,0,0,.65), 0 0 120px rgba(168,85,247,.5); }
+  .shelf { position: absolute; right: 90px; top: 742px; width: 470px; height: 18px; border-radius: 9px; background: linear-gradient(90deg, rgba(232,121,249,.25), rgba(56,189,248,.35)); box-shadow: 0 18px 50px rgba(56,189,248,.25); }
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<script>
+const q = new URLSearchParams(location.search), D = +(q.get("d") || 1), FREE = q.get("p") === "free";
+const MOTTO = "Better Data · Better Analysis · Healthier Society";
+const BADGE = FREE ? "Kelas Gratis · 28 Nov 2026" : "Pelatihan Online · Angkatan I";
+const bars = (hs, w, gap, col, op) => `<div style="display:flex;align-items:flex-end;gap:${gap}px;opacity:${op}">${hs.map((h) => `<span style="display:block;width:${w}px;height:${h}px;border-radius:6px 6px 2px 2px;background:${col}"></span>`).join("")}</div>`;
+const EPI = [20, 40, 70, 120, 190, 260, 300, 270, 210, 150, 100, 60, 34, 18];
+// Kurva epidemi menyatu dengan latar: batang bergradasi memudar ke bawah + garis halus tren, tanpa kotak
+const epiArt = (w, gap, fill, line, k) => {
+  const hs = EPI.map((h) => Math.round(h * k)), H = Math.max(...hs) + 20, W = hs.length * (w + gap) - gap;
+  const pts = hs.map((h, i) => [i * (w + gap) + w / 2, H - h - 6]);
+  const d = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  return `<div style="position:relative;width:${W}px;height:${H}px">
+    <div style="position:absolute;inset:0;display:flex;align-items:flex-end;gap:${gap}px">${hs.map((h) => `<span style="display:block;width:${w}px;height:${h}px;border-radius:${w / 2}px ${w / 2}px 0 0;background:${fill}"></span>`).join("")}</div>
+    <svg width="${W}" height="${H}" style="position:absolute;inset:0;overflow:visible"><path d="${d}" fill="none" stroke="${line}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      ${pts.map((p) => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${line}"/>`).join("")}</svg></div>`;
+};
+// Kaplan–Meier & forest plot meta-analisis: garis tipis tanpa kotak, menyatu dengan latar (kolom kiri, di bawah nama peserta)
+const kmArt = (W, H, c1, c2, ax, txt) => {
+  const A = [1, .96, .92, .87, .82, .78, .75, .72, .70, .69, .68], B = [1, .91, .81, .71, .62, .55, .49, .45, .42, .40, .39];
+  const x = (t) => 40 + (t / 10) * (W - 50), y = (v) => 10 + (1 - v) * (H - 40);
+  const step = (S) => S.map((v, t) => (t ? `H${x(t).toFixed(1)}V${y(v).toFixed(1)}` : `M${x(0)} ${y(v)}`)).join("") + `H${x(10.4).toFixed(1)}`;
+  const band = (S, d) => { const up = S.map((v, t) => [x(t), y(Math.min(1, v + d * t / 10))]), lo = S.map((v, t) => [x(t), y(Math.max(0, v - d * t / 10))]);
+    return "M" + up.map((p) => p.join(" ")).join("L") + "L" + lo.reverse().map((p) => p.join(" ")).join("L") + "Z"; };
+  const ticks = (S, col) => [1.5, 3.4, 5.6, 7.3, 9.1].map((t) => { const v = S[Math.floor(t)]; return `<line x1="${x(t)}" x2="${x(t)}" y1="${y(v) - 7}" y2="${y(v) + 7}" stroke="${col}" stroke-width="2.5"/>`; }).join("");
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="overflow:visible">
+    <path d="M40 6V${H - 30}H${W}" fill="none" stroke="${ax}" stroke-width="2"/>
+    ${[1, .5, 0].map((v) => `<text x="30" y="${y(v) + 6}" text-anchor="end" font-family="Plus Jakarta Sans" font-weight="600" font-size="16" fill="${txt}">${v === .5 ? "0,5" : v}</text><line x1="40" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="${ax}" stroke-width="1" stroke-dasharray="3 7"/>`).join("")}
+    <path d="${band(A, .1)}" fill="${c1}" opacity=".12"/><path d="${band(B, .12)}" fill="${c2}" opacity=".12"/>
+    <path d="${step(A)}" fill="none" stroke="${c1}" stroke-width="3.5"/><path d="${step(B)}" fill="none" stroke="${c2}" stroke-width="3.5"/>
+    ${ticks(A, c1)}${ticks(B, c2)}
+    <text x="${W}" y="${y(A[10]) - 14}" text-anchor="end" font-family="Poppins" font-weight="700" font-size="16" fill="${c1}">Intervensi</text>
+    <text x="${W}" y="${y(B[10]) + 26}" text-anchor="end" font-family="Poppins" font-weight="700" font-size="16" fill="${c2}">Kontrol</text>
+    <text x="${(W + 40) / 2}" y="${H - 4}" text-anchor="middle" font-family="Plus Jakarta Sans" font-weight="600" font-size="15" fill="${txt}">waktu (bulan)</text></svg>`;
+};
+const forestArt = (W, c, pool, ax, txt) => {
+  const S = [[.62, .41, .94, .8], [.78, .55, 1.11, 1], [.55, .33, .92, .6], [.84, .62, 1.14, 1.25], [.66, .44, 1.0, .7], [.72, .58, .89, 1.45]];
+  const L0 = Math.log(.25), L1 = Math.log(2.5), X0 = 110, x = (v) => X0 + (Math.log(v) - L0) / (L1 - L0) * (W - X0 - 10), rh = 30, H = S.length * rh + 74;
+  const rows = S.map(([or, lo, hi, w], i) => { const cy = 18 + i * rh, sz = 8 + w * 8;
+    return `<text x="0" y="${cy + 6}" font-family="Plus Jakarta Sans" font-weight="600" font-size="16" fill="${txt}">Studi ${i + 1}</text>
+      <line x1="${x(lo)}" x2="${x(hi)}" y1="${cy}" y2="${cy}" stroke="${c}" stroke-width="2.5"/><rect x="${x(or) - sz / 2}" y="${cy - sz / 2}" width="${sz}" height="${sz}" fill="${c}"/>`; }).join("");
+  const py = 18 + S.length * rh + 6;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="overflow:visible">
+    <line x1="${x(1)}" x2="${x(1)}" y1="0" y2="${py + 24}" stroke="${ax}" stroke-width="2" stroke-dasharray="5 6"/>
+    ${rows}
+    <text x="0" y="${py + 6}" font-family="Poppins" font-weight="700" font-size="16" fill="${pool}">Gabungan</text>
+    <path d="M${x(.61)} ${py}L${x(.70)} ${py - 11}L${x(.80)} ${py}L${x(.70)} ${py + 11}Z" fill="${pool}"/>
+    <line x1="${X0}" x2="${W}" y1="${py + 26}" y2="${py + 26}" stroke="${ax}" stroke-width="2"/>
+    ${[.25, .5, 1, 2].map((v) => `<text x="${x(v)}" y="${py + 48}" text-anchor="middle" font-family="Plus Jakarta Sans" font-weight="600" font-size="15" fill="${txt}">${String(v).replace(".", ",")}</text>`).join("")}</svg>`;
+};
+const cap = (t, col) => `<div style="font:700 15px Poppins;letter-spacing:.2em;text-transform:uppercase;color:${col};margin-bottom:14px">${t}</div>`;
+const leftArt = (dark) => {
+  const c1 = dark ? "#e879f9" : "#7c3aed", c2 = dark ? "#38bdf8" : "#0284c7", ax = dark ? "rgba(255,255,255,.16)" : "rgba(31,35,64,.14)",
+    txt = dark ? "rgba(201,203,240,.55)" : "rgba(76,79,122,.6)", capc = dark ? "rgba(201,203,240,.5)" : "rgba(76,79,122,.55)";
+  return `<div class="art fadeB" style="left:80px;top:350px;opacity:${dark ? .78 : .85}">
+    ${cap("Kaplan–Meier · probabilitas survival", capc)}${kmArt(430, 220, c1, c2, ax, txt)}
+    <div style="height:44px"></div>
+    ${cap("Forest plot · meta-analisis (OR, 95% CI)", capc)}${forestArt(430, dark ? "rgba(233,232,255,.7)" : "rgba(31,35,64,.55)", c1, ax, txt)}</div>`;
+};
+const logos = (dark) => `<img src="logos/r.svg" alt=""><img src="logos/rstudio.svg" alt=""><img src="logos/quarto.svg" alt=""><span style="color:${dark ? "#4c4f7a" : "#c9cbf0"}">pelatihan.publichealth.id</span>`;
+const accent = FREE ? "var(--green)" : "var(--cyan)";
+
+const DESIGNS = {
+  1: () => `
+    <div class="blob" style="width:900px;height:900px;left:-300px;top:-380px;background:rgba(91,43,214,.75)"></div>
+    <div class="blob" style="width:760px;height:760px;right:-260px;bottom:-320px;background:rgba(56,189,248,.35)"></div>
+    <div class="blob" style="width:620px;height:620px;right:180px;top:-260px;background:rgba(232,121,249,.35)"></div>
+    <div class="dots"></div>
+    <img class="logo" src="../../assets/brand/logo-full-dark.png" alt="">
+    <div class="badge" style="color:${accent};background:rgba(7,11,43,.55);border:2px solid ${FREE ? "rgba(74,222,128,.6)" : "rgba(56,189,248,.55)"}"><i></i>${BADGE}</div>
+    <div class="art" style="right:80px;bottom:190px">${epiArt(18, 9, "linear-gradient(180deg,rgba(232,121,249,.6),rgba(91,43,214,.08))", "rgba(232,121,249,.55)", 1)}</div>
+    ${leftArt(true)}
+    <div class="motto" style="color:#f87171">${MOTTO}</div>
+    <div class="foot" style="color:#c9cbf0">${logos(false)}</div>`,
+  2: () => `
+    <div class="grid"></div>
+    <div class="blob" style="width:760px;height:760px;right:-240px;top:-300px;background:rgba(168,85,247,.20)"></div>
+    <div class="blob" style="width:620px;height:620px;left:-260px;bottom:-280px;background:rgba(56,189,248,.20)"></div>
+    <div class="blob" style="width:620px;height:520px;right:40px;bottom:60px;background:rgba(196,181,253,.28)"></div>
+    <img class="logo" src="../../assets/brand/logo-full.png" alt="">
+    <div class="badge" style="color:${FREE ? "#15803d" : "#5b2bd6"};background:#fff;border:2px solid ${FREE ? "rgba(22,163,74,.45)" : "rgba(91,43,214,.35)"};box-shadow:0 10px 30px rgba(91,43,214,.12)"><i></i>${BADGE}</div>
+    <div class="art" style="right:80px;bottom:180px">${epiArt(26, 12, "linear-gradient(180deg,rgba(124,58,237,.55),rgba(167,139,250,.08))", "rgba(91,43,214,.45)", 1.05)}
+      <div class="cap" style="color:rgba(76,79,122,.55)">kurva epidemi · kasus per minggu onset</div></div>
+    ${leftArt(false)}
+    <div class="motto" style="color:#dc2626">${MOTTO}</div>
+    <div class="foot" style="color:#4c4f7a">${logos(true)}</div>`,
+  3: () => `
+    <div class="blob" style="width:820px;height:820px;right:-260px;top:-200px;background:rgba(91,43,214,.45)"></div>
+    <div class="blob" style="width:640px;height:640px;right:120px;bottom:-320px;background:rgba(56,189,248,.22)"></div>
+    <div class="blob" style="width:560px;height:560px;left:-280px;top:280px;background:rgba(232,121,249,.16)"></div>
+    <div class="dots" style="opacity:.45"></div>
+    <img class="logo" src="../../assets/brand/logo-full-dark.png" alt="">
+    <div class="badge" style="color:${accent};background:rgba(7,11,43,.6);border:2px solid ${FREE ? "rgba(74,222,128,.6)" : "rgba(56,189,248,.55)"}"><i></i>${BADGE}</div>
+    <div class="art fadeL" style="right:80px;top:230px">
+      <div class="code" style="opacity:.42"><span class="k">library</span>(tidyverse)
+kasus <span class="k">&lt;-</span> read_csv(<span class="s">"dbd.csv"</span>)
+kasus |&gt;
+  count(minggu) |&gt;
+  ggplot(aes(minggu, n)) +
+  geom_col()  <span class="c"># kurva epidemi</span></div></div>
+    <div class="art" style="right:80px;bottom:190px">${epiArt(22, 10, "linear-gradient(180deg,rgba(56,189,248,.55),rgba(37,99,235,.05))", "rgba(125,211,252,.5)", .8)}</div>
+    ${leftArt(true)}
+    <div class="motto" style="color:#f87171">${MOTTO}</div>
+    <div class="foot" style="color:#c9cbf0">${logos(false)}</div>`,
+  4: () => `
+    <div class="blob" style="width:800px;height:800px;right:-200px;top:40px;background:rgba(168,85,247,.45)"></div>
+    <div class="blob" style="width:700px;height:700px;left:-320px;top:-300px;background:rgba(56,189,248,.25)"></div>
+    <div class="dots" style="opacity:.5"></div>
+    <img class="logo" src="../../assets/brand/logo-full-dark.png" alt="">
+    <div class="badge" style="color:${accent};background:rgba(7,11,43,.55);border:2px solid ${FREE ? "rgba(74,222,128,.6)" : "rgba(56,189,248,.55)"}"><i></i>${BADGE}</div>
+    <img class="cover" src="../../assets/cover.jpg" alt="">
+    <div class="motto" style="right:60px;bottom:auto;top:790px;width:540px;text-align:center;color:#f87171">${MOTTO}</div>
+    ${leftArt(true)}
+    <div class="foot" style="color:#c9cbf0">${logos(false)}</div>`,
+};
+const bg = document.getElementById("bg");
+bg.className = "d" + D;
+bg.innerHTML = DESIGNS[D]();
+window.READY = true;
+</script>
+</body>
+</html>

@@ -10,7 +10,7 @@
   <title>Portal Peserta · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=33">
+  <link rel="stylesheet" href="assets/style.css?v=34">
 </head>
 <body>
   <div id="topbar"></div>
@@ -53,6 +53,7 @@
           <h3>Tautan sesi live</h3>
           <div id="links"></div>
         </div>
+        <div class="card" style="margin-bottom:14px" id="vbgBox"></div>
         <div class="timeline" id="sessions"></div>
       </section>
 
@@ -81,7 +82,7 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=33"></script>
+  <script src="assets/config.js?v=34"></script>
   <script src="assets/api.js?v=11"></script>
   <script src="assets/common.js?v=27"></script>
   <script src="assets/materi.js?v=11"></script>
@@ -171,6 +172,43 @@
     else $("sessions").innerHTML = C.SESSIONS.map((x, i) =>
       '<div class="tl"><div class="no">SESI ' + (i + 1) + '</div><div><div class="t">' + esc(x.topic) + '</div><div class="d">' + esc(x.decks) +
       '</div></div><div class="w"><b>' + esc(x.date) + "</b><br>" + esc(x.time) + "</div></div>").join("");
+
+    // Virtual background Zoom: gambar dasar assets/vbg/ (sumber: tools/vbg/vbg.html) + nama peserta digambar di kanvas
+    const VBG = [["Aurora", "gelap, kurva epidemi"], ["Terang", "cerah & bersih"], ["Studio Data", "kode R & output"], ["Buku", "sampul buku panduan"]];
+    const vbgProg = FREEP ? "free" : "full";
+    $("vbgBox").innerHTML = "<h3>🎨 Virtual background Zoom</h3><p class=\"muted small\" style=\"margin:0\">Gunakan saat sesi live agar tampilan seragam. Ukuran 1920×1080. " +
+      "Di Zoom: <b>Settings → Background &amp; effects → Virtual backgrounds → +</b>, lalu pilih file yang diunduh. " +
+      "Tulisan tampak terbalik hanya di layar Anda sendiri (fitur cermin Zoom); peserta lain melihatnya normal. Matikan <b>Mirror my video</b> di Settings → Video bila ingin melihatnya tidak terbalik.</p>" +
+      '<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:12px;cursor:pointer"><input type="checkbox" id="vbgName" checked> Tulis nama &amp; instansi saya di latar</label>' +
+      '<div class="vbg-grid">' + VBG.map(([n, d], i) => '<div class="vbg"><canvas width="1920" height="1080" data-vbg="' + (i + 1) + '"></canvas><div class="meta"><div><b>' + esc(n) +
+      '</b><span class="small muted">' + esc(d) + '</span></div><button class="btn btn-sm" type="button" data-vbgdl="' + (i + 1) + '">⬇ Unduh</button></div></div>').join("") + "</div>";
+    const vbgImg = {};
+    async function drawVbg(cv) {
+      const i = +cv.dataset.vbg, light = i === 2, ctx = cv.getContext("2d");
+      const img = vbgImg[i] || (vbgImg[i] = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = "assets/vbg/vbg-" + vbgProg + "-" + i + ".jpg?v=1"; }));
+      ctx.drawImage(img, 0, 0, 1920, 1080);
+      if (!$("vbgName").checked) return;
+      await Promise.all(["800 44px Poppins", "700 18px Poppins", "600 26px 'Plus Jakarta Sans'"].map((f) => document.fonts.load(f)));
+      const fit = (txt, font, size, max) => { let s = size; do { ctx.font = font.replace("#", s); } while (ctx.measureText(txt).width > max && --s > 16); };
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = light ? "#5b2bd6" : FREEP ? "#4ade80" : "#38bdf8";
+      ctx.font = "700 18px Poppins"; ctx.letterSpacing = "4px"; ctx.fillText(FREEP ? "PESERTA KELAS GRATIS" : "PESERTA", 82, 186); ctx.letterSpacing = "0px";
+      ctx.fillStyle = light ? "#1f2340" : "#ffffff"; fit(p.name, "800 #px Poppins", 44, 700); ctx.fillText(p.name, 80, 238);
+      if (p.institution) { ctx.fillStyle = light ? "#4c4f7a" : "#c9cbf0"; fit(p.institution, "600 #px 'Plus Jakarta Sans'", 26, 700); ctx.fillText(p.institution, 82, 278); }
+    }
+    const drawAllVbg = () => document.querySelectorAll("[data-vbg]").forEach((cv) => drawVbg(cv).catch(() => {}));
+    drawAllVbg();
+    $("vbgName").addEventListener("change", drawAllVbg);
+    document.querySelectorAll("[data-vbgdl]").forEach((b) => b.addEventListener("click", async () => {
+      const cv = document.querySelector('[data-vbg="' + b.dataset.vbgdl + '"]');
+      await drawVbg(cv);
+      cv.toBlob((blob) => {
+        const url = URL.createObjectURL(blob), slug = VBG[+b.dataset.vbgdl - 1][0].toLowerCase().replace(/\s+/g, "-");
+        const a = Object.assign(document.createElement("a"), { href: url, download: "zoom-background-" + slug + ".jpg" });
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
+        API.track("vbg-" + slug);
+      }, "image/jpeg", .92);
+    }));
 
     // Paket Latihan: bahan presentasi PDF per modul + data (terenkripsi)
     const KIT = M.kit || { pdfs: [], data: null };
