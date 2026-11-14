@@ -7,6 +7,7 @@
   const TOTAL_DECKS = window.MATERI ? window.MATERI.parts.reduce((n, p) => n + p.decks.length, 0) : 20;
   const DECK_SLUGS = new Set(window.MATERI ? window.MATERI.parts.flatMap((p) => p.decks.map((d) => d.slug)) : []);
   let key = "", regs = [], stats = null, fStatus = "";
+  const sel = new Set(); // id peserta yang dicentang untuk aksi massal
 
   renderChrome("");
   if (API.isDemo) { $("demoTools").classList.remove("hidden"); $("mailBtn").classList.remove("hidden"); $("resetBtn").classList.remove("hidden"); }
@@ -126,14 +127,17 @@
     const list = filtered(q, cat);
     $("rows").innerHTML = list.map((r) => {
       const mism = r.paidAmount && Number(r.paidAmount) !== Number(r.total);
-      return "<tr><td><span class=\"mono\">" + esc(r.id) + '</span><br><span class="small muted">' + esc(fmtDate(r.createdAt, true)) + "</span></td>" +
+      return '<tr><td><input type="checkbox" data-sel="' + esc(r.id) + '"' + (sel.has(r.id) ? " checked" : "") + ' aria-label="Pilih ' + esc(r.name) + '"></td><td><span class="mono">' + esc(r.id) + '</span><br><span class="small muted">' + esc(fmtDate(r.createdAt, true)) + "</span></td>" +
         "<td><b style=\"color:#fff\">" + esc(r.name) + '</b><br><span class="small muted">' + esc(r.institution) + "<br>" + esc(r.email) + " · " + esc(r.phone) + "</span></td>" +
         "<td class=\"small\">" + (r.program === "Gratis" ? '<span class="badge st-aktif">Gratis</span><br>' : "") + esc(r.category) +
           (r.bookVerified === "Ya" ? '<br><span style="color:var(--good)">📗 pembeli buku</span>' : "") + '</td><td class="num">' + (r.program === "Gratis" ? "—" : rupiah(r.total)) + "</td>" +
         '<td class="num' + (mism ? " mismatch" : "") + '">' + (r.paidAmount ? rupiah(r.paidAmount) + (mism ? " ⚠" : "") : '<span class="muted">—</span>') + "</td>" +
         "<td>" + statusBadge(r.status) + "</td><td class=\"small\">" + progressCount(r) + "/" + TOTAL_DECKS + (r.evalAt ? '<br><span style="color:var(--good)">✓ evaluasi</span>' : "") + "</td>" +
         '<td><button class="btn btn-sm" type="button" data-id="' + esc(r.id) + '">Detail</button></td></tr>';
-    }).join("") || '<tr><td colspan="8" class="center muted" style="padding:28px">Tidak ada data</td></tr>';
+    }).join("") || '<tr><td colspan="9" class="center muted" style="padding:28px">Tidak ada data</td></tr>';
+    $("rows").querySelectorAll("[data-sel]").forEach((c) => c.addEventListener("change", () => { c.checked ? sel.add(c.dataset.sel) : sel.delete(c.dataset.sel); renderBulk(list); }));
+    $("selAll").onchange = () => { list.forEach((r) => ($("selAll").checked ? sel.add(r.id) : sel.delete(r.id))); renderTable(); };
+    renderBulk(list);
     $("rows").querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => openDetail(b.dataset.id)));
     $("count").textContent = list.length + " dari " + regs.length + " pendaftar";
   }
@@ -143,6 +147,80 @@
       (!q || [r.id, r.name, r.email, r.phone, r.institution, r.city, r.province, r.payerName].join(" ").toLowerCase().includes(q)));
   }
   function progressCount(r) { return String(r.progress || "").split(",").filter((s) => DECK_SLUGS.has(s)).length; }
+
+  // ---------- Aksi massal ----------
+  // Syarat tiap aksi (server memeriksa ulang): yang tidak memenuhi dilewati, bukan digagalkan.
+  const BULK = {
+    Aktif: { label: "Verifikasi & aktifkan", ok: (r) => r.status === "Menunggu Verifikasi" && (r.program === "Gratis" || Number(r.paidAmount) === Number(r.total)),
+      note: "Kode akses dikirim otomatis lewat email. Peserta yang transfernya tidak sama dengan tagihan dilewati — periksa satu per satu." },
+    Lulus: { label: "Tandai Lulus", ok: (r) => r.status === "Aktif" && r.program !== "Gratis", note: "Nomor sertifikat diterbitkan untuk tiap peserta." },
+    resend: { label: "Kirim ulang email kode", ok: (r) => (r.status === "Aktif" || r.status === "Lulus") && r.accessCode, note: "" },
+  };
+  function picked() { return regs.filter((r) => sel.has(r.id)); }
+  function renderBulk(list) {
+    regs.length && [...sel].forEach((id) => regs.some((r) => r.id === id) || sel.delete(id)); // buang id yang sudah terhapus
+    const rows = picked();
+    $("bulkBar").classList.toggle("hidden", !rows.length);
+    $("bulkN").textContent = rows.length + " dipilih";
+    $("selAll").checked = !!list.length && list.every((r) => sel.has(r.id));
+    document.querySelectorAll("[data-bulk]").forEach((b) => {
+      const n = rows.filter(BULK[b.dataset.bulk].ok).length;
+      b.textContent = b.textContent.replace(/ \(\d+\)$/, "") + " (" + n + ")";
+      b.disabled = !n;
+    });
+  }
+  $("bulkClear").addEventListener("click", () => { sel.clear(); $("bulkMsg").textContent = ""; renderTable(); });
+  document.querySelectorAll("[data-bulk]").forEach((b) => b.addEventListener("click", async () => {
+    const op = b.dataset.bulk, def = BULK[op], rows = picked(), todo = rows.filter(def.ok), skip = rows.length - todo.length;
+    if (!todo.length) return;
+    if (!confirm(def.label + " untuk " + todo.length + " peserta?" + (skip ? "\n" + skip + " peserta lain yang dipilih dilewati (status/transfer tidak memenuhi syarat)." : "") +
+      (def.note ? "\n\n" + def.note : "") + (op !== "Lulus" && todo.length > 80 ? "\n\nCatatan: Gmail membatasi ±100 email per hari." : ""))) return;
+    const btns = document.querySelectorAll("[data-bulk], #bulkClear");
+    btns.forEach((x) => (x.disabled = true));
+    const fails = []; let done = 0, mailed = 0;
+    try {
+      for (let i = 0; i < todo.length; i += 20) { // 20 per panggilan agar aman dari batas waktu server
+        $("bulkMsg").textContent = "Memproses " + Math.min(i + 20, todo.length) + " dari " + todo.length + "…";
+        const res = await API.bulk(key, todo.slice(i, i + 20).map((r) => r.id), op);
+        res.results.forEach((x) => { if (x.ok) { done++; if (x.mailed) mailed++; } else fails.push((regs.find((r) => r.id === x.id) || { name: x.id }).name + ": " + x.error); });
+      }
+    } catch (ex) { fails.push(ex.message); }
+    sel.clear();
+    await load().catch(() => {});
+    btns.forEach((x) => (x.disabled = false));
+    $("bulkBar").classList.remove("hidden");
+    $("bulkMsg").innerHTML = '<span style="color:var(--good)">✓ ' + def.label + ": " + done + " peserta berhasil" + (op !== "Lulus" ? ", " + mailed + " email terkirim" : "") + ".</span>" +
+      (fails.length ? '<br><span style="color:#fca5a5">' + fails.length + " gagal/dilewati: " + fails.map(esc).join("; ") + "</span>" : "");
+  }));
+
+  // ---------- Pengumuman ----------
+  const ANN_LABEL = { Semua: "Semua peserta", Penuh: "Pelatihan penuh", Gratis: "Kelas gratis" };
+  function renderAnn(list) {
+    $("annList").innerHTML = list.length ? list.map((a) => '<div class="card ann-item"><div><span class="badge st-aktif">' + esc(ANN_LABEL[a.target] || a.target) + '</span> <span class="small muted">' + esc(fmtDate(a.at, true)) +
+      '</span><div class="ann-text">' + esc(a.text) + '</div></div><button class="btn btn-sm btn-bad" type="button" data-ann="' + esc(a.id) + '">Hapus</button></div>').join("")
+      : '<div class="card center muted">Belum ada pengumuman.</div>';
+    $("annList").querySelectorAll("[data-ann]").forEach((b) => b.addEventListener("click", async () => {
+      if (!confirm("Hapus pengumuman ini? Peserta tidak akan melihatnya lagi.")) return;
+      b.disabled = true;
+      try { renderAnn((await API.annDelete(key, b.dataset.ann)).list); } catch (e) { alert(e.message); b.disabled = false; }
+    }));
+  }
+  async function loadAnn() {
+    try { renderAnn((await API.annList(key)).list); }
+    catch (e) { $("annList").innerHTML = '<div class="alert alert-err">' + esc(e.message) + "</div>"; }
+  }
+  $("annText").addEventListener("input", () => ($("annCount").textContent = $("annText").value.length + " / 600"));
+  $("annSend").addEventListener("click", async () => {
+    const text = $("annText").value.trim();
+    if (!text) { $("annMsg").innerHTML = '<div class="alert alert-err">Tulis isi pengumuman terlebih dahulu.</div>'; return; }
+    $("annSend").disabled = true;
+    try {
+      renderAnn((await API.annSave(key, text, $("annTarget").value)).list);
+      $("annText").value = ""; $("annCount").textContent = "";
+      $("annMsg").innerHTML = '<div class="alert alert-ok">✓ Pengumuman terbit. Peserta melihatnya saat membuka portal.</div>';
+    } catch (e) { $("annMsg").innerHTML = '<div class="alert alert-err">' + esc(e.message) + "</div>"; }
+    $("annSend").disabled = false;
+  });
 
   // ---------- Detail ----------
   $("dlgClose").addEventListener("click", () => $("dlg").close());
@@ -256,7 +334,7 @@
   // ---------- CSV ----------
   $("csvBtn").addEventListener("click", () => {
     const cols = ["id", "createdAt", "status", "name", "email", "phone", "gender", "institution", "profession", "category", "province", "city",
-      "price", "uniqueCode", "total", "payerName", "paidAmount", "proofAt", "accessCode", "activatedAt", "lastLogin", "loginCount", "certNo", "certDate", "source", "note", "adminNote"];
+      "program", "price", "discount", "uniqueCode", "total", "bookVerified", "bookOrderId", "payerName", "paidAmount", "proofAt", "accessCode", "receiptNo", "activatedAt", "lastLogin", "loginCount", "evalAt", "certNo", "certDate", "source", "note", "adminNote"];
     const list = filtered($("q").value.trim().toLowerCase(), $("fCat").value);
     const cell = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
     const csv = "﻿" + [cols.concat("modulDibuka").join(","), ...list.map((r) => cols.map((c) => cell(r[c])).concat(progressCount(r)).join(","))].join("\r\n");
@@ -279,7 +357,9 @@
     document.querySelectorAll("[data-view]").forEach((x) => x.classList.toggle("on", x === b));
     $("pesertaView").classList.toggle("hidden", b.dataset.view !== "peserta");
     $("evalView").classList.toggle("hidden", b.dataset.view !== "eval");
+    $("annView").classList.toggle("hidden", b.dataset.view !== "ann");
     if (b.dataset.view === "eval") loadEval();
+    if (b.dataset.view === "ann") loadAnn();
   }));
   $("refreshBtn").addEventListener("click", () => { if (!$("evalView").classList.contains("hidden")) loadEval(); });
 

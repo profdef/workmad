@@ -10,7 +10,7 @@
   <title>Dashboard Admin · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=33">
+  <link rel="stylesheet" href="assets/style.css?v=35">
 </head>
 <body>
   <div id="topbar"></div>
@@ -43,6 +43,7 @@
     <div class="view-tabs">
       <button type="button" class="on" data-view="peserta">👥 Peserta & Pembayaran</button>
       <button type="button" data-view="eval">📊 Evaluasi Pelatihan</button>
+      <button type="button" data-view="ann">📣 Pengumuman</button>
     </div>
     <div id="pesertaView">
     <div class="kpis" id="kpis"></div>
@@ -58,13 +59,36 @@
       <select id="fCat"><option value="">Semua kategori</option></select>
     </div>
     <div class="filters" id="pills" style="margin-top:0"></div>
+    <div class="bulkbar hidden" id="bulkBar">
+      <b id="bulkN"></b>
+      <button class="btn btn-sm btn-primary" type="button" data-bulk="Aktif">✓ Verifikasi & aktifkan</button>
+      <button class="btn btn-sm" type="button" data-bulk="Lulus">🎓 Tandai Lulus</button>
+      <button class="btn btn-sm" type="button" data-bulk="resend">✉ Kirim ulang email kode</button>
+      <button class="btn btn-sm" type="button" id="bulkClear">Batal pilih</button>
+      <div class="small" id="bulkMsg"></div>
+    </div>
     <div class="table-wrap">
       <table class="tbl">
-        <thead><tr><th>No. / Tanggal</th><th>Peserta</th><th>Kategori</th><th class="num">Tagihan</th><th class="num">Transfer</th><th>Status</th><th>Modul</th><th></th></tr></thead>
+        <thead><tr><th><input type="checkbox" id="selAll" title="Pilih semua yang tampil" aria-label="Pilih semua yang tampil"></th><th>No. / Tanggal</th><th>Peserta</th><th>Kategori</th><th class="num">Tagihan</th><th class="num">Transfer</th><th>Status</th><th>Modul</th><th></th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
     <div class="small muted" id="count" style="margin-top:8px"></div>
+    </div>
+
+    <div id="annView" class="hidden">
+      <div class="card">
+        <h2 style="margin-top:0">Pengumuman Portal Peserta</h2>
+        <p class="muted small" style="margin-top:0">Tampil di bagian atas Portal Peserta saat peserta membuka portal. Cocok untuk perubahan jadwal, tautan rekaman, atau pengingat. Maksimal 12 pengumuman tersimpan; tautan (https://…) otomatis bisa diklik.</p>
+        <div class="field"><label for="annText">Isi pengumuman</label><textarea id="annText" rows="3" maxlength="600" placeholder="Contoh: Sesi 2 dimulai pukul 09.00 WIB. Mohon R, RStudio & Quarto sudah terpasang."></textarea></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select id="annTarget" style="width:auto" aria-label="Sasaran pengumuman"><option value="Semua">Semua peserta</option><option value="Penuh">Pelatihan penuh saja</option><option value="Gratis">Kelas gratis saja</option></select>
+          <button class="btn btn-primary" type="button" id="annSend">📣 Terbitkan</button>
+          <span class="small muted" id="annCount"></span>
+        </div>
+        <div id="annMsg"></div>
+      </div>
+      <div id="annList" style="margin-top:12px"></div>
     </div>
 
     <div id="evalView" class="hidden">
@@ -85,10 +109,10 @@
   </dialog>
 
   <div id="footer"></div>
-  <script src="assets/config.js?v=33"></script>
-  <script src="assets/api.js?v=11"></script>
+  <script src="assets/config.js?v=35"></script>
+  <script src="assets/api.js?v=12"></script>
   <script src="assets/common.js?v=27"></script>
   <script src="materi/catalog.js?v=22"></script>
-  <script src="assets/admin.js?v=11"></script>
+  <script src="assets/admin.js?v=12"></script>
 </body>
 </html>

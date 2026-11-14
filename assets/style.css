@@ -462,3 +462,22 @@ dialog .dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px
 .vbg .meta { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; }
 .vbg .meta b { color: var(--white); font-size: 14px; }
 .vbg .meta .small { display: block; }
+
+/* Aksi massal & pengumuman (admin + portal) */
+.bulkbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 14px; margin: 0 0 10px; border-radius: 12px; background: rgba(168,85,247,.14); border: 1px solid rgba(168,85,247,.5); }
+.bulkbar b { color: var(--white); margin-right: 4px; }
+.bulkbar #bulkMsg { flex-basis: 100%; }
+.tbl input[type=checkbox], #selAll { width: 18px; height: 18px; accent-color: #a855f7; cursor: pointer; }
+.ann-item { display: flex; gap: 14px; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.ann-text { margin-top: 6px; white-space: pre-line; overflow-wrap: anywhere; }
+.ann-box { margin: 0 0 18px; padding: 14px 18px; border-radius: 14px; background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.45); }
+.ann-box h3 { margin: 0 0 8px; font-size: 15px; color: #fde68a; }
+.ann-box .ann + .ann { margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(251,191,36,.3); }
+.ann-box .ann .when { font-size: 12.5px; color: var(--muted); }
+.ann-box .ann .ann-text { margin-top: 2px; color: var(--ink); }
+.ann-box details summary { cursor: pointer; font-size: 13px; color: var(--muted); margin-top: 10px; }
+.deadline { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0; }
+.deadline > div { flex: 1; min-width: 150px; padding: 14px 16px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border-soft); }
+.deadline .v { font: 800 22px var(--head); color: var(--white); }
+.deadline .l { font-size: 12.5px; color: var(--muted); }
+.deadline .hot { border-color: rgba(251,191,36,.6); } .deadline .hot .v { color: #fde68a; }

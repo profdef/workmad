@@ -133,6 +133,10 @@ function doPost(e) {
       case "resend":   requireAdmin(body.key); return json(resendAccess(body.id));
       case "file":     requireAdmin(body.key); return json(getFile(body.id, body.kind));
       case "delete":   requireAdmin(body.key); return json(deleteReg(body.id));
+      case "bulk":     requireAdmin(body.key); return json(bulkUpdate(body.ids, body.op));
+      case "annList":  requireAdmin(body.key); return json({ ok: true, list: annRead() });
+      case "annSave":  requireAdmin(body.key); return json(annSave(body));
+      case "annDelete": requireAdmin(body.key); return json(annDelete(body.id));
       default: throw new Error("Aksi tidak dikenal");
     }
   } catch (err) {
@@ -386,6 +390,7 @@ function login(b) {
     return {
       ok: true, key: free ? "" : materiKey(), keyFree: keyFree,
       zoom: P.getProperty(free ? "ZOOM_LINK_FREE" : "ZOOM_LINK") || "", waGroup: P.getProperty(free ? "WA_GROUP_LINK_FREE" : "WA_GROUP_LINK") || "",
+      announcements: annFor(free ? FREE : FULL),
       participant: participantView(rec)
     };
   } finally {
@@ -594,6 +599,67 @@ function deleteReg(id) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ======================= Aksi massal ======================= */
+
+// Satu aksi untuk banyak peserta (maks. 25 per panggilan agar tidak melewati batas waktu Apps Script).
+// op: "Aktif" (verifikasi & aktifkan), "Lulus" (terbitkan sertifikat), "resend" (kirim ulang email kode akses).
+// Peserta yang tidak memenuhi syarat dilewati dengan alasannya — tidak menggagalkan yang lain.
+function bulkUpdate(ids, op) {
+  if (["Aktif", "Lulus", "resend"].indexOf(op) < 0) throw new Error("Aksi massal tidak dikenal");
+  ids = (ids || []).slice(0, 25);
+  var results = ids.map(function (id) {
+    try {
+      var sheet = getSheet(), rec = readRow(sheet, findRow(sheet, id));
+      if (op === "resend") { resendAccess(id); return { id: id, ok: true, mailed: true }; }
+      if (op === "Aktif") {
+        if (rec.status !== "Menunggu Verifikasi") throw new Error("Status bukan Menunggu Verifikasi");
+        if (!isFree(rec) && Number(rec.paidAmount) !== Number(rec.total)) throw new Error("Jumlah transfer tidak sama dengan tagihan (periksa satu per satu)");
+      }
+      if (op === "Lulus" && rec.status !== "Aktif") throw new Error("Status bukan Aktif");
+      var res = updateReg(id, { status: op });
+      return { id: id, ok: true, mailed: res.mailed };
+    } catch (e) {
+      return { id: id, ok: false, error: e.message };
+    }
+  });
+  return { ok: true, results: results };
+}
+
+/* ======================= Pengumuman ======================= */
+
+// Pengumuman portal disimpan di Script Property ANNOUNCEMENTS (JSON, terbaru di depan, maks. 12).
+// target: "Semua" | "Penuh" | "Gratis". Teks polos — portal yang menampilkannya dengan aman.
+var ANN_TARGETS = ["Semua", FULL, FREE];
+function annRead() {
+  try { return JSON.parse(PropertiesService.getScriptProperties().getProperty("ANNOUNCEMENTS") || "[]"); } catch (e) { return []; }
+}
+function annFor(program) {
+  return annRead().filter(function (a) { return a.target === "Semua" || a.target === program; });
+}
+function annWrite(fn) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var list = fn(annRead()).slice(0, 12);
+    PropertiesService.getScriptProperties().setProperty("ANNOUNCEMENTS", JSON.stringify(list));
+    return { ok: true, list: list };
+  } finally {
+    lock.releaseLock();
+  }
+}
+function annSave(b) {
+  var text = String(b.text || "").trim().slice(0, 600);
+  if (!text) throw new Error("Tulis isi pengumuman");
+  var target = ANN_TARGETS.indexOf(b.target) >= 0 ? b.target : "Semua";
+  return annWrite(function (list) {
+    list.unshift({ id: "A" + new Date().getTime() + Math.floor(Math.random() * 1000), at: new Date().toISOString(), target: target, text: text });
+    return list;
+  });
+}
+function annDelete(id) {
+  return annWrite(function (list) { return list.filter(function (a) { return a.id !== id; }); });
 }
 
 /* ======================= Email ======================= */

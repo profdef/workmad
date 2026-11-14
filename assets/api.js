@@ -122,6 +122,10 @@
     resend: (key, id) => call({ action: "resend", key, id }),
     file: (key, id, kind) => call({ action: "file", key, id, kind }),
     remove: (key, id) => call({ action: "delete", key, id }),
+    bulk: (key, ids, op) => call({ action: "bulk", key, ids, op }),
+    annList: (key) => call({ action: "annList", key }),
+    annSave: (key, text, target) => call({ action: "annSave", key, text, target }),
+    annDelete: (key, id) => call({ action: "annDelete", key, id }),
 
     // ----- khusus mode demo -----
     async demoMails() { return DEMO ? (await demoBackend()).gas.db().mails : []; },
