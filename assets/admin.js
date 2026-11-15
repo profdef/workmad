@@ -207,7 +207,7 @@
   }));
 
   // ---------- Pengaturan & presensi ----------
-  const SES_ROWS = C.SESSIONS.map((x, i) => [String(i + 1), "Sesi " + (i + 1) + " · " + x.date.replace(/^\S+,\s*/, "").replace(/ \d{4}$/, "") + " · " + x.topic])
+  const SES_ROWS = C.SESSIONS.map((x, i) => [String(i + 1), "Sesi " + (i + 1) + " · " + x.date.replace(/^\S+,\s*/, "").replace(/ \d{4}$/, "") + " " + x.time.split(/[–-]/)[0] + " · " + x.topic])
     .concat([["G", "Kelas gratis · " + C.FREE_CLASS.date.replace(/^\S+,\s*/, "").replace(/ \d{4}$/, "")]]);
   const LINK_IDS = { zoom: "sZoom", waGroup: "sWa", zoomFree: "sZoomFree", waGroupFree: "sWaFree" };
   function fillSet(r) {
@@ -215,8 +215,9 @@
     $("sEval").checked = r.settings.evalOpen; $("sTask").checked = r.settings.taskOpen;
     $("sDue").value = r.settings.taskDue || ""; $("sInfo").value = r.settings.taskInfo || "";
     $("sRemSes").checked = r.settings.remindSession; $("sRemPay").checked = r.settings.remindPay;
-    $("recList").innerHTML = SES_ROWS.map(([k, label]) => '<div class="field" style="margin:0 0 8px"><label for="rec' + k + '" class="small">' + esc(label) + '</label><input id="rec' + k + '" data-rec="' + k + '" type="url" placeholder="https://…" value="' + esc(r.settings.rec[k] || "") + '"></div>').join("");
-    renderRemind(r.remind);
+    const oldServer = !r.settings.rec || !r.remind; // Code.gs tahap 2 belum mengenal rekaman & pengingat
+    $("recList").innerHTML = SES_ROWS.map(([k, label]) => '<div class="field" style="margin:0 0 8px"><label for="rec' + k + '" class="small">' + esc(label) + '</label><input id="rec' + k + '" data-rec="' + k + '" type="url" placeholder="https://…" value="' + esc((r.settings.rec || {})[k] || "") + '"' + (oldServer ? " disabled" : "") + "></div>").join("");
+    renderRemind(r.remind || { old: true });
     const active = regs.filter((x) => x.status === "Aktif" || x.status === "Lulus");
     $("attCodes").innerHTML = SES_ROWS.map(([k, label]) => {
       const pool = active.filter((x) => sesKeys(x).includes(k)), n = pool.filter((x) => attOf(x).includes(k)).length, code = r.settings.attend[k] || "";
@@ -247,6 +248,8 @@
 
   function renderRemind(m) {
     const last = m.last || {};
+    if (m.old) { $("remStatus").innerHTML = '<span style="color:#fca5a5">● Server Apps Script masih versi lama — rekaman & pengingat belum tersedia.</span> Tempel Code.gs terbaru, simpan, lalu deploy <b>New version</b> pada deployment yang sama.'; $("remRun").disabled = true; return; }
+    $("remRun").disabled = false;
     $("remStatus").innerHTML = (m.trigger === true ? '<span style="color:var(--good)">● Pemicu otomatis aktif (tiap jam)</span>'
       : '<span style="color:#fde68a">● Pemicu otomatis belum terpasang.</span> Buka editor Apps Script → pilih fungsi <b class="mono">pasangPengingat</b> → <b>Run</b> (sekali saja).') +
       (last.at ? '<br><span class="muted">Terakhir berjalan ' + esc(fmtDate(last.at, true)) + ": " + (last.session || 0) + " pengingat sesi, " + (last.pay || 0) + " pengingat tagihan" +

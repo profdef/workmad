@@ -361,6 +361,9 @@ ok(out.session === 2 && out.pending === penuhAktif - 2 && out.notes.length === 1
 props.__quota = "100";
 out = be.run("kirimPengingat", new Date("2026-12-05T07:00:00Z"));
 ok(out.session === penuhAktif - 2 && out.pending === 0, "jam berikutnya → sisa yang tertunda terkirim", out);
+const m23 = be.gas.db().mails.find((m) => /Pengingat: Sesi 2 & 3 besok/.test(m.subject));
+ok(m23 && /Manajemen Data di R/.test(m23.html) && /13\.00–16\.00/.test(m23.html) && props.REMIND_SES_2 === "" && (props["REMIND_SES_2-3"] || "").split(",").length === penuhAktif,
+  "Sesi 2 & 3 (hari yang sama) digabung dalam satu email per peserta", m23 && m23.subject);
 // pengingat tagihan: hanya Menunggu Pembayaran > 48 jam, sekali
 const unpaid = call({ action: "register", reg: Object.assign({}, base, { name: "Belum Bayar", email: "belumbayar@contoh.id", phone: "081255554444" }) }).reg;
 out = be.run("kirimPengingat", new Date(Date.now() + 3600e3));

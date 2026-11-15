@@ -54,10 +54,10 @@ var CONFIG = {
   SESSIONS: [
     ["1", "2026-12-05 09:00", "Sabtu, 5 Desember 2026 · 09.00–12.00 WIB", "Pengantar & Konsep Dasar Data"],
     ["2", "2026-12-06 09:00", "Minggu, 6 Desember 2026 · 09.00–12.00 WIB", "R, RStudio & Quarto"],
-    ["3", "2026-12-12 09:00", "Sabtu, 12 Desember 2026 · 09.00–12.00 WIB", "Manajemen Data di R"],
+    ["3", "2026-12-06 13:00", "Minggu, 6 Desember 2026 · 13.00–16.00 WIB", "Manajemen Data di R"],
     ["4", "2026-12-13 09:00", "Minggu, 13 Desember 2026 · 09.00–12.00 WIB", "Analisis Univariat & Bivariat"],
-    ["5", "2026-12-19 09:00", "Sabtu, 19 Desember 2026 · 09.00–12.00 WIB", "Tabel 2×2, Ukuran Asosiasi & Multivariat"],
-    ["6", "2026-12-20 09:00", "Minggu, 20 Desember 2026 · 09.00–12.00 WIB", "Studi Kasus & Laporan Otomatis Quarto"],
+    ["5", "2026-12-20 09:00", "Minggu, 20 Desember 2026 · 09.00–12.00 WIB", "Tabel 2×2, Ukuran Asosiasi & Multivariat"],
+    ["6", "2026-12-20 13:00", "Minggu, 20 Desember 2026 · 13.00–16.00 WIB", "Studi Kasus & Laporan Otomatis Quarto"],
     ["G", "2026-11-28 09:00", "Sabtu, 28 November 2026 · 09.00–11.30 WIB", "Kelas Pengenalan R, RStudio & Quarto"]
   ],
   REMIND_PAY_AFTER_HOURS: 48,                 // pengingat tagihan dikirim sekali, setelah N jam belum membayar
@@ -849,8 +849,15 @@ function kirimPengingat(now) {
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    if (S.remindSession) CONFIG.SESSIONS.forEach(function (x) {
-      var key = x[0], start = sesStart(x[1]), free = key === "G";
+    // Sesi pada tanggal yang sama (mis. pagi & siang) digabung dalam satu email agar kuota tidak terpakai dua kali
+    var groups = [];
+    CONFIG.SESSIONS.forEach(function (x) {
+      var g = groups.filter(function (y) { return y.free === (x[0] === "G") && y.day === x[1].slice(0, 10); })[0];
+      if (g) g.items.push(x); else groups.push({ free: x[0] === "G", day: x[1].slice(0, 10), items: [x] });
+    });
+    if (S.remindSession) groups.forEach(function (gr) {
+      var free = gr.free, key = gr.items.map(function (x) { return x[0]; }).join("-"), start = sesStart(gr.items[0][1]);
+      var label = free ? "Kelas Gratis" : "Sesi " + gr.items.map(function (x) { return x[0]; }).join(" & ");
       if (now >= start || now < new Date(start.getTime() - 26 * 3600e3)) return;
       rows = rows || readAll();
       var done = propList("REMIND_SES_" + key), add = [];
@@ -858,10 +865,12 @@ function kirimPengingat(now) {
       var zoom = P.getProperty(free ? "ZOOM_LINK_FREE" : "ZOOM_LINK") || "";
       pool.forEach(function (r) {
         if (budget < 1) { out.pending++; return; }
-        var ok = sendMail(r.email, "Pengingat: " + (free ? "Kelas Gratis" : "Sesi " + key) + " besok · " + x[2], mailTemplate(
-          (free ? "Kelas gratis" : "Sesi " + key) + " dimulai besok ⏰",
+        var rowsMail = [];
+        gr.items.forEach(function (x) { rowsMail.push([free ? "Topik" : "Sesi " + x[0], "<b>" + h(x[3]) + "</b><br>" + h(x[2])]); });
+        var ok = sendMail(r.email, "Pengingat: " + label + " besok · " + gr.items[0][2].split(" · ")[0], mailTemplate(
+          label + (gr.items.length > 1 ? " berlangsung besok ⏰" : " dimulai besok ⏰"),
           "Halo <b>" + h(r.name) + "</b>, kami ingatkan sesi live berikut:",
-          [["Topik", "<b>" + h(x[3]) + "</b>"], ["Waktu", h(x[2])]].concat(zoom ? [["Zoom", "<a href='" + h(zoom) + "' style='color:#38bdf8'>" + h(zoom) + "</a>"]] : []),
+          rowsMail.concat(zoom ? [["Zoom", "<a href='" + h(zoom) + "' style='color:#38bdf8'>" + h(zoom) + "</a>"]] : []),
           "Siapkan laptop dengan R, RStudio & Quarto. Tautan Zoom, materi, virtual background, dan presensi ada di Portal Peserta:",
           CONFIG.SITE_URL + "portal.html#jadwal", "Buka Portal Peserta"));
         budget--;
