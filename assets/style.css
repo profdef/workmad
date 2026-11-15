@@ -509,5 +509,5 @@ dialog .dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px
 @media (max-width: 640px) { .att-codes > div { grid-template-columns: 1fr 1fr; } }
 
 /* Tahap 3: rekaman & riwayat */
-.rec-list { max-height: 420px; overflow: auto; padding-right: 4px; }
+.rec-list { display: grid; gap: 0; }
 #logRows td { vertical-align: top; }
