@@ -77,6 +77,8 @@
 
   async function call(body) {
     let json;
+    // Nama admin (opsional, diisi saat masuk dashboard) dicatat di Riwayat aksi
+    if (body.key) try { body.by = sessionStorage.getItem("mad_admin_by") || ""; } catch (e) {}
     if (DEMO) {
       const b = await demoBackend();
       await new Promise((r) => setTimeout(r, 250)); // simulasi jaringan
@@ -128,6 +130,8 @@
     annDelete: (key, id) => call({ action: "annDelete", key, id }),
     settingsGet: (key) => call({ action: "settingsGet", key }),
     settingsSave: (key, settings) => call({ action: "settingsSave", key, settings }),
+    remindRun: (key) => call({ action: "remindRun", key }),
+    logList: (key) => call({ action: "logList", key }),
     attend(session, attendCode) { const s = Session.get() || {}; return call({ action: "attend", email: s.email, code: s.code, session, attendCode }); },
     taskSubmit(p) { const s = Session.get() || {}; return call(Object.assign({ action: "taskSubmit", email: s.email, code: s.code }, p)); },
 

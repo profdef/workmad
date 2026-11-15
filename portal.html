@@ -10,7 +10,7 @@
   <title>Portal Peserta · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=36">
+  <link rel="stylesheet" href="assets/style.css?v=37">
 </head>
 <body>
   <div id="topbar"></div>
@@ -88,8 +88,8 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=36"></script>
-  <script src="assets/api.js?v=13"></script>
+  <script src="assets/config.js?v=37"></script>
+  <script src="assets/api.js?v=14"></script>
   <script src="assets/common.js?v=27"></script>
   <script src="assets/materi.js?v=11"></script>
   <script src="materi/catalog.js?v=22"></script>
@@ -216,7 +216,7 @@
         ? '<div><div class="eyebrow">' + (state(next) === "berlangsung" ? "🔴 Sedang berlangsung" : "Sesi berikutnya") + '</div><h3 style="margin:.2em 0">' + (FREEP ? "" : esc(next.no.replace("SESI", "Sesi")) + " · ") + esc(next.topic) +
           '</h3><div class="muted">' + esc(next.date) + " · " + esc(next.time) + (state(next) === "akan" ? ' · <b style="color:#fde68a">' + until(next.tm.start - now) + " lagi</b>" : "") + "</div></div>" +
           '<div class="acts">' + zoomBtn + '<button class="btn btn-sm" type="button" id="icsAll">📅 ' + (FREEP ? "Simpan ke kalender" : "Simpan semua sesi ke kalender") + '</button><button class="btn btn-sm" type="button" id="sesRefresh" title="Muat tautan & presensi terbaru">↻ Perbarui</button></div>'
-        : '<div><div class="eyebrow">Jadwal</div><h3 style="margin:.2em 0">Semua sesi live telah selesai 🎉</h3><div class="muted">' + (FREEP ? "Terima kasih telah mengikuti kelas gratis. Lanjutkan ke Pelatihan Penuh lewat tab ⭐." : "Lengkapi tugas akhir & evaluasi untuk memperoleh e-sertifikat.") + "</div></div>") +
+        : '<div><div class="eyebrow">Jadwal</div><h3 style="margin:.2em 0">Semua sesi live telah selesai 🎉</h3><div class="muted">' + (FREEP ? "Terima kasih telah mengikuti kelas gratis." + ((p.recordings || {}).G ? " Rekamannya tersedia di bawah." : "") + " Lanjutkan ke Pelatihan Penuh lewat tab ⭐." : "Lengkapi tugas akhir & evaluasi untuk memperoleh e-sertifikat. Rekaman tiap sesi tersedia di bawah bila sudah diunggah.") + "</div></div>") +
         '<div class="att-sum"><b>' + SES.filter((x) => att.has(x.key)).length + " / " + SES.length + '</b><span>sesi tercatat hadir</span></div>';
       // Perbarui tanpa memuat ulang halaman: presensi yang baru dibuka admin, tautan Zoom, status tugas
       if ($("sesRefresh")) $("sesRefresh").addEventListener("click", async () => {
@@ -229,9 +229,11 @@
         const st = state(x), isNext = x === next;
         const badge = att.has(x.key) ? '<span class="badge st-lulus">✓ Hadir</span>' : st === "selesai" ? '<span class="badge st-dibatalkan">Selesai</span>'
           : st === "berlangsung" ? '<span class="badge st-menunggu-verifikasi">Berlangsung</span>' : isNext ? '<span class="badge st-aktif">Berikutnya</span>' : "";
+        const recUrl = (p.recordings || {})[x.key];
+        const recBtn = recUrl ? '<a class="btn btn-sm" style="margin-top:8px" href="' + esc(recUrl) + '" target="_blank" rel="noopener">▶ Rekaman sesi</a>' : "";
         const form = !att.has(x.key) && open.has(x.key)
           ? '<form class="att-form" data-att="' + x.key + '"><input class="mono" placeholder="Kode hadir" maxlength="12" autocomplete="off" aria-label="Kode hadir ' + esc(x.no) + '"><button class="btn btn-sm btn-primary" type="submit">Catat hadir</button><div class="small" data-msg></div></form>' : "";
-        return '<div class="tl' + (isNext ? " next" : st === "selesai" ? " past" : "") + '"><div class="no">' + esc(x.no) + '</div><div><div class="t">' + esc(x.topic) + '</div><div class="d">' + esc(x.sub) + "</div>" + form +
+        return '<div class="tl' + (isNext ? " next" : st === "selesai" ? " past" : "") + '"><div class="no">' + esc(x.no) + '</div><div><div class="t">' + esc(x.topic) + '</div><div class="d">' + esc(x.sub) + "</div>" + form + recBtn +
           '</div><div class="w"><b>' + esc(x.date) + "</b><br>" + esc(x.time) + '<div style="margin-top:6px">' + badge + "</div></div></div>";
       }).join("") + (FREEP ? FC.agenda.map(([t, a]) => '<div class="tl"><div class="no">' + esc(t) + '</div><div><div class="t" style="font-weight:500">' + esc(a) + "</div></div><div></div></div>").join("") : "");
       $("sessions").querySelectorAll("[data-att]").forEach((f) => f.addEventListener("submit", async (e) => {

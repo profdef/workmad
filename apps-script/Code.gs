@@ -11,6 +11,7 @@
  *      WA_GROUP_LINK = tautan grup WhatsApp peserta     (opsional)
  * 3. Jalankan fungsi setup() sekali (beri izin Sheets, Drive, Gmail).
  * 4. Deploy → New deployment → Web app → Execute as: Me, Who has access: Anyone.
+ * 4b. Pengingat email otomatis: pilih fungsi pasangPengingat → Run (sekali; beri izin).
  * 5. Salin URL /exec ke assets/config.js (API_URL).
  *
  * PENTING: samakan CONFIG di bawah dengan assets/config.js.
@@ -49,6 +50,18 @@ var CONFIG = {
   RECEIPT_PREFIX: "KW/MAD-R/2026/",          // nomor kuitansi (terbit saat pembayaran diverifikasi)
   EVAL_OPEN: true,                            // bawaan; dapat diubah dari dashboard admin → Pengaturan
   EVAL_REQUIRED_FOR_CERT: true,               // sertifikat baru dapat diunduh setelah evaluasi diisi
+  // Jadwal sesi live (WIB) untuk pengingat email H-1. Samakan dengan SESSIONS & FREE_CLASS di assets/config.js.
+  SESSIONS: [
+    ["1", "2026-12-05 09:00", "Sabtu, 5 Desember 2026 · 09.00–12.00 WIB", "Pengantar & Konsep Dasar Data"],
+    ["2", "2026-12-06 09:00", "Minggu, 6 Desember 2026 · 09.00–12.00 WIB", "R, RStudio & Quarto"],
+    ["3", "2026-12-12 09:00", "Sabtu, 12 Desember 2026 · 09.00–12.00 WIB", "Manajemen Data di R"],
+    ["4", "2026-12-13 09:00", "Minggu, 13 Desember 2026 · 09.00–12.00 WIB", "Analisis Univariat & Bivariat"],
+    ["5", "2026-12-19 09:00", "Sabtu, 19 Desember 2026 · 09.00–12.00 WIB", "Tabel 2×2, Ukuran Asosiasi & Multivariat"],
+    ["6", "2026-12-20 09:00", "Minggu, 20 Desember 2026 · 09.00–12.00 WIB", "Studi Kasus & Laporan Otomatis Quarto"],
+    ["G", "2026-11-28 09:00", "Sabtu, 28 November 2026 · 09.00–11.30 WIB", "Kelas Pengenalan R, RStudio & Quarto"]
+  ],
+  REMIND_PAY_AFTER_HOURS: 48,                 // pengingat tagihan dikirim sekali, setelah N jam belum membayar
+  MAIL_RESERVE: 10,                           // sisakan kuota email harian untuk kode akses & notifikasi penting
   SEND_EMAIL: true,     // kirim email tagihan & kode akses ke peserta
   NOTIFY_EMAIL: ""      // email admin untuk notifikasi pendaftaran/bukti baru ("" = mati)
 };
@@ -112,9 +125,11 @@ function doGet() {
   return json({ ok: true, message: "API Pelatihan MAD-R aktif" });
 }
 
+var ACTOR = "admin"; // nama admin pelaku aksi (dicatat di Riwayat); diisi dari dashboard
 function doPost(e) {
   try {
     var body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
+    ACTOR = body.key ? String(body.by || "").replace(/[\r\n\t]/g, " ").trim().slice(0, 40) || "admin" : "sistem";
     switch (body.action) {
       case "stats":    return json(stats());
       case "register": return json(register(body.reg || {}));
@@ -143,6 +158,8 @@ function doPost(e) {
       case "taskSubmit": return json(taskSubmit(body));
       case "settingsGet": requireAdmin(body.key); return json(settingsGet());
       case "settingsSave": requireAdmin(body.key); return json(settingsSave(body.settings || {}));
+      case "remindRun": requireAdmin(body.key); return json(kirimPengingat(new Date()));
+      case "logList":  requireAdmin(body.key); return json({ ok: true, list: logRead(400) });
       default: throw new Error("Aksi tidak dikenal");
     }
   } catch (err) {
@@ -539,11 +556,12 @@ function evalList() {
 function updateReg(id, fields) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
-  var rec, becameActive = false, taskReviewed = false;
+  var rec, becameActive = false, taskReviewed = false, log = [];
   try {
     var sheet = getSheet();
     var row = findRow(sheet, id);
     rec = readRow(sheet, row);
+    var old = JSON.parse(JSON.stringify(rec));
     if ("status" in fields) {
       if (STATUSES.indexOf(fields.status) < 0) throw new Error("Status tidak valid");
       if (ACTIVE.indexOf(fields.status) >= 0 && !rec.accessCode) {
@@ -573,6 +591,13 @@ function updateReg(id, fields) {
       taskReviewed = true;
     }
     writeRow(sheet, row, rec);
+    if (old.status !== rec.status) log.push("status " + old.status + " → " + rec.status + (rec.certNo && !old.certNo ? " (sertifikat " + rec.certNo + ")" : ""));
+    if (old.name !== rec.name) log.push("nama \"" + old.name + "\" → \"" + rec.name + "\"");
+    if (old.adminNote !== rec.adminNote) log.push("catatan admin diubah");
+    if (String(old.attendance || "") !== String(rec.attendance || "")) log.push("kehadiran [" + (old.attendance || "-") + "] → [" + (rec.attendance || "-") + "]");
+    if (taskReviewed) log.push("tugas akhir: " + rec.taskStatus + (rec.taskFeedback ? " (\"" + rec.taskFeedback.slice(0, 80) + "\")" : ""));
+    if (fields.resetCode) log.push("kode akses diganti");
+    if (log.length) logAct("Ubah peserta", id, rec.name + ": " + log.join("; "));
   } finally {
     lock.releaseLock();
   }
@@ -593,6 +618,7 @@ function resendAccess(id) {
   if (ACTIVE.indexOf(rec.status) < 0 || !rec.accessCode) throw new Error("Peserta belum berstatus Aktif");
   var mailed = sendAccessMail(rec);
   if (!mailed) throw new Error("Email tidak terkirim (SEND_EMAIL mati atau kuota habis)");
+  logAct("Kirim ulang kode", id, rec.name + " · " + rec.email);
   return { ok: true, mailed: true };
 }
 
@@ -615,8 +641,11 @@ function deleteReg(id) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    var sheet = getSheet();
-    sheet.deleteRow(findRow(sheet, id));
+    var sheet = getSheet(), row = findRow(sheet, id), rec = readRow(sheet, row);
+    sheet.deleteRow(row);
+    // Arsip ringkas data yang dihapus (tanpa kode akses) agar masih bisa ditelusuri dari Riwayat / sheet Log
+    logAct("Hapus peserta", id, JSON.stringify({ name: rec.name, email: rec.email, phone: rec.phone, institution: rec.institution, program: rec.program || FULL,
+      category: rec.category, status: rec.status, total: rec.total, paidAmount: rec.paidAmount, createdAt: rec.createdAt, proofUrl: rec.proofUrl, certNo: rec.certNo }));
     return { ok: true };
   } finally {
     lock.releaseLock();
@@ -639,24 +668,28 @@ function settingsRead() {
   var s = {};
   try { s = JSON.parse(PropertiesService.getScriptProperties().getProperty("SETTINGS") || "{}") || {}; } catch (e) { s = {}; }
   return { evalOpen: "evalOpen" in s ? !!s.evalOpen : CONFIG.EVAL_OPEN, taskOpen: "taskOpen" in s ? !!s.taskOpen : true,
-    taskDue: s.taskDue || "", taskInfo: s.taskInfo || "", attend: s.attend || {} };
+    taskDue: s.taskDue || "", taskInfo: s.taskInfo || "", attend: s.attend || {}, rec: s.rec || {},
+    remindSession: "remindSession" in s ? !!s.remindSession : true, remindPay: "remindPay" in s ? !!s.remindPay : true };
 }
 function settingsGet() {
   var P = PropertiesService.getScriptProperties(), links = {};
   Object.keys(LINK_PROPS).forEach(function (k) { links[k] = P.getProperty(LINK_PROPS[k]) || ""; });
-  return { ok: true, settings: settingsRead(), links: links };
+  var st = {};
+  try { st = JSON.parse(P.getProperty("REMIND_STATUS") || "{}"); } catch (e) { st = {}; }
+  return { ok: true, settings: settingsRead(), links: links, remind: { trigger: triggerOn(), last: st } };
 }
 function settingsSave(o) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    var P = PropertiesService.getScriptProperties(), cur = settingsRead();
+    var P = PropertiesService.getScriptProperties(), cur = settingsRead(), changedLinks = {};
     Object.keys(LINK_PROPS).forEach(function (k) {
       if (!(k in (o.links || {}))) return;
       var u = String(o.links[k] || "").trim().slice(0, 500);
       if (u === (P.getProperty(LINK_PROPS[k]) || "")) return; // tidak diubah → biarkan (nilai lama tidak ikut divalidasi)
       if (u && !/^https:\/\/\S+$/.test(u)) throw new Error("Tautan " + LINK_LABELS[k] + " harus diawali https:// dan tanpa spasi");
       P.setProperty(LINK_PROPS[k], u);
+      changedLinks[k] = true;
     });
     if ("evalOpen" in o) cur.evalOpen = !!o.evalOpen;
     if ("taskOpen" in o) cur.taskOpen = !!o.taskOpen;
@@ -666,6 +699,18 @@ function settingsSave(o) {
       cur.taskDue = d;
     }
     if ("taskInfo" in o) cur.taskInfo = String(o.taskInfo || "").trim().slice(0, 1500);
+    if ("rec" in o) {
+      var rec = {};
+      ["1", "2", "3", "4", "5", "6", "G"].forEach(function (k) {
+        var u = String((o.rec || {})[k] || "").trim().slice(0, 500);
+        if (!u) return;
+        if (!/^https:\/\/\S+$/.test(u)) throw new Error("Tautan rekaman " + (k === "G" ? "kelas gratis" : "sesi " + k) + " harus diawali https:// dan tanpa spasi");
+        rec[k] = u;
+      });
+      cur.rec = rec;
+    }
+    if ("remindSession" in o) cur.remindSession = !!o.remindSession;
+    if ("remindPay" in o) cur.remindPay = !!o.remindPay;
     if ("attend" in o) {
       var att = {};
       ["1", "2", "3", "4", "5", "6", "G"].forEach(function (k) {
@@ -674,7 +719,23 @@ function settingsSave(o) {
       });
       cur.attend = att;
     }
+    var before = settingsRead();
     P.setProperty("SETTINGS", JSON.stringify(cur));
+    var ch = [];
+    Object.keys(LINK_PROPS).forEach(function (k) { if (k in (o.links || {}) && changedLinks[k]) ch.push("tautan " + LINK_LABELS[k] + " diubah"); });
+    if (before.evalOpen !== cur.evalOpen) ch.push("evaluasi " + (cur.evalOpen ? "dibuka" : "ditutup"));
+    if (before.taskOpen !== cur.taskOpen) ch.push("pengumpulan tugas " + (cur.taskOpen ? "dibuka" : "ditutup"));
+    if (before.taskDue !== cur.taskDue) ch.push("batas tugas → " + (cur.taskDue || "kosong"));
+    if (before.taskInfo !== cur.taskInfo) ch.push("ketentuan tugas diubah");
+    ["1", "2", "3", "4", "5", "6", "G"].forEach(function (k) {
+      var nm = k === "G" ? "kelas gratis" : "sesi " + k;
+      if (!!before.attend[k] !== !!cur.attend[k]) ch.push("presensi " + nm + (cur.attend[k] ? " dibuka" : " ditutup"));
+      else if (before.attend[k] !== cur.attend[k]) ch.push("kode hadir " + nm + " diganti");
+      if ((before.rec[k] || "") !== (cur.rec[k] || "")) ch.push("rekaman " + nm + (cur.rec[k] ? " dipasang" : " dihapus"));
+    });
+    if (before.remindSession !== cur.remindSession) ch.push("pengingat sesi " + (cur.remindSession ? "aktif" : "mati"));
+    if (before.remindPay !== cur.remindPay) ch.push("pengingat tagihan " + (cur.remindPay ? "aktif" : "mati"));
+    if (ch.length) logAct("Pengaturan", "", ch.join("; "));
   } finally {
     lock.releaseLock();
   }
@@ -743,6 +804,113 @@ function taskSubmit(b) {
   return { ok: true, participant: participantView(rec) };
 }
 
+/* ======================= Riwayat aksi admin (sheet "Log") ======================= */
+
+var LOG_SHEET = "Log", LOG_HEADERS = ["at", "by", "action", "id", "detail"];
+function logSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName(LOG_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(LOG_SHEET);
+    sh.getRange(1, 1, 1, LOG_HEADERS.length).setValues([LOG_HEADERS]).setFontWeight("bold");
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+// Catat tanpa pernah menggagalkan aksi utamanya
+function logAct(action, id, detail) {
+  try {
+    var sh = logSheet(), n = sh.getLastRow() + 1;
+    sh.getRange(n, 1, 1, LOG_HEADERS.length).setNumberFormat("@")
+      .setValues([[new Date().toISOString(), ACTOR, action, id || "", String(detail || "").slice(0, 2000)]]);
+  } catch (e) { Logger.log("Log gagal: " + e); }
+}
+function logRead(max) {
+  var sh = logSheet(), n = sh.getLastRow() - 1;
+  if (n < 1) return [];
+  var k = Math.min(n, max || 400);
+  return sh.getRange(sh.getLastRow() - k + 1, 1, k, LOG_HEADERS.length).getValues().reverse().map(function (r) {
+    return { at: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), by: String(r[1]), action: String(r[2]), id: String(r[3]), detail: String(r[4]) };
+  });
+}
+
+/* ======================= Pengingat email otomatis ======================= */
+// Dijalankan pemicu per jam (pasang sekali: jalankan pasangPengingat() dari editor Apps Script).
+//  • H-1 sesi: dalam 26 jam sebelum sesi dimulai, kirim pengingat ke peserta Aktif/Lulus program terkait.
+//  • Tagihan: sekali per pendaftar pelatihan penuh yang belum membayar > REMIND_PAY_AFTER_HOURS jam (sebelum pendaftaran ditutup).
+// Penerima dicatat agar tidak dobel; bila kuota email harian menipis, sisanya dikirim pada jam berikutnya.
+function sesStart(s) { var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/); return new Date(Date.UTC(+m[1], m[2] - 1, +m[3], m[4] - 7, +m[5])); }
+function propList(k) { return String(PropertiesService.getScriptProperties().getProperty(k) || "").split(",").filter(String); }
+function kirimPengingat(now) {
+  now = now instanceof Date ? now : new Date(); // pemicu mengirim objek event → pakai waktu sekarang
+  if (!(now instanceof Date) || isNaN(now)) now = new Date();
+  var S = settingsRead(), P = PropertiesService.getScriptProperties(), rows = null;
+  var budget = Math.max(0, (CONFIG.SEND_EMAIL ? MailApp.getRemainingDailyQuota() : 0) - CONFIG.MAIL_RESERVE);
+  var out = { ok: true, at: now.toISOString(), session: 0, pay: 0, pending: 0, notes: [] };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    if (S.remindSession) CONFIG.SESSIONS.forEach(function (x) {
+      var key = x[0], start = sesStart(x[1]), free = key === "G";
+      if (now >= start || now < new Date(start.getTime() - 26 * 3600e3)) return;
+      rows = rows || readAll();
+      var done = propList("REMIND_SES_" + key), add = [];
+      var pool = rows.filter(function (r) { return ACTIVE.indexOf(r.status) >= 0 && isFree(r) === free && r.email && done.indexOf(r.id) < 0; });
+      var zoom = P.getProperty(free ? "ZOOM_LINK_FREE" : "ZOOM_LINK") || "";
+      pool.forEach(function (r) {
+        if (budget < 1) { out.pending++; return; }
+        var ok = sendMail(r.email, "Pengingat: " + (free ? "Kelas Gratis" : "Sesi " + key) + " besok · " + x[2], mailTemplate(
+          (free ? "Kelas gratis" : "Sesi " + key) + " dimulai besok ⏰",
+          "Halo <b>" + h(r.name) + "</b>, kami ingatkan sesi live berikut:",
+          [["Topik", "<b>" + h(x[3]) + "</b>"], ["Waktu", h(x[2])]].concat(zoom ? [["Zoom", "<a href='" + h(zoom) + "' style='color:#38bdf8'>" + h(zoom) + "</a>"]] : []),
+          "Siapkan laptop dengan R, RStudio & Quarto. Tautan Zoom, materi, virtual background, dan presensi ada di Portal Peserta:",
+          CONFIG.SITE_URL + "portal.html#jadwal", "Buka Portal Peserta"));
+        budget--;
+        if (ok) { add.push(r.id); out.session++; }
+      });
+      if (add.length) P.setProperty("REMIND_SES_" + key, done.concat(add).join(","));
+    });
+    var today = Utilities.formatDate(now, "Asia/Jakarta", "yyyy-MM-dd");
+    if (S.remindPay && today <= CONFIG.CLOSE_DATE) {
+      rows = rows || readAll();
+      var paid = propList("REMIND_PAY"), addp = [];
+      rows.filter(function (r) {
+        return r.status === STATUSES[0] && !isFree(r) && r.email && paid.indexOf(r.id) < 0 &&
+          now - new Date(r.createdAt) >= CONFIG.REMIND_PAY_AFTER_HOURS * 3600e3;
+      }).forEach(function (r) {
+        if (budget < 1) { out.pending++; return; }
+        var ok = sendMail(r.email, "Pengingat pembayaran pelatihan — " + r.id, mailTemplate("Tagihan Anda menunggu pembayaran",
+          "Halo <b>" + h(r.name) + "</b>, terima kasih telah mendaftar. Kursi Anda belum terkonfirmasi karena pembayaran belum kami terima.",
+          [["No. pendaftaran", r.id], ["<b>Jumlah transfer</b>", "<b style='font-size:18px;color:#e879f9'>" + rp(r.total) + "</b> (termasuk 3 digit kode unik)"],
+           ["Rekening", h(CONFIG.PAYMENT)], ["Batas pendaftaran", h(CONFIG.CLOSE_DATE)]],
+          "Setelah transfer, unggah bukti pembayaran agar akses segera aktif. Abaikan email ini jika Anda sudah membayar.",
+          CONFIG.SITE_URL + "konfirmasi.html?id=" + encodeURIComponent(r.id), "Unggah Bukti Transfer"));
+        budget--;
+        if (ok) { addp.push(r.id); out.pay++; }
+      });
+      if (addp.length) P.setProperty("REMIND_PAY", paid.concat(addp).join(","));
+    }
+    if (out.pending) out.notes.push(out.pending + " email ditunda karena kuota harian — dikirim otomatis pada jam berikutnya");
+    P.setProperty("REMIND_STATUS", JSON.stringify(out));
+  } finally {
+    lock.releaseLock();
+  }
+  if (out.session || out.pay) { var a = ACTOR; ACTOR = "sistem"; logAct("Pengingat email", "", out.session + " pengingat sesi, " + out.pay + " pengingat tagihan" + (out.pending ? ", " + out.pending + " ditunda" : "")); ACTOR = a; }
+  return out;
+}
+// Jalankan SEKALI dari editor Apps Script (pilih fungsi → Run) untuk memasang pemicu per jam
+function pasangPengingat() {
+  hapusPengingat();
+  ScriptApp.newTrigger("kirimPengingat").timeBased().everyHours(1).create();
+  return "Pemicu pengingat per jam terpasang";
+}
+function hapusPengingat() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === "kirimPengingat") ScriptApp.deleteTrigger(t); });
+}
+function triggerOn() {
+  try { return ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === "kirimPengingat"; }); }
+  catch (e) { return null; } // izin ScriptApp belum diberikan → jalankan pasangPengingat() dari editor
+}
+
 /* ======================= Aksi massal ======================= */
 
 // Satu aksi untuk banyak peserta (maks. 25 per panggilan agar tidak melewati batas waktu Apps Script).
@@ -797,11 +965,16 @@ function annSave(b) {
   var target = ANN_TARGETS.indexOf(b.target) >= 0 ? b.target : "Semua";
   return annWrite(function (list) {
     list.unshift({ id: "A" + new Date().getTime() + Math.floor(Math.random() * 1000), at: new Date().toISOString(), target: target, text: text });
+    logAct("Pengumuman terbit", "", "[" + target + "] " + text.slice(0, 200));
     return list;
   });
 }
 function annDelete(id) {
-  return annWrite(function (list) { return list.filter(function (a) { return a.id !== id; }); });
+  return annWrite(function (list) {
+    var gone = list.filter(function (a) { return a.id === id; })[0];
+    if (gone) logAct("Pengumuman dihapus", "", "[" + gone.target + "] " + gone.text.slice(0, 200));
+    return list.filter(function (a) { return a.id !== id; });
+  });
 }
 
 /* ======================= Email ======================= */
@@ -931,6 +1104,7 @@ function participantView(r) {
     evalDone: !!r.evalAt, evalOpen: S.evalOpen, evalRequired: CONFIG.EVAL_REQUIRED_FOR_CERT,
     // Kehadiran: sesi yang sudah tercatat + sesi yang kode hadirnya sedang dibuka admin (kodenya sendiri tidak dikirim)
     attendance: attList(r.attendance), attendOpen: sessionKeys(free).filter(function (k) { return !!S.attend[k]; }),
+    recordings: sessionKeys(free).reduce(function (m, k) { if (S.rec[k]) m[k] = S.rec[k]; return m; }, {}),
     task: free ? null : { open: S.taskOpen, due: S.taskDue, info: S.taskInfo, status: r.taskStatus || "", url: r.taskUrl || "", hasFile: !!r.taskFileId,
       note: r.taskNote || "", at: r.taskAt || "", feedback: r.taskFeedback || "", maxMb: CONFIG.TASK_MAX_MB },
     // Sertifikat ditahan sampai evaluasi diisi (bila diwajibkan)

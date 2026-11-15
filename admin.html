@@ -10,7 +10,7 @@
   <title>Dashboard Admin · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=36">
+  <link rel="stylesheet" href="assets/style.css?v=37">
 </head>
 <body>
   <div id="topbar"></div>
@@ -19,6 +19,7 @@
     <form id="loginForm" class="card" novalidate>
       <div class="eyebrow">Admin</div>
       <h1 style="font-size:24px;margin-top:.3em">Masuk Dashboard</h1>
+      <div class="field"><label for="adminBy">Nama Anda <span class="muted small">(dicatat di Riwayat aksi)</span></label><input id="adminBy" autocomplete="name" maxlength="40" placeholder="mis. Defriman"></div>
       <div class="field"><label for="adminKey">Kunci admin</label><input id="adminKey" type="password" autocomplete="current-password"></div>
       <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Masuk</button>
       <div id="loginErr" class="alert alert-err hidden" role="alert"></div>
@@ -45,6 +46,7 @@
       <button type="button" data-view="eval">📊 Evaluasi Pelatihan</button>
       <button type="button" data-view="ann">📣 Pengumuman</button>
       <button type="button" data-view="set">⚙ Pengaturan & Presensi</button>
+      <button type="button" data-view="log">🕘 Riwayat</button>
     </div>
     <div id="pesertaView">
     <div class="kpis" id="kpis"></div>
@@ -115,9 +117,32 @@
         <p class="muted small" style="margin-top:0">Isi <b>kode hadir</b> untuk membuka presensi sebuah sesi, bacakan kodenya saat sesi berlangsung, lalu kosongkan untuk menutupnya. Peserta memasukkan kode di tab <b>Jadwal & Zoom</b>. Kehadiran per peserta dapat dikoreksi dari tombol Detail.</p>
         <div class="att-codes" id="attCodes"></div>
       </div>
+      <div class="set-grid" style="margin-top:12px">
+        <div class="card">
+          <h3 style="margin-top:0">Rekaman sesi</h3>
+          <p class="muted small" style="margin-top:0">Tempel tautan rekaman (YouTube tidak publik / Google Drive) setelah sesi selesai. Tombol <b>▶ Rekaman</b> muncul di jadwal peserta pada sesi tersebut.</p>
+          <div class="rec-list" id="recList"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">Pengingat email otomatis</h3>
+          <label class="switch"><input type="checkbox" id="sRemSes"> Pengingat H-1 sesi live (peserta aktif)</label>
+          <label class="switch"><input type="checkbox" id="sRemPay"> Pengingat tagihan (belum bayar &gt; 48 jam, sekali)</label>
+          <div id="remStatus" class="small" style="margin:10px 0"></div>
+          <button class="btn btn-sm" type="button" id="remRun">▶ Jalankan pengingat sekarang</button>
+          <p class="muted small" style="margin-bottom:0">Email dikirim dari kuota Gmail harian (±100); 10 disisakan untuk kode akses. Yang tertunda dikirim otomatis pada jam berikutnya.</p>
+        </div>
+      </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
         <button class="btn btn-primary" type="button" id="setSave">💾 Simpan pengaturan</button><div id="setMsg" style="flex:1;min-width:240px"></div>
       </div>
+    </div>
+
+    <div id="logView" class="hidden">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <div><h2 style="margin:0">Riwayat Aksi</h2><div class="small muted">400 aksi terakhir: verifikasi, kelulusan, perubahan data, hapus (beserta arsip datanya), pengaturan, pengumuman, pengingat. Tersimpan juga di sheet <b>Log</b>.</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><input type="search" id="logQ" placeholder="Cari nama, no. pendaftaran, aksi…" style="width:260px"><button class="btn btn-sm" type="button" id="logCsv">⬇ Ekspor CSV</button></div>
+      </div>
+      <div class="table-wrap"><table class="tbl"><thead><tr><th>Waktu</th><th>Oleh</th><th>Aksi</th><th>Detail</th></tr></thead><tbody id="logRows"><tr><td colspan="4" class="muted">Memuat…</td></tr></tbody></table></div>
     </div>
 
     <div id="evalView" class="hidden">
@@ -138,10 +163,10 @@
   </dialog>
 
   <div id="footer"></div>
-  <script src="assets/config.js?v=36"></script>
-  <script src="assets/api.js?v=13"></script>
+  <script src="assets/config.js?v=37"></script>
+  <script src="assets/api.js?v=14"></script>
   <script src="assets/common.js?v=27"></script>
   <script src="materi/catalog.js?v=22"></script>
-  <script src="assets/admin.js?v=13"></script>
+  <script src="assets/admin.js?v=14"></script>
 </body>
 </html>

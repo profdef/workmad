@@ -121,8 +121,10 @@
           getFileById: makeFile,
         },
         MailApp: {
-          getRemainingDailyQuota: () => 100,
+          getRemainingDailyQuota: () => ("__quota" in db.props ? Number(db.props.__quota) : 100),
           sendEmail(a, subject, text) {
+            if ("__quota" in db.props) db.props.__quota = String(Number(db.props.__quota) - 1);
+            db.mailCount = (db.mailCount || 0) + 1;
             const m = typeof a === "object" ? a : { to: a, subject, body: text };
             db.mails.unshift({ at: new Date().toISOString(), to: m.to, name: m.name || "", replyTo: m.replyTo || "", subject: m.subject, html: m.htmlBody || "", text: m.body || "" });
             db.mails = db.mails.slice(0, 50);
@@ -134,6 +136,16 @@
           sendEmail(to, subject, text, opt) {
             db.mails.unshift({ at: new Date().toISOString(), to, from: (opt && opt.from) || "", subject, html: (opt && opt.htmlBody) || "", text: text || "" });
             db.mails = db.mails.slice(0, 50); save();
+          },
+        },
+        // Pemicu terjadwal (pengingat otomatis)
+        ScriptApp: {
+          getProjectTriggers: () => (db.triggers || []).map((t) => ({ getHandlerFunction: () => t.fn, getUniqueId: () => t.id })),
+          deleteTrigger(t) { db.triggers = (db.triggers || []).filter((x) => x.id !== t.getUniqueId()); save(); },
+          newTrigger(fn) {
+            const t = { fn, id: "t" + Math.random().toString(36).slice(2, 8) };
+            const b = { timeBased: () => b, everyHours: (h) => ((t.everyHours = h), b), create() { db.triggers = (db.triggers || []).concat([t]); save(); return t; } };
+            return b;
           },
         },
         Session: { getEffectiveUser: () => ({ getEmail: () => "pemilik@contoh.id" }) },
@@ -170,10 +182,11 @@
     const gas = createGas(store);
     root.__gasFolder = gas.folder;
     const names = Object.keys(gas.services);
-    const fn = new Function(...names, codeText + "\n;return { doPost: doPost, CONFIG: CONFIG };");
+    const fn = new Function(...names, codeText + "\n;return { doPost: doPost, CONFIG: CONFIG, fns: { kirimPengingat: typeof kirimPengingat === 'function' ? kirimPengingat : null, pasangPengingat: typeof pasangPengingat === 'function' ? pasangPengingat : null } };");
     const api = fn(...names.map((n) => gas.services[n]));
     return {
       gas, CONFIG: api.CONFIG,
+      run: (name, ...args) => api.fns[name](...args), // fungsi yang dijalankan pemicu/editor, mis. kirimPengingat
       call(body) {
         const out = api.doPost({ postData: { contents: JSON.stringify(body) } });
         return JSON.parse(out.getContent());

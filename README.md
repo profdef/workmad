@@ -137,6 +137,14 @@ Build pertama membuat `.materi-key` (simpan baik-baik; jangan di-commit). Kunci 
    API_URL: "https://script.google.com/macros/s/XXXX/exec",
    ```
 
+8. **Pengingat email otomatis** (H-1 sesi live & tagihan belum dibayar): pilih fungsi **`pasangPengingat`** → **▶ Run** sekali
+   (izinkan akses pemicu). Status, tombol uji, dan sakelarnya ada di dashboard admin → **⚙ Pengaturan & Presensi**.
+   Jadwal sesi untuk pengingat ada di `CONFIG.SESSIONS` (samakan dengan `SESSIONS` di `assets/config.js`).
+
+Tautan Zoom/grup WA, buka-tutup evaluasi & tugas akhir, kode hadir, dan tautan rekaman diatur dari dashboard admin
+(**⚙ Pengaturan & Presensi**), tidak perlu membuka Apps Script. Semua aksi admin tercatat di sheet **Log** (tab **🕘 Riwayat**),
+termasuk arsip data peserta yang dihapus.
+
 > Setiap kali `Code.gs` diubah: **Deploy → Manage deployments → ✏ Edit → Version: New version → Deploy** (URL tetap).
 > Kuota email gratis Gmail ±100 email/hari (akun biasa). Bila habis, kirim kode via tombol **💬 Kirim kode via WA** di dashboard.
 

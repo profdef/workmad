@@ -333,5 +333,67 @@ call({ action: "update", key: K, id: m1.id, fields: { status: "Aktif" } });
 r = call({ action: "taskSubmit", email: "massal1@contoh.id", code: m1code, url: "https://x.id/t" });
 ok(!r.ok && /ditutup/.test(r.error), "pengumpulan tugas bisa ditutup dari pengaturan");
 
+console.log("Rekaman, pengingat otomatis & riwayat");
+r = call({ action: "settingsSave", key: K, by: "Ani", settings: { rec: { 1: "rekaman tanpa https" } } });
+ok(!r.ok && /rekaman sesi 1/.test(r.error), "tautan rekaman tanpa https ditolak");
+r = call({ action: "settingsSave", key: K, by: "Ani", settings: { rec: { 1: "https://youtu.be/sesi1", G: "https://youtu.be/gratis", 7: "https://x.id" } } });
+ok(r.ok && r.settings.rec["1"] === "https://youtu.be/sesi1" && !("7" in r.settings.rec), "rekaman tersimpan per sesi", r.settings && r.settings.rec);
+r = call(Object.assign({ action: "login", silent: true }, me));
+ok(r.ok && r.participant.recordings["1"] === "https://youtu.be/sesi1" && !("G" in r.participant.recordings), "peserta penuh hanya melihat rekaman sesi penuh", r.participant.recordings);
+r = call({ action: "settingsGet", key: K });
+ok(r.ok && r.remind.trigger === false && r.settings.remindSession && r.settings.remindPay, "status pengingat: pemicu belum terpasang, pengingat aktif bawaan", r.remind);
+be.run("pasangPengingat"); be.run("pasangPengingat");
+ok(be.gas.db().triggers.length === 1 && be.gas.db().triggers[0].fn === "kirimPengingat" && call({ action: "settingsGet", key: K }).remind.trigger === true, "pasangPengingat → tepat satu pemicu per jam");
+// H-1 sesi 1 (5 Des 09.00 WIB = 02.00 UTC): 20 jam sebelumnya
+const regs0 = call({ action: "list", key: K }).regs;
+const penuhAktif = regs0.filter((x) => (x.status === "Aktif" || x.status === "Lulus") && x.program !== "Gratis").length;
+let mc = be.gas.db().mailCount || 0;
+let out = be.run("kirimPengingat", new Date("2026-12-04T06:00:00Z"));
+ok(out.ok && out.session === penuhAktif && (be.gas.db().mailCount - mc) === out.session + out.pay && /Sesi 1 besok/.test(be.gas.db().mails.find((m) => /Pengingat: Sesi 1/.test(m.subject)).subject), "pengingat H-1 sesi 1 terkirim ke semua peserta penuh aktif", out);
+out = be.run("kirimPengingat", new Date("2026-12-04T07:00:00Z"));
+ok(out.session === 0, "pengingat sesi tidak dobel pada jam berikutnya", out);
+out = be.run("kirimPengingat", new Date("2026-12-01T06:00:00Z"));
+ok(out.session === 0, "di luar 26 jam sebelum sesi → tidak ada pengingat sesi", out);
+// kuota menipis: sisakan cadangan, tunda sisanya
+props.REMIND_SES_2 = ""; props.__quota = String(10 + 2);
+out = be.run("kirimPengingat", new Date("2026-12-05T06:00:00Z"));
+ok(out.session === 2 && out.pending === penuhAktif - 2 && out.notes.length === 1, "kuota menipis → kirim sebagian, sisakan cadangan, tunda sisanya", out);
+props.__quota = "100";
+out = be.run("kirimPengingat", new Date("2026-12-05T07:00:00Z"));
+ok(out.session === penuhAktif - 2 && out.pending === 0, "jam berikutnya → sisa yang tertunda terkirim", out);
+// pengingat tagihan: hanya Menunggu Pembayaran > 48 jam, sekali
+const unpaid = call({ action: "register", reg: Object.assign({}, base, { name: "Belum Bayar", email: "belumbayar@contoh.id", phone: "081255554444" }) }).reg;
+out = be.run("kirimPengingat", new Date(Date.now() + 3600e3));
+ok(!be.gas.db().mails.some((m) => m.to === "belumbayar@contoh.id" && /Pengingat pembayaran/.test(m.subject)), "pendaftar baru (< 48 jam) belum diingatkan");
+out = be.run("kirimPengingat", new Date(Date.now() + 49 * 3600e3));
+ok(out.pay >= 1 && be.gas.db().mails.some((m) => m.to === "belumbayar@contoh.id" && /Pengingat pembayaran/.test(m.subject) && /konfirmasi\.html\?id=/.test(m.html)), "tagihan > 48 jam → pengingat + tautan unggah bukti", out);
+out = be.run("kirimPengingat", new Date(Date.now() + 50 * 3600e3));
+ok(out.pay === 0, "pengingat tagihan hanya sekali per pendaftar", out);
+out = be.run("kirimPengingat", new Date("2026-12-10T06:00:00Z"));
+ok(out.pay === 0, "setelah pendaftaran ditutup → tidak ada pengingat tagihan");
+call({ action: "settingsSave", key: K, settings: { remindSession: false } });
+props.REMIND_SES_1 = "";
+out = be.run("kirimPengingat", new Date("2026-12-04T06:00:00Z"));
+ok(out.session === 0, "pengingat sesi dapat dimatikan dari pengaturan", out);
+out = be.run("kirimPengingat", { triggerUid: "x" });
+ok(out.ok, "dipanggil pemicu (objek event) → tetap berjalan");
+r = call({ action: "remindRun", key: "salah" });
+ok(!r.ok, "jalankan pengingat manual butuh kunci admin");
+// riwayat
+r = call({ action: "update", key: K, by: "Budi Admin", id: unpaid.id, fields: { name: "Belum Bayar S.KM" } });
+r = call({ action: "delete", key: K, by: "Budi Admin", id: unpaid.id });
+r = call({ action: "logList", key: K });
+const L = r.list || [];
+ok(r.ok && L[0].action === "Hapus peserta" && L[0].by === "Budi Admin" && L[0].id === unpaid.id && JSON.parse(L[0].detail).email === "belumbayar@contoh.id" && !/accessCode/.test(L[0].detail), "hapus peserta tercatat + arsip data (tanpa kode akses)", L[0]);
+ok(L[1].action === "Ubah peserta" && /nama "Belum Bayar" → "Belum Bayar S.KM"/.test(L[1].detail), "ubah nama tercatat", L[1]);
+ok(L.some((x) => x.action === "Pengaturan" && x.by === "Ani" && /rekaman sesi 1 dipasang/.test(x.detail)), "perubahan pengaturan tercatat dengan nama admin");
+ok(L.some((x) => x.action === "Pengingat email" && x.by === "sistem"), "pengingat otomatis tercatat sebagai sistem");
+ok(L.some((x) => x.action === "Ubah peserta" && /status Menunggu Verifikasi → Aktif/.test(x.detail)), "verifikasi (termasuk massal) tercatat");
+ok(L.some((x) => /tugas akhir: Perlu Revisi/.test(x.detail)) && L.some((x) => x.action === "Pengumuman dihapus"), "penilaian tugas & hapus pengumuman tercatat");
+r = call({ action: "register", reg: Object.assign({}, base, { name: "Publik", email: "publik@contoh.id", phone: "081233332222" }) });
+ok(!call({ action: "logList", key: K }).list.some((x) => x.by === "Publik"), "aksi publik tidak bisa memalsukan nama admin");
+r = call({ action: "logList", key: "salah" });
+ok(!r.ok, "riwayat butuh kunci admin");
+
 console.log(`\n${pass} lulus, ${fail} gagal`);
 process.exit(fail ? 1 : 0);

@@ -13,8 +13,11 @@
   if (API.isDemo) { $("demoTools").classList.remove("hidden"); $("mailBtn").classList.remove("hidden"); $("resetBtn").classList.remove("hidden"); }
 
   // ---------- Login ----------
+  try { $("adminBy").value = sessionStorage.getItem("mad_admin_by") || localStorage.getItem("mad_admin_by") || ""; } catch (e) {}
   $("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
+    const by = $("adminBy").value.trim();
+    try { sessionStorage.setItem("mad_admin_by", by); localStorage.setItem("mad_admin_by", by); } catch (e) {} // nama saja, bukan kunci
     await login($("adminKey").value.trim());
   });
   async function login(k) {
@@ -211,6 +214,9 @@
     Object.entries(LINK_IDS).forEach(([k, id]) => ($(id).value = r.links[k] || ""));
     $("sEval").checked = r.settings.evalOpen; $("sTask").checked = r.settings.taskOpen;
     $("sDue").value = r.settings.taskDue || ""; $("sInfo").value = r.settings.taskInfo || "";
+    $("sRemSes").checked = r.settings.remindSession; $("sRemPay").checked = r.settings.remindPay;
+    $("recList").innerHTML = SES_ROWS.map(([k, label]) => '<div class="field" style="margin:0 0 8px"><label for="rec' + k + '" class="small">' + esc(label) + '</label><input id="rec' + k + '" data-rec="' + k + '" type="url" placeholder="https://…" value="' + esc(r.settings.rec[k] || "") + '"></div>').join("");
+    renderRemind(r.remind);
     const active = regs.filter((x) => x.status === "Aktif" || x.status === "Lulus");
     $("attCodes").innerHTML = SES_ROWS.map(([k, label]) => {
       const pool = active.filter((x) => sesKeys(x).includes(k)), n = pool.filter((x) => attOf(x).includes(k)).length, code = r.settings.attend[k] || "";
@@ -231,10 +237,56 @@
     try {
       const attend = {}; $("attCodes").querySelectorAll("[data-code]").forEach((i) => (attend[i.dataset.code] = i.value.trim()));
       const links = {}; Object.entries(LINK_IDS).forEach(([k, id]) => (links[k] = $(id).value.trim()));
-      fillSet(await API.settingsSave(key, { links, evalOpen: $("sEval").checked, taskOpen: $("sTask").checked, taskDue: $("sDue").value, taskInfo: $("sInfo").value, attend }));
+      const rec = {}; document.querySelectorAll("[data-rec]").forEach((i) => (rec[i.dataset.rec] = i.value.trim()));
+      fillSet(await API.settingsSave(key, { links, evalOpen: $("sEval").checked, taskOpen: $("sTask").checked, taskDue: $("sDue").value, taskInfo: $("sInfo").value, attend,
+        rec, remindSession: $("sRemSes").checked, remindPay: $("sRemPay").checked }));
       $("setMsg").innerHTML = '<div class="alert alert-ok" style="margin:0">✓ Pengaturan tersimpan. Peserta melihat perubahan saat membuka/memuat ulang portal.</div>';
     } catch (e) { $("setMsg").innerHTML = '<div class="alert alert-err" style="margin:0">' + esc(e.message) + "</div>"; }
     $("setSave").disabled = false;
+  });
+
+  function renderRemind(m) {
+    const last = m.last || {};
+    $("remStatus").innerHTML = (m.trigger === true ? '<span style="color:var(--good)">● Pemicu otomatis aktif (tiap jam)</span>'
+      : '<span style="color:#fde68a">● Pemicu otomatis belum terpasang.</span> Buka editor Apps Script → pilih fungsi <b class="mono">pasangPengingat</b> → <b>Run</b> (sekali saja).') +
+      (last.at ? '<br><span class="muted">Terakhir berjalan ' + esc(fmtDate(last.at, true)) + ": " + (last.session || 0) + " pengingat sesi, " + (last.pay || 0) + " pengingat tagihan" +
+        (last.pending ? ", <b style=\"color:#fde68a\">" + last.pending + " ditunda (kuota)</b>" : "") + "</span>" : '<br><span class="muted">Belum pernah berjalan.</span>');
+  }
+  $("remRun").addEventListener("click", async () => {
+    if (!confirm("Jalankan pengingat sekarang? Email hanya dikirim bila ada sesi dalam 26 jam ke depan atau tagihan yang belum dibayar > 48 jam, dan tidak dobel.")) return;
+    $("remRun").disabled = true;
+    try {
+      const o = await API.remindRun(key);
+      $("setMsg").innerHTML = '<div class="alert alert-ok" style="margin:0">✓ Pengingat dijalankan: ' + o.session + " pengingat sesi, " + o.pay + " pengingat tagihan terkirim" + (o.pending ? ", " + o.pending + " ditunda (kuota)" : "") + ".</div>";
+      fillSet(await API.settingsGet(key));
+    } catch (e) { $("setMsg").innerHTML = '<div class="alert alert-err" style="margin:0">' + esc(e.message) + "</div>"; }
+    $("remRun").disabled = false;
+  });
+
+  // ---------- Riwayat aksi ----------
+  let logs = [];
+  const logDetail = (x) => {
+    if (x.action === "Hapus peserta") { try { const d = JSON.parse(x.detail); return "<b>" + esc(d.name) + "</b> · " + esc(d.email) + " · " + esc(d.phone) + "<br><span class=\"small muted\">" +
+      esc([d.program, d.category, d.status, d.total ? rupiah(d.total) : "", d.certNo].filter(Boolean).join(" · ")) + "</span>"; } catch (e) {} }
+    return esc(x.detail);
+  };
+  function renderLog() {
+    const q = $("logQ").value.trim().toLowerCase();
+    const list = logs.filter((x) => !q || [x.by, x.action, x.id, x.detail].join(" ").toLowerCase().includes(q));
+    $("logRows").innerHTML = list.map((x) => '<tr><td class="small" style="white-space:nowrap">' + esc(fmtDate(x.at, true)) + '</td><td class="small">' + esc(x.by) + "</td><td><b style=\"color:#fff\">" + esc(x.action) + "</b>" +
+      (x.id ? '<br><span class="mono small">' + esc(x.id) + "</span>" : "") + '</td><td class="small" style="overflow-wrap:anywhere">' + logDetail(x) + "</td></tr>").join("") ||
+      '<tr><td colspan="4" class="center muted" style="padding:24px">' + (logs.length ? "Tidak ada yang cocok" : "Belum ada riwayat") + "</td></tr>";
+  }
+  async function loadLog() {
+    try { logs = (await API.logList(key)).list; renderLog(); }
+    catch (e) { $("logRows").innerHTML = '<tr><td colspan="4"><div class="alert alert-err">' + esc(e.message) + "</div></td></tr>"; }
+  }
+  $("logQ").addEventListener("input", renderLog);
+  $("logCsv").addEventListener("click", () => {
+    const cell = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+    const csv = "\ufeff" + ["waktu,oleh,aksi,id,detail", ...logs.map((x) => [x.at, x.by, x.action, x.id, x.detail].map(cell).join(","))].join("\r\n");
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv], { type: "text/csv" })), download: "riwayat-admin-" + new Date().toISOString().slice(0, 10) + ".csv" });
+    document.body.appendChild(a); a.click(); a.remove();
   });
 
   // ---------- Pengumuman ----------
@@ -422,11 +474,13 @@
     $("evalView").classList.toggle("hidden", b.dataset.view !== "eval");
     $("annView").classList.toggle("hidden", b.dataset.view !== "ann");
     $("setView").classList.toggle("hidden", b.dataset.view !== "set");
+    $("logView").classList.toggle("hidden", b.dataset.view !== "log");
+    if (b.dataset.view === "log") loadLog();
     if (b.dataset.view === "set") loadSet();
     if (b.dataset.view === "eval") loadEval();
     if (b.dataset.view === "ann") loadAnn();
   }));
-  $("refreshBtn").addEventListener("click", () => { if (!$("evalView").classList.contains("hidden")) loadEval(); });
+  $("refreshBtn").addEventListener("click", () => { if (!$("evalView").classList.contains("hidden")) loadEval(); if (!$("logView").classList.contains("hidden")) loadLog(); });
 
   async function loadEval() {
     try { evalData = await API.evalList(key); renderEval(); }
