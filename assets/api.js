@@ -126,6 +126,10 @@
     annList: (key) => call({ action: "annList", key }),
     annSave: (key, text, target) => call({ action: "annSave", key, text, target }),
     annDelete: (key, id) => call({ action: "annDelete", key, id }),
+    settingsGet: (key) => call({ action: "settingsGet", key }),
+    settingsSave: (key, settings) => call({ action: "settingsSave", key, settings }),
+    attend(session, attendCode) { const s = Session.get() || {}; return call({ action: "attend", email: s.email, code: s.code, session, attendCode }); },
+    taskSubmit(p) { const s = Session.get() || {}; return call(Object.assign({ action: "taskSubmit", email: s.email, code: s.code }, p)); },
 
     // ----- khusus mode demo -----
     async demoMails() { return DEMO ? (await demoBackend()).gas.db().mails : []; },

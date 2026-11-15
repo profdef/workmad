@@ -10,7 +10,7 @@
   <title>Portal Peserta · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=35">
+  <link rel="stylesheet" href="assets/style.css?v=36">
 </head>
 <body>
   <div id="topbar"></div>
@@ -39,6 +39,7 @@
         <button type="button" class="on" data-tab="materi">📚 Materi</button>
         <button type="button" data-tab="jadwal">🗓 Jadwal & Zoom</button>
         <button type="button" data-tab="unduh">⬇ Paket Latihan</button>
+        <button type="button" data-tab="tugas">📤 Tugas Akhir</button>
         <button type="button" data-tab="evaluasi">📝 Evaluasi</button>
         <button type="button" data-tab="sertifikat">🎓 Sertifikat</button>
         <button type="button" data-tab="upgrade" class="hidden">⭐ Pelatihan Penuh</button>
@@ -51,12 +52,13 @@
       </section>
 
       <section data-pane="jadwal" class="hidden">
+        <div class="card next-ses" style="margin-bottom:14px" id="nextBox"></div>
         <div class="card" style="margin-bottom:14px">
           <h3>Tautan sesi live</h3>
           <div id="links"></div>
         </div>
-        <div class="card" style="margin-bottom:14px" id="vbgBox"></div>
-        <div class="timeline" id="sessions"></div>
+        <div class="timeline" id="sessions" style="margin-bottom:14px"></div>
+        <div class="card" id="vbgBox"></div>
       </section>
 
       <section data-pane="unduh" class="hidden">
@@ -72,6 +74,8 @@
         </div>
       </section>
 
+      <section data-pane="tugas" class="hidden"><div class="card" id="taskBox"></div></section>
+
       <section data-pane="evaluasi" class="hidden"><div class="card" id="evalBox"></div></section>
 
       <section data-pane="sertifikat" class="hidden"><div class="card" id="certBox"></div></section>
@@ -84,8 +88,8 @@
   </main>
   <div id="footer"></div>
 
-  <script src="assets/config.js?v=35"></script>
-  <script src="assets/api.js?v=12"></script>
+  <script src="assets/config.js?v=36"></script>
+  <script src="assets/api.js?v=13"></script>
   <script src="assets/common.js?v=27"></script>
   <script src="assets/materi.js?v=11"></script>
   <script src="materi/catalog.js?v=22"></script>
@@ -124,7 +128,7 @@
       $("pBatch").textContent = "Kelas Gratis Pembeli Buku";
       $("pStatus").insertAdjacentHTML("afterend", ' <span class="badge st-aktif">Kelas Gratis</span>');
       // Kelas gratis: paket latihan terbatas (PDF modul pengenalan + data), tanpa evaluasi & sertifikat
-      ["evaluasi", "sertifikat"].forEach((t) => document.querySelector('[data-tab="' + t + '"]').classList.add("hidden"));
+      ["tugas", "evaluasi", "sertifikat"].forEach((t) => document.querySelector('[data-tab="' + t + '"]').classList.add("hidden"));
       document.querySelector('[data-tab="upgrade"]').classList.remove("hidden");
     }
     $("logout").addEventListener("click", (e) => { e.preventDefault(); Session.clear(); location.href = "index.html"; });
@@ -179,13 +183,121 @@
       : '<div class="bank"><div><div class="small muted">' + icon + " " + label + "</div><div class=\"muted\">Akan diumumkan admin</div></div></div>";
     $("links").innerHTML = link(FREEP ? "Zoom Kelas Gratis" : "Zoom Meeting", data.zoom, "🎥") + link(FREEP ? "Grup WhatsApp kelas gratis" : "Grup WhatsApp peserta", data.waGroup, "💬");
     bindCopy($("links"));
-    if (FREEP) $("sessions").innerHTML =
-      '<div class="tl"><div class="no">KELAS</div><div><div class="t">' + esc(FC.title) + '</div><div class="d">' + esc(FC.mode) +
-      '</div></div><div class="w"><b>' + esc(FC.date) + "</b><br>" + esc(FC.time) + "</div></div>" +
-      FC.agenda.map(([t, a]) => '<div class="tl"><div class="no">' + esc(t) + '</div><div><div class="t" style="font-weight:500">' + esc(a) + "</div></div><div></div></div>").join("");
-    else $("sessions").innerHTML = C.SESSIONS.map((x, i) =>
-      '<div class="tl"><div class="no">SESI ' + (i + 1) + '</div><div><div class="t">' + esc(x.topic) + '</div><div class="d">' + esc(x.decks) +
-      '</div></div><div class="w"><b>' + esc(x.date) + "</b><br>" + esc(x.time) + "</div></div>").join("");
+    // Jadwal: status tiap sesi (selesai/berlangsung/berikutnya), hitung mundur, presensi dengan kode hadir, dan kalender (.ics)
+    const MON = { Januari: 0, Februari: 1, Maret: 2, April: 3, Mei: 4, Juni: 5, Juli: 6, Agustus: 7, September: 8, Oktober: 9, November: 10, Desember: 11 };
+    const sesTime = (date, time) => { // "Sabtu, 5 Desember 2026" + "09.00–12.00 WIB" → Date (WIB = UTC+7)
+      const m = String(date).match(/(\d{1,2})\s+(\S+)\s+(\d{4})/), t = String(time).match(/(\d{1,2})[.:](\d{2})\D+(\d{1,2})[.:](\d{2})/);
+      if (!m || !t || !(m[2] in MON)) return null;
+      const at = (h, mi) => new Date(Date.UTC(+m[3], MON[m[2]], +m[1], h - 7, mi));
+      return { start: at(+t[1], +t[2]), end: at(+t[3], +t[4]) };
+    };
+    const SES = (FREEP ? [{ key: "G", no: "KELAS", topic: FC.title, sub: FC.mode, date: FC.date, time: FC.time }]
+      : C.SESSIONS.map((x, i) => ({ key: String(i + 1), no: "SESI " + (i + 1), topic: x.topic, sub: x.decks, date: x.date, time: x.time })))
+      .map((x) => Object.assign(x, { tm: sesTime(x.date, x.time) }));
+    const icsEsc = (t) => String(t).replace(/[\\;,]/g, (c) => "\\" + c).replace(/\n/g, "\\n");
+    function saveIcs(list, name) {
+      const f = (d) => d.toISOString().replace(/[-:]|\.\d{3}/g, "");
+      const body = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//publichealth.id//Pelatihan MAD-R//ID\r\nCALSCALE:GREGORIAN\r\n" + list.filter((x) => x.tm).map((x) =>
+        "BEGIN:VEVENT\r\nUID:mad-r-" + x.key + "@publichealth.id\r\nDTSTAMP:" + f(new Date()) + "\r\nDTSTART:" + f(x.tm.start) + "\r\nDTEND:" + f(x.tm.end) +
+        "\r\nSUMMARY:" + icsEsc((FREEP ? "Kelas Gratis: " : "Pelatihan MAD-R " + x.no.replace("SESI", "Sesi") + ": ") + x.topic) +
+        "\r\nDESCRIPTION:" + icsEsc("Tautan Zoom, materi & presensi ada di Portal Peserta: " + API.base + "portal.html#jadwal") +
+        "\r\nLOCATION:Zoom (tautan di Portal Peserta)\r\nBEGIN:VALARM\r\nTRIGGER:-PT30M\r\nACTION:DISPLAY\r\nDESCRIPTION:Sesi dimulai 30 menit lagi\r\nEND:VALARM\r\nEND:VEVENT\r\n").join("") + "END:VCALENDAR\r\n";
+      const url = URL.createObjectURL(new Blob([body], { type: "text/calendar" }));
+      const a = Object.assign(document.createElement("a"), { href: url, download: name });
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
+    }
+    const until = (ms) => { const d = Math.floor(ms / 864e5), h = Math.floor((ms % 864e5) / 36e5), m = Math.floor((ms % 36e5) / 6e4); return d > 0 ? d + " hari " + h + " jam" : h > 0 ? h + " jam " + m + " menit" : Math.max(1, m) + " menit"; };
+    function renderSessions() {
+      const now = new Date(), att = new Set(p.attendance || []), open = new Set(p.attendOpen || []);
+      const state = (x) => !x.tm ? "" : now > x.tm.end ? "selesai" : now >= x.tm.start - 15 * 6e4 ? "berlangsung" : "akan";
+      const next = SES.find((x) => state(x) === "berlangsung") || SES.find((x) => state(x) === "akan");
+      const zoomBtn = data.zoom ? '<a class="btn btn-primary" href="' + esc(data.zoom) + '" target="_blank" rel="noopener">🎥 Gabung Zoom</a>' : '<span class="muted small">Tautan Zoom akan diumumkan admin</span>';
+      $("nextBox").innerHTML = (next
+        ? '<div><div class="eyebrow">' + (state(next) === "berlangsung" ? "🔴 Sedang berlangsung" : "Sesi berikutnya") + '</div><h3 style="margin:.2em 0">' + (FREEP ? "" : esc(next.no.replace("SESI", "Sesi")) + " · ") + esc(next.topic) +
+          '</h3><div class="muted">' + esc(next.date) + " · " + esc(next.time) + (state(next) === "akan" ? ' · <b style="color:#fde68a">' + until(next.tm.start - now) + " lagi</b>" : "") + "</div></div>" +
+          '<div class="acts">' + zoomBtn + '<button class="btn btn-sm" type="button" id="icsAll">📅 ' + (FREEP ? "Simpan ke kalender" : "Simpan semua sesi ke kalender") + '</button><button class="btn btn-sm" type="button" id="sesRefresh" title="Muat tautan & presensi terbaru">↻ Perbarui</button></div>'
+        : '<div><div class="eyebrow">Jadwal</div><h3 style="margin:.2em 0">Semua sesi live telah selesai 🎉</h3><div class="muted">' + (FREEP ? "Terima kasih telah mengikuti kelas gratis. Lanjutkan ke Pelatihan Penuh lewat tab ⭐." : "Lengkapi tugas akhir & evaluasi untuk memperoleh e-sertifikat.") + "</div></div>") +
+        '<div class="att-sum"><b>' + SES.filter((x) => att.has(x.key)).length + " / " + SES.length + '</b><span>sesi tercatat hadir</span></div>';
+      // Perbarui tanpa memuat ulang halaman: presensi yang baru dibuka admin, tautan Zoom, status tugas
+      if ($("sesRefresh")) $("sesRefresh").addEventListener("click", async () => {
+        $("sesRefresh").disabled = true;
+        try { const r = await API.login(s.email, s.code, true); data.zoom = r.zoom; data.waGroup = r.waGroup; Object.assign(p, r.participant); renderSessions(); renderTask(); renderCert(); }
+        catch (ex) { $("sesRefresh").disabled = false; alert(ex.message); }
+      });
+      if ($("icsAll")) $("icsAll").addEventListener("click", () => saveIcs(SES, FREEP ? "kelas-gratis-mad-r.ics" : "jadwal-pelatihan-mad-r.ics"));
+      $("sessions").innerHTML = SES.map((x) => {
+        const st = state(x), isNext = x === next;
+        const badge = att.has(x.key) ? '<span class="badge st-lulus">✓ Hadir</span>' : st === "selesai" ? '<span class="badge st-dibatalkan">Selesai</span>'
+          : st === "berlangsung" ? '<span class="badge st-menunggu-verifikasi">Berlangsung</span>' : isNext ? '<span class="badge st-aktif">Berikutnya</span>' : "";
+        const form = !att.has(x.key) && open.has(x.key)
+          ? '<form class="att-form" data-att="' + x.key + '"><input class="mono" placeholder="Kode hadir" maxlength="12" autocomplete="off" aria-label="Kode hadir ' + esc(x.no) + '"><button class="btn btn-sm btn-primary" type="submit">Catat hadir</button><div class="small" data-msg></div></form>' : "";
+        return '<div class="tl' + (isNext ? " next" : st === "selesai" ? " past" : "") + '"><div class="no">' + esc(x.no) + '</div><div><div class="t">' + esc(x.topic) + '</div><div class="d">' + esc(x.sub) + "</div>" + form +
+          '</div><div class="w"><b>' + esc(x.date) + "</b><br>" + esc(x.time) + '<div style="margin-top:6px">' + badge + "</div></div></div>";
+      }).join("") + (FREEP ? FC.agenda.map(([t, a]) => '<div class="tl"><div class="no">' + esc(t) + '</div><div><div class="t" style="font-weight:500">' + esc(a) + "</div></div><div></div></div>").join("") : "");
+      $("sessions").querySelectorAll("[data-att]").forEach((f) => f.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const inp = f.querySelector("input"), btn = f.querySelector("button"), msg = f.querySelector("[data-msg]");
+        if (!inp.value.trim()) { inp.focus(); return; }
+        btn.disabled = true; msg.textContent = "Mencatat…";
+        try { const r = await API.attend(f.dataset.att, inp.value); Object.assign(p, r.participant); renderSessions(); renderCert(); }
+        catch (ex) { msg.innerHTML = '<span style="color:#fca5a5">' + esc(ex.message) + "</span>"; btn.disabled = false; }
+      }));
+      if ((p.attendOpen || []).some((k) => !att.has(k)) && !document.querySelector('[data-tab="jadwal"] .badge'))
+        document.querySelector('[data-tab="jadwal"]').insertAdjacentHTML("beforeend", ' <span class="badge st-menunggu-verifikasi">presensi dibuka</span>');
+      if (!(p.attendOpen || []).some((k) => !att.has(k))) { const b = document.querySelector('[data-tab="jadwal"] .badge'); if (b) b.remove(); }
+    }
+    renderSessions();
+    setInterval(() => { if (!document.querySelector(".att-form input:focus") && !document.querySelector(".att-form input:not(:placeholder-shown)")) renderSessions(); }, 60000);
+
+    // Tugas akhir (pelatihan penuh): tautan dan/atau file PDF/HTML/ZIP; bisa dikumpulkan ulang sampai diterima
+    const linkify2 = (t) => esc(t).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)]/g, (u) => '<a href="' + u + '" target="_blank" rel="noopener">' + u + "</a>");
+    function renderTask() {
+      const t = p.task; if (!t) return;
+      const ST = { "": ["Belum dikumpulkan", "st-dibatalkan"], Dikirim: ["Dikirim · menunggu penilaian", "st-menunggu-verifikasi"], "Perlu Revisi": ["Perlu revisi", "st-menunggu-pembayaran"], Diterima: ["✓ Diterima", "st-lulus"] };
+      const [lab, cls] = ST[t.status] || ST[""];
+      const dueAt = t.due ? new Date(t.due + "T23:59:59+07:00") : null, left = dueAt ? dueAt - new Date() : 0;
+      const canSend = t.open && t.status !== "Diterima";
+      $("taskBox").innerHTML = '<div style="display:flex;gap:14px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap"><div><h3 style="margin:0">Tugas Akhir</h3>' +
+        '<div class="muted small">Salah satu syarat e-sertifikat ' + p.jp + " JP</div></div><span class=\"badge " + cls + '">' + lab + "</span></div>" +
+        '<div class="task-info">' + (t.info ? linkify2(t.info) : '<span class="muted">Ketentuan tugas akhir akan diumumkan narasumber.</span>') + "</div>" +
+        (dueAt ? '<p class="small" style="margin:0 0 12px">⏰ Batas pengumpulan: <b style="color:#fff">' + esc(fmtDate(t.due + "T12:00:00+07:00")) + "</b>" +
+          (t.status === "Diterima" ? "" : left > 0 ? ' · <span style="color:#fde68a">' + until(left) + " lagi</span>" : ' · <span style="color:#fca5a5">sudah lewat</span>') + "</p>" : "") +
+        (t.status === "Perlu Revisi" || (t.status === "Diterima" && t.feedback) ? '<div class="alert ' + (t.status === "Diterima" ? "alert-ok" : "alert-warn") + '"><b>Catatan narasumber:</b> ' + (esc(t.feedback) || "—") + "</div>" : "") +
+        (t.at ? '<dl class="kv" style="margin:12px 0"><dt>Dikumpulkan</dt><dd>' + esc(fmtDate(t.at, true)) + "</dd>" +
+          (t.url ? '<dt>Tautan</dt><dd style="word-break:break-all"><a href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.url) + "</a></dd>" : "") +
+          (t.hasFile ? "<dt>File</dt><dd>✓ file terunggah</dd>" : "") + (t.note ? "<dt>Catatan Anda</dt><dd>" + esc(t.note) + "</dd>" : "") + "</dl>" : "") +
+        (canSend ? '<form id="taskForm" novalidate><h4 style="margin:16px 0 8px">' + (t.at ? "Kumpulkan ulang" : "Kumpulkan tugas") + "</h4>" +
+          '<div class="field"><label for="tUrl">Tautan tugas <span class="muted small">(Quarto Pub, RPubs, GitHub, atau Google Drive)</span></label><input id="tUrl" type="url" placeholder="https://…" value="' + esc(t.url) + '"></div>' +
+          '<div class="field"><label for="tFile">atau unggah file <span class="muted small">(PDF, HTML, atau ZIP · maks. ' + t.maxMb + ' MB)</span></label><input id="tFile" type="file" accept=".pdf,.html,.htm,.zip,application/pdf,text/html,application/zip"></div>' +
+          '<div class="field"><label for="tNote">Catatan untuk narasumber <span class="muted small">(opsional)</span></label><textarea id="tNote" rows="2" maxlength="600">' + esc(t.note) + "</textarea></div>" +
+          '<button class="btn btn-primary" type="submit" id="tBtn">📤 Kirim tugas</button><div id="tMsg"></div></form>'
+          : t.status === "Diterima" ? "" : '<div class="alert alert-info">Pengumpulan tugas akhir sedang ditutup.</div>');
+      const tb = document.querySelector('[data-tab="tugas"]'), old = tb.querySelector(".badge"); if (old) old.remove();
+      if (t.status === "Perlu Revisi") tb.insertAdjacentHTML("beforeend", ' <span class="badge st-menunggu-pembayaran">revisi</span>');
+      if (!canSend) return;
+      $("taskForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const err = (m) => ($("tMsg").innerHTML = '<div class="alert alert-err">' + esc(m) + "</div>");
+        const url = $("tUrl").value.trim(), file = $("tFile").files[0];
+        if (!url && !file) return err("Isi tautan tugas atau pilih file tugas.");
+        if (url && !/^https?:\/\/\S+$/.test(url)) return err("Tautan harus diawali https://");
+        let payload = null;
+        if (file) {
+          const ext = (file.name.match(/\.(\w+)$/) || [])[1], mime = { pdf: "application/pdf", html: "text/html", htm: "text/html", zip: "application/zip" }[String(ext).toLowerCase()];
+          if (!mime) return err("File tugas harus PDF, HTML, atau ZIP.");
+          if (file.size > t.maxMb * 1048576) return err("Ukuran file melebihi " + t.maxMb + " MB. Gunakan tautan (mis. Google Drive) untuk file besar.");
+          const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+          payload = { name: file.name, mimeType: mime, data: dataUrl.split(",")[1] };
+        }
+        $("tBtn").disabled = true; $("tMsg").innerHTML = '<div class="muted small">Mengirim tugas…</div>';
+        try {
+          const r = await API.taskSubmit({ url, note: $("tNote").value, file: payload });
+          Object.assign(p, r.participant); renderTask(); renderCert();
+          $("taskBox").insertAdjacentHTML("afterbegin", '<div class="alert alert-ok" style="margin-top:0">✓ Tugas akhir terkirim. Narasumber akan memeriksa; hasilnya tampil di sini dan dikirim lewat email.</div>');
+        } catch (ex) { err(ex.message); $("tBtn").disabled = false; }
+      });
+    }
+    renderTask();
 
     // Virtual background Zoom: gambar dasar assets/vbg/ (sumber: tools/vbg/vbg.html) + nama peserta digambar di kanvas
     const VBG = [["Aurora", "gelap, kurva epidemi"], ["Terang", "cerah & bersih"], ["Studio Data", "kode R & output"], ["Buku", "sampul buku panduan"]];
@@ -286,6 +398,7 @@
     if (!p.evalDone && p.evalOpen) document.querySelector('[data-tab="evaluasi"]').insertAdjacentHTML("beforeend", ' <span class="badge st-menunggu-verifikasi">baru</span>');
 
     // Sertifikat
+    function renderCert() {
     $("certBox").innerHTML = p.certIssued && !p.certNo
       ? '<div class="success-ic">🎓</div><h2 class="center">Selamat, Anda dinyatakan lulus!</h2><p class="center muted">E-sertifikat Anda sudah terbit. Silakan isi <b>Evaluasi Pelatihan</b> terlebih dahulu untuk membuka unduhan sertifikat.</p>' +
         '<p class="center"><a class="btn btn-primary btn-lg" href="evaluasi.html">📝 Isi Evaluasi Sekarang</a></p>'
@@ -293,7 +406,14 @@
       ? '<div class="success-ic">🎓</div><h2 class="center">Selamat, Anda dinyatakan lulus!</h2><p class="center muted">No. sertifikat <b class="mono" style="color:#fff">' + esc(p.certNo) +
         '</b> · ' + esc(fmtDate(p.certDate + "T12:00:00+07:00")) + '</p><p class="center"><a class="btn btn-primary btn-lg" href="sertifikat.html?cetak=1">Lihat & Unduh Sertifikat</a></p>'
       : "<h3>Sertifikat belum tersedia</h3><p class=\"muted\">E-sertifikat (" + p.jp + " JP) terbit setelah Anda mengikuti sesi live dan menyelesaikan tugas akhir. " +
-        "Admin akan mengubah status Anda menjadi <b>Lulus</b>, lalu sertifikat dapat diunduh di sini.</p>";
+        "Admin akan mengubah status Anda menjadi <b>Lulus</b>, lalu sertifikat dapat diunduh di sini.</p>" +
+        '<div class="req-list">' + [
+          [(p.attendance || []).length + " dari " + C.SESSIONS.length + " sesi tercatat hadir", (p.attendance || []).length > 0, "jadwal", "Presensi"],
+          ["Tugas akhir: " + ((p.task && p.task.status) || "belum dikumpulkan"), !!(p.task && p.task.status === "Diterima"), "tugas", "Tugas Akhir"],
+          ["Evaluasi pelatihan: " + (p.evalDone ? "sudah diisi" : "belum diisi"), p.evalDone, "evaluasi", "Evaluasi"],
+        ].map(([t, okk, tab, lab]) => '<div><span class="' + (okk ? "ok" : "no") + '">' + (okk ? "✓" : "○") + "</span> " + esc(t) + ' <a href="#' + tab + '">' + lab + " →</a></div>").join("") + "</div>";
+    }
+    renderCert();
 
     // Ajakan pelatihan penuh (kelas gratis)
     if (FREEP) {

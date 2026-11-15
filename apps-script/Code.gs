@@ -45,8 +45,9 @@ var CONFIG = {
   CERT_JP: 18,
   PROOF_MAX_MB: 5,
   PROOF_FOLDER: "Bukti Pembayaran Pelatihan MAD-R",
+  TASK_MAX_MB: 10,                            // ukuran maksimum file tugas akhir (PDF/HTML/ZIP)
   RECEIPT_PREFIX: "KW/MAD-R/2026/",          // nomor kuitansi (terbit saat pembayaran diverifikasi)
-  EVAL_OPEN: true,                            // formulir evaluasi dapat diisi peserta Aktif/Lulus
+  EVAL_OPEN: true,                            // bawaan; dapat diubah dari dashboard admin → Pengaturan
   EVAL_REQUIRED_FOR_CERT: true,               // sertifikat baru dapat diunduh setelah evaluasi diisi
   SEND_EMAIL: true,     // kirim email tagihan & kode akses ke peserta
   NOTIFY_EMAIL: ""      // email admin untuk notifikasi pendaftaran/bukti baru ("" = mati)
@@ -57,7 +58,8 @@ var HEADERS = ["id", "createdAt", "status", "name", "email", "phone", "gender", 
   "category", "province", "city", "source", "note", "price", "uniqueCode", "total",
   "payerName", "paidAmount", "proofAt", "proofUrl", "proofFileId", "ktmFileId",
   "accessCode", "activatedAt", "lastLogin", "loginCount", "progress", "certNo", "certDate", "adminNote",
-  "receiptNo", "evalAt", "program", "bookOrderId", "bookVerified", "bookProofFileId", "discount"];
+  "receiptNo", "evalAt", "program", "bookOrderId", "bookVerified", "bookProofFileId", "discount",
+  "attendance", "taskUrl", "taskFileId", "taskNote", "taskAt", "taskStatus", "taskFeedback"];
 var FREE = "Gratis", FULL = "Penuh";
 var STATUSES = ["Menunggu Pembayaran", "Menunggu Verifikasi", "Aktif", "Lulus", "Dibatalkan"];
 var ACTIVE = ["Aktif", "Lulus"];
@@ -137,6 +139,10 @@ function doPost(e) {
       case "annList":  requireAdmin(body.key); return json({ ok: true, list: annRead() });
       case "annSave":  requireAdmin(body.key); return json(annSave(body));
       case "annDelete": requireAdmin(body.key); return json(annDelete(body.id));
+      case "attend":   return json(attend(body));
+      case "taskSubmit": return json(taskSubmit(body));
+      case "settingsGet": requireAdmin(body.key); return json(settingsGet());
+      case "settingsSave": requireAdmin(body.key); return json(settingsSave(body.settings || {}));
       default: throw new Error("Aksi tidak dikenal");
     }
   } catch (err) {
@@ -480,11 +486,11 @@ function evalGet(b) {
   if (n > 0) sh.getRange(2, 1, n, H.length).getValues().forEach(function (r) {
     if (r[0] === s.rec.id) { answers = {}; H.forEach(function (k, i) { answers[k] = r[i] instanceof Date ? r[i].toISOString() : r[i]; }); }
   });
-  return { ok: true, open: CONFIG.EVAL_OPEN, answers: answers };
+  return { ok: true, open: settingsRead().evalOpen, answers: answers };
 }
 
 function evalSubmit(b) {
-  if (!CONFIG.EVAL_OPEN) throw new Error("Formulir evaluasi sedang ditutup");
+  if (!settingsRead().evalOpen) throw new Error("Formulir evaluasi sedang ditutup");
   var a = b.answers || {}, row = {}, miss = [];
   var int = function (v, lo, hi, k) {
     var x = parseInt(v, 10);
@@ -533,7 +539,7 @@ function evalList() {
 function updateReg(id, fields) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
-  var rec, becameActive = false;
+  var rec, becameActive = false, taskReviewed = false;
   try {
     var sheet = getSheet();
     var row = findRow(sheet, id);
@@ -558,12 +564,26 @@ function updateReg(id, fields) {
     if ("name" in fields && String(fields.name).trim()) rec.name = String(fields.name).trim().slice(0, 100); // koreksi nama di sertifikat
     if ("certDate" in fields && /^\d{4}-\d{2}-\d{2}$/.test(fields.certDate)) rec.certDate = fields.certDate;
     if (fields.resetCode) { rec.accessCode = newAccessCode(); becameActive = ACTIVE.indexOf(rec.status) >= 0; }
+    if ("attendance" in fields) rec.attendance = attList(fields.attendance).filter(function (k) { return sessionKeys(isFree(rec)).indexOf(k) >= 0; }).sort().join(",");
+    if ("taskStatus" in fields) {
+      if (["Diterima", "Perlu Revisi"].indexOf(fields.taskStatus) < 0) throw new Error("Status tugas tidak valid");
+      if (!rec.taskAt) throw new Error("Peserta belum mengumpulkan tugas akhir");
+      rec.taskStatus = fields.taskStatus;
+      rec.taskFeedback = String(fields.taskFeedback || "").trim().slice(0, 600);
+      taskReviewed = true;
+    }
     writeRow(sheet, row, rec);
   } finally {
     lock.releaseLock();
   }
   var mailed = false;
   if (becameActive && fields.notify !== false) mailed = sendAccessMail(rec);
+  if (taskReviewed && fields.notify !== false) mailed = sendMail(rec.email, "Tugas Akhir: " + rec.taskStatus + " — " + rec.id, mailTemplate(
+    rec.taskStatus === "Diterima" ? "Tugas akhir diterima ✅" : "Tugas akhir perlu revisi ✏️",
+    "Halo <b>" + h(rec.name) + "</b>, tugas akhir Anda telah diperiksa.",
+    [["Status", "<b>" + h(rec.taskStatus) + "</b>"]].concat(rec.taskFeedback ? [["Catatan", h(rec.taskFeedback)]] : []),
+    rec.taskStatus === "Diterima" ? "Terima kasih. Pantau status kelulusan & sertifikat di Portal Peserta:" : "Silakan perbaiki lalu kumpulkan kembali melalui tab Tugas Akhir di Portal Peserta:",
+    CONFIG.SITE_URL + "portal.html#tugas", "Buka Portal Peserta"));
   return { ok: true, reg: rec, mailed: mailed };
 }
 
@@ -579,10 +599,12 @@ function resendAccess(id) {
 function getFile(id, kind) {
   var sheet = getSheet();
   var rec = readRow(sheet, findRow(sheet, id));
-  var fid = kind === "ktm" ? rec.ktmFileId : kind === "book" ? rec.bookProofFileId : rec.proofFileId;
+  var fid = kind === "ktm" ? rec.ktmFileId : kind === "book" ? rec.bookProofFileId : kind === "task" ? rec.taskFileId : rec.proofFileId;
   if (!fid) throw new Error("File tidak ditemukan");
   var file = DriveApp.getFileById(fid);
   var blob = file.getBlob();
+  // Tugas peserta (HTML/ZIP) tidak ditampilkan di dalam dashboard — dibuka lewat Google Drive saja
+  if (kind === "task" && blob.getContentType() !== "application/pdf") return { ok: true, mimeType: blob.getContentType(), url: file.getUrl(), name: file.getName(), dataUrl: "" };
   return {
     ok: true, mimeType: blob.getContentType(), url: file.getUrl(),
     dataUrl: "data:" + blob.getContentType() + ";base64," + Utilities.base64Encode(blob.getBytes())
@@ -599,6 +621,126 @@ function deleteReg(id) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ======================= Pengaturan (dashboard admin) ======================= */
+
+// Tautan disimpan di Script Property masing-masing (sama dengan cara lama); lainnya di Script Property SETTINGS (JSON).
+var LINK_PROPS = { zoom: "ZOOM_LINK", waGroup: "WA_GROUP_LINK", zoomFree: "ZOOM_LINK_FREE", waGroupFree: "WA_GROUP_LINK_FREE" };
+var LINK_LABELS = { zoom: "Zoom pelatihan penuh", waGroup: "grup WhatsApp pelatihan penuh", zoomFree: "Zoom kelas gratis", waGroupFree: "grup WhatsApp kelas gratis" };
+// Kunci sesi untuk kehadiran: "1"–"6" = sesi pelatihan penuh, "G" = kelas gratis
+function sessionKeys(free) { return free ? ["G"] : ["1", "2", "3", "4", "5", "6"]; }
+function attList(v) {
+  var seen = {};
+  return String(v == null ? "" : v).split(",").map(function (x) { return x.trim().toUpperCase(); })
+    .filter(function (k) { return /^[1-6G]$/.test(k) && !seen[k] && (seen[k] = true); });
+}
+function settingsRead() {
+  var s = {};
+  try { s = JSON.parse(PropertiesService.getScriptProperties().getProperty("SETTINGS") || "{}") || {}; } catch (e) { s = {}; }
+  return { evalOpen: "evalOpen" in s ? !!s.evalOpen : CONFIG.EVAL_OPEN, taskOpen: "taskOpen" in s ? !!s.taskOpen : true,
+    taskDue: s.taskDue || "", taskInfo: s.taskInfo || "", attend: s.attend || {} };
+}
+function settingsGet() {
+  var P = PropertiesService.getScriptProperties(), links = {};
+  Object.keys(LINK_PROPS).forEach(function (k) { links[k] = P.getProperty(LINK_PROPS[k]) || ""; });
+  return { ok: true, settings: settingsRead(), links: links };
+}
+function settingsSave(o) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var P = PropertiesService.getScriptProperties(), cur = settingsRead();
+    Object.keys(LINK_PROPS).forEach(function (k) {
+      if (!(k in (o.links || {}))) return;
+      var u = String(o.links[k] || "").trim().slice(0, 500);
+      if (u === (P.getProperty(LINK_PROPS[k]) || "")) return; // tidak diubah → biarkan (nilai lama tidak ikut divalidasi)
+      if (u && !/^https:\/\/\S+$/.test(u)) throw new Error("Tautan " + LINK_LABELS[k] + " harus diawali https:// dan tanpa spasi");
+      P.setProperty(LINK_PROPS[k], u);
+    });
+    if ("evalOpen" in o) cur.evalOpen = !!o.evalOpen;
+    if ("taskOpen" in o) cur.taskOpen = !!o.taskOpen;
+    if ("taskDue" in o) {
+      var d = String(o.taskDue || "").trim();
+      if (d && !/^\d{4}-\d{2}-\d{2}$/.test(d)) throw new Error("Batas tugas harus berformat tanggal (YYYY-MM-DD)");
+      cur.taskDue = d;
+    }
+    if ("taskInfo" in o) cur.taskInfo = String(o.taskInfo || "").trim().slice(0, 1500);
+    if ("attend" in o) {
+      var att = {};
+      ["1", "2", "3", "4", "5", "6", "G"].forEach(function (k) {
+        var c = normCode((o.attend || {})[k]).slice(0, 12); // kosong = presensi sesi itu ditutup
+        if (c) att[k] = c;
+      });
+      cur.attend = att;
+    }
+    P.setProperty("SETTINGS", JSON.stringify(cur));
+  } finally {
+    lock.releaseLock();
+  }
+  return settingsGet();
+}
+
+/* ======================= Kehadiran & tugas akhir (peserta) ======================= */
+
+// Peserta mencatat kehadiran dengan kode hadir yang dibacakan narasumber saat sesi berlangsung.
+function attend(b) {
+  var key = String(b.session || "").trim().toUpperCase(), code = normCode(b.attendCode);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = getSheet();
+    var hit = findByEmailCode(sheet, String(b.email || "").trim().toLowerCase(), normCode(b.code));
+    if (!hit || ACTIVE.indexOf(hit.rec.status) < 0) throw new Error("Sesi tidak valid. Silakan masuk kembali.");
+    var rec = hit.rec;
+    if (sessionKeys(isFree(rec)).indexOf(key) < 0) throw new Error("Sesi tidak dikenal");
+    var real = settingsRead().attend[key];
+    if (!real) throw new Error("Presensi sesi ini belum dibuka atau sudah ditutup");
+    if (!code || code !== real) { Utilities.sleep(800); throw new Error("Kode hadir salah. Periksa kode yang dibacakan narasumber."); }
+    var list = attList(rec.attendance);
+    if (list.indexOf(key) < 0) { list.push(key); list.sort(); rec.attendance = list.join(","); writeRow(sheet, hit.row, rec); }
+    return { ok: true, participant: participantView(rec) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Pengumpulan tugas akhir: tautan (Quarto Pub/RPubs/GitHub/Drive) dan/atau file PDF, HTML, ZIP. Bisa dikumpulkan ulang.
+function taskSubmit(b) {
+  var url = String(b.url || "").trim().slice(0, 500), note = String(b.note || "").trim().slice(0, 600);
+  if (url && !/^https?:\/\/\S+$/.test(url)) throw new Error("Tautan tugas harus diawali https://");
+  var hasFile = !!(b.file && b.file.data);
+  if (!url && !hasFile) throw new Error("Isi tautan tugas atau unggah file tugas");
+  var file = hasFile ? checkFile(b.file, { "application/pdf": "pdf", "text/html": "html", "application/zip": "zip", "application/x-zip-compressed": "zip" },
+    CONFIG.TASK_MAX_MB, "File tugas harus PDF, HTML, atau ZIP") : null;
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  var rec;
+  try {
+    var sheet = getSheet();
+    var hit = findByEmailCode(sheet, String(b.email || "").trim().toLowerCase(), normCode(b.code));
+    if (!hit || ACTIVE.indexOf(hit.rec.status) < 0) throw new Error("Sesi tidak valid. Silakan masuk kembali.");
+    rec = hit.rec;
+    if (isFree(rec)) throw new Error("Tugas akhir hanya untuk peserta pelatihan penuh");
+    if (!settingsRead().taskOpen) throw new Error("Pengumpulan tugas akhir sedang ditutup");
+    if (rec.taskStatus === "Diterima") throw new Error("Tugas akhir Anda sudah diterima");
+    if (file) {
+      var f = saveFile(file, rec.id + "_TUGAS");
+      f.setDescription("Tugas akhir · " + rec.name);
+      rec.taskFileId = f.getId();
+    }
+    rec.taskUrl = url;
+    rec.taskNote = note;
+    rec.taskAt = new Date().toISOString();
+    rec.taskStatus = "Dikirim";
+    rec.taskFeedback = "";
+    writeRow(sheet, hit.row, rec);
+  } finally {
+    lock.releaseLock();
+  }
+  notifyAdmin("Tugas akhir masuk: " + rec.id, rec.name + (url ? "\n" + url : ""), {
+    icon: "📝", title: "Tugas akhir masuk", id: rec.id, rows: [["Nama", rec.name], ["Tautan", url || "(file diunggah)"]], footer: "Periksa & nilai di dashboard admin" });
+  return { ok: true, participant: participantView(rec) };
 }
 
 /* ======================= Aksi massal ======================= */
@@ -784,8 +926,13 @@ function publicReg(r) {
 }
 
 function participantView(r) {
-  return { program: isFree(r) ? FREE : FULL, bookDiscount: CONFIG.BOOK_DISCOUNT, id: r.id, name: r.name, email: r.email, institution: r.institution, category: r.category, status: r.status,
-    evalDone: !!r.evalAt, evalOpen: CONFIG.EVAL_OPEN, evalRequired: CONFIG.EVAL_REQUIRED_FOR_CERT,
+  var S = settingsRead(), free = isFree(r);
+  return { program: free ? FREE : FULL, bookDiscount: CONFIG.BOOK_DISCOUNT, id: r.id, name: r.name, email: r.email, institution: r.institution, category: r.category, status: r.status,
+    evalDone: !!r.evalAt, evalOpen: S.evalOpen, evalRequired: CONFIG.EVAL_REQUIRED_FOR_CERT,
+    // Kehadiran: sesi yang sudah tercatat + sesi yang kode hadirnya sedang dibuka admin (kodenya sendiri tidak dikirim)
+    attendance: attList(r.attendance), attendOpen: sessionKeys(free).filter(function (k) { return !!S.attend[k]; }),
+    task: free ? null : { open: S.taskOpen, due: S.taskDue, info: S.taskInfo, status: r.taskStatus || "", url: r.taskUrl || "", hasFile: !!r.taskFileId,
+      note: r.taskNote || "", at: r.taskAt || "", feedback: r.taskFeedback || "", maxMb: CONFIG.TASK_MAX_MB },
     // Sertifikat ditahan sampai evaluasi diisi (bila diwajibkan)
     certIssued: r.status === "Lulus" && !!r.certNo,
     certNo: certAllowed(r) ? r.certNo : "", certDate: certAllowed(r) ? r.certDate : "",
@@ -796,11 +943,12 @@ function certAllowed(r) {
   return r.status === "Lulus" && !!r.certNo && (!CONFIG.EVAL_REQUIRED_FOR_CERT || !!r.evalAt);
 }
 
-function checkFile(f) {
-  var allowed = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
-  if (!allowed[f.mimeType] || !f.data) throw new Error("File harus JPG, PNG, WEBP, atau PDF");
+function checkFile(f, allowed, maxMb, msg) {
+  allowed = allowed || { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+  maxMb = maxMb || CONFIG.PROOF_MAX_MB;
+  if (!allowed[f.mimeType] || !f.data) throw new Error(msg || "File harus JPG, PNG, WEBP, atau PDF");
   var bytes = Utilities.base64Decode(f.data);
-  if (bytes.length > CONFIG.PROOF_MAX_MB * 1048576) throw new Error("Ukuran file melebihi " + CONFIG.PROOF_MAX_MB + " MB");
+  if (bytes.length > maxMb * 1048576) throw new Error("Ukuran file melebihi " + maxMb + " MB");
   return { bytes: bytes, mimeType: f.mimeType, ext: allowed[f.mimeType] };
 }
 

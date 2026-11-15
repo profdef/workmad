@@ -481,3 +481,29 @@ dialog .dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px
 .deadline .v { font: 800 22px var(--head); color: var(--white); }
 .deadline .l { font-size: 12.5px; color: var(--muted); }
 .deadline .hot { border-color: rgba(251,191,36,.6); } .deadline .hot .v { color: #fde68a; }
+
+/* Tahap 2: jadwal (sesi berikutnya, presensi), tugas akhir, syarat sertifikat, pengaturan admin */
+.next-ses { display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-color: rgba(168,85,247,.55); }
+.next-ses .acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.att-sum { text-align: center; padding: 8px 18px; border-radius: 14px; background: var(--surface-2); }
+.att-sum b { display: block; font: 800 22px var(--head); color: var(--white); }
+.att-sum span { font-size: 12.5px; color: var(--muted); }
+.tl.next { border-color: rgba(168,85,247,.7); box-shadow: 0 0 0 1px rgba(168,85,247,.35); }
+.tl.past { opacity: .72; }
+.att-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.att-form input { width: 150px; padding: 8px 12px; text-transform: uppercase; letter-spacing: .12em; }
+.att-form [data-msg] { flex-basis: 100%; }
+.task-info { margin: 14px 0; padding: 14px 16px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border-soft); white-space: pre-line; overflow-wrap: anywhere; }
+.req-list { display: grid; gap: 8px; margin-top: 14px; }
+.req-list .ok { color: var(--good); font-weight: 700; } .req-list .no { color: var(--muted); }
+.set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.att-codes { display: grid; gap: 8px; }
+.att-codes > div { display: grid; grid-template-columns: 1fr 130px auto auto; gap: 8px; align-items: center; font-size: 14px; }
+.att-codes input { padding: 7px 10px; text-transform: uppercase; letter-spacing: .1em; }
+.att-codes .cnt { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.switch { display: flex; gap: 10px; align-items: center; cursor: pointer; margin: 8px 0; }
+.switch input { width: 18px; height: 18px; accent-color: #a855f7; }
+.att-checks { display: flex; gap: 10px; flex-wrap: wrap; }
+.att-checks label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+.att-checks input { width: 16px; height: 16px; accent-color: #a855f7; }
+@media (max-width: 640px) { .att-codes > div { grid-template-columns: 1fr 1fr; } }

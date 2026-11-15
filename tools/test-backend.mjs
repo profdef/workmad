@@ -272,5 +272,66 @@ ok(r.ok && r.list.length === 2 && !r.list.some((a) => a.id === annId), "hapus pe
 for (let i = 0; i < 15; i++) call({ action: "annSave", key: "rahasia-admin", text: "p" + i });
 ok(call({ action: "annList", key: "rahasia-admin" }).list.length === 12, "maksimal 12 pengumuman tersimpan");
 
+console.log("Pengaturan, kehadiran & tugas akhir");
+const K = "rahasia-admin";
+r = call({ action: "settingsGet", key: "salah" });
+ok(!r.ok, "pengaturan butuh kunci admin");
+r = call({ action: "settingsGet", key: K });
+ok(r.ok && r.settings.evalOpen === true && r.settings.taskOpen === true && r.links.zoom === "https://zoom.us/j/123", "pengaturan bawaan + tautan lama terbaca", r);
+r = call({ action: "settingsSave", key: K, settings: { links: { zoom: "zoom.us/tanpa-https" } } });
+ok(!r.ok && /https/.test(r.error), "tautan tanpa https ditolak");
+props.ZOOM_LINK_FREE = "https://zoom.us/j/1 (catatan lama)";
+r = call({ action: "settingsSave", key: K, settings: { links: { zoomFree: "https://zoom.us/j/1 (catatan lama)", zoom: "https://zoom.us/j/123" }, taskInfo: "x" } });
+ok(r.ok && r.settings.taskInfo === "x", "tautan lama yang tidak diubah tidak menghalangi penyimpanan", r);
+r = call({ action: "settingsSave", key: K, settings: { links: { zoom: "https://zoom.us/j/999", waGroupFree: "https://chat.whatsapp.com/abc" }, evalOpen: false,
+  taskDue: "2026-12-27", taskInfo: "Buat laporan Quarto.", attend: { 1: " ab-12 ", 2: "", G: "gratis1", 9: "x" } } });
+ok(r.ok && r.links.zoom === "https://zoom.us/j/999" && r.settings.evalOpen === false && r.settings.attend["1"] === "AB12" && r.settings.attend.G === "GRATIS1" && !("2" in r.settings.attend) && !("9" in r.settings.attend), "simpan pengaturan: tautan, evaluasi, kode hadir dinormalkan", r);
+// peserta penuh aktif kedua (m2 transfernya tidak sesuai → aktifkan manual)
+call({ action: "update", key: K, id: m2.id, fields: { status: "Aktif" } });
+const m2code = call({ action: "list", key: K }).regs.find((x) => x.id === m2.id).accessCode;
+const me = { email: "massal2@contoh.id", code: m2code };
+r = call(Object.assign({ action: "login", silent: true }, me));
+ok(r.ok && r.zoom === "https://zoom.us/j/999" && r.participant.evalOpen === false && r.participant.attendOpen.join() === "1" && r.participant.attendance.length === 0 &&
+  r.participant.task.open && r.participant.task.due === "2026-12-27" && JSON.stringify(r).indexOf("AB12") < 0, "login: tautan baru, sesi presensi terbuka tampil, kode hadir TIDAK bocor", r.participant);
+r = call(Object.assign({ action: "evalSubmit", answers: {} }, me));
+ok(!r.ok && /ditutup/.test(r.error), "evaluasi ditutup dari pengaturan");
+call({ action: "settingsSave", key: K, settings: { evalOpen: true } });
+r = call(Object.assign({ action: "attend", session: "1", attendCode: "salah" }, me));
+ok(!r.ok && /Kode hadir salah/.test(r.error), "kode hadir salah ditolak");
+r = call(Object.assign({ action: "attend", session: "2", attendCode: "AB12" }, me));
+ok(!r.ok && /belum dibuka/.test(r.error), "sesi tanpa kode hadir → presensi tertutup");
+r = call(Object.assign({ action: "attend", session: "G", attendCode: "GRATIS1" }, me));
+ok(!r.ok && /tidak dikenal/.test(r.error), "peserta penuh tidak bisa presensi kelas gratis");
+r = call(Object.assign({ action: "attend", session: "1", attendCode: "ab 12" }, me));
+ok(r.ok && r.participant.attendance.join() === "1", "kode hadir benar → tercatat hadir sesi 1", r);
+call(Object.assign({ action: "attend", session: "1", attendCode: "AB12" }, me));
+ok(call({ action: "list", key: K }).regs.find((x) => x.id === m2.id).attendance === "1", "presensi ganda tidak dobel");
+r = call({ action: "update", key: K, id: m2.id, fields: { attendance: "3,1,G,3,x" } });
+ok(r.ok && r.reg.attendance === "1,3", "admin mengoreksi kehadiran (kunci tidak valid dibuang)", r.reg.attendance);
+r = call(Object.assign({ action: "taskSubmit" }, me));
+ok(!r.ok && /tautan tugas atau unggah/.test(r.error), "tugas kosong ditolak");
+r = call(Object.assign({ action: "taskSubmit", url: "javascript:alert(1)" }, me));
+ok(!r.ok && /https/.test(r.error), "tautan tugas berbahaya ditolak");
+r = call(Object.assign({ action: "taskSubmit", file: { name: "t.exe", mimeType: "application/x-msdownload", data: img.data } }, me));
+ok(!r.ok && /PDF, HTML, atau ZIP/.test(r.error), "jenis file tugas dibatasi");
+r = call({ action: "update", key: K, id: m2.id, fields: { taskStatus: "Diterima" } });
+ok(!r.ok && /belum mengumpulkan/.test(r.error), "tidak bisa menilai tugas yang belum dikumpulkan");
+r = call(Object.assign({ action: "taskSubmit", url: "https://quarto.pub/tugas", note: "Laporan DBD", file: { name: "t.pdf", mimeType: "application/pdf", data: img.data } }, me));
+ok(r.ok && r.participant.task.status === "Dikirim" && r.participant.task.hasFile && r.participant.task.url === "https://quarto.pub/tugas", "tugas terkirim (tautan + file)", r.participant && r.participant.task);
+r = call({ action: "file", key: K, id: m2.id, kind: "task" });
+ok(r.ok && r.mimeType === "application/pdf" && r.url, "admin membuka file tugas");
+const nMail = be.gas.db().mails.length;
+r = call({ action: "update", key: K, id: m2.id, fields: { taskStatus: "Perlu Revisi", taskFeedback: "Tambahkan interpretasi OR." } });
+ok(r.ok && r.reg.taskStatus === "Perlu Revisi" && r.mailed && be.gas.db().mails.length === nMail + 1 && /perlu revisi/i.test(be.gas.db().mails[0].subject + be.gas.db().mails[be.gas.db().mails.length - 1].subject), "admin minta revisi → email ke peserta", r.reg.taskStatus);
+r = call(Object.assign({ action: "taskSubmit", url: "https://quarto.pub/tugas-v2" }, me));
+ok(r.ok && r.participant.task.status === "Dikirim" && r.participant.task.feedback === "" && r.participant.task.hasFile, "kumpulkan ulang → status Dikirim lagi, file lama tetap ada");
+call({ action: "update", key: K, id: m2.id, fields: { taskStatus: "Diterima" } });
+r = call(Object.assign({ action: "taskSubmit", url: "https://quarto.pub/tugas-v3" }, me));
+ok(!r.ok && /sudah diterima/.test(r.error), "tugas yang sudah diterima tidak bisa diganti");
+call({ action: "settingsSave", key: K, settings: { taskOpen: false } });
+call({ action: "update", key: K, id: m1.id, fields: { status: "Aktif" } });
+r = call({ action: "taskSubmit", email: "massal1@contoh.id", code: m1code, url: "https://x.id/t" });
+ok(!r.ok && /ditutup/.test(r.error), "pengumpulan tugas bisa ditutup dari pengaturan");
+
 console.log(`\n${pass} lulus, ${fail} gagal`);
 process.exit(fail ? 1 : 0);

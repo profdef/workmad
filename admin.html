@@ -10,7 +10,7 @@
   <title>Dashboard Admin · Pelatihan MAD-R</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/style.css?v=35">
+  <link rel="stylesheet" href="assets/style.css?v=36">
 </head>
 <body>
   <div id="topbar"></div>
@@ -44,6 +44,7 @@
       <button type="button" class="on" data-view="peserta">👥 Peserta & Pembayaran</button>
       <button type="button" data-view="eval">📊 Evaluasi Pelatihan</button>
       <button type="button" data-view="ann">📣 Pengumuman</button>
+      <button type="button" data-view="set">⚙ Pengaturan & Presensi</button>
     </div>
     <div id="pesertaView">
     <div class="kpis" id="kpis"></div>
@@ -57,6 +58,7 @@
       <input type="search" id="q" placeholder="Cari nama, email, no. WA, instansi, no. pendaftaran…">
       <select id="fProg"><option value="">Semua program</option><option value="Penuh">Pelatihan penuh</option><option value="Gratis">Kelas gratis</option></select>
       <select id="fCat"><option value="">Semua kategori</option></select>
+      <select id="fTask" aria-label="Filter tugas akhir"><option value="">Semua tugas</option><option value="Dikirim">Tugas perlu dinilai</option><option value="Perlu Revisi">Tugas perlu revisi</option><option value="Diterima">Tugas diterima</option><option value="-">Belum mengumpulkan</option></select>
     </div>
     <div class="filters" id="pills" style="margin-top:0"></div>
     <div class="bulkbar hidden" id="bulkBar">
@@ -69,7 +71,7 @@
     </div>
     <div class="table-wrap">
       <table class="tbl">
-        <thead><tr><th><input type="checkbox" id="selAll" title="Pilih semua yang tampil" aria-label="Pilih semua yang tampil"></th><th>No. / Tanggal</th><th>Peserta</th><th>Kategori</th><th class="num">Tagihan</th><th class="num">Transfer</th><th>Status</th><th>Modul</th><th></th></tr></thead>
+        <thead><tr><th><input type="checkbox" id="selAll" title="Pilih semua yang tampil" aria-label="Pilih semua yang tampil"></th><th>No. / Tanggal</th><th>Peserta</th><th>Kategori</th><th class="num">Tagihan</th><th class="num">Transfer</th><th>Status</th><th>Progres</th><th></th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
@@ -91,6 +93,33 @@
       <div id="annList" style="margin-top:12px"></div>
     </div>
 
+    <div id="setView" class="hidden">
+      <div class="set-grid">
+        <div class="card">
+          <h3 style="margin-top:0">Tautan sesi live</h3>
+          <div class="field"><label for="sZoom">Zoom pelatihan penuh</label><input id="sZoom" type="url" placeholder="https://…"></div>
+          <div class="field"><label for="sWa">Grup WhatsApp pelatihan penuh</label><input id="sWa" type="url" placeholder="https://chat.whatsapp.com/…"></div>
+          <div class="field"><label for="sZoomFree">Zoom kelas gratis</label><input id="sZoomFree" type="url" placeholder="https://…"></div>
+          <div class="field"><label for="sWaFree">Grup WhatsApp kelas gratis</label><input id="sWaFree" type="url" placeholder="https://chat.whatsapp.com/…"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">Evaluasi & tugas akhir</h3>
+          <label class="switch"><input type="checkbox" id="sEval"> Formulir evaluasi dibuka</label>
+          <label class="switch"><input type="checkbox" id="sTask"> Pengumpulan tugas akhir dibuka</label>
+          <div class="field"><label for="sDue">Batas pengumpulan tugas</label><input id="sDue" type="date"></div>
+          <div class="field"><label for="sInfo">Ketentuan tugas akhir <span class="muted small">(tampil di tab Tugas Akhir peserta)</span></label><textarea id="sInfo" rows="5" maxlength="1500" placeholder="Contoh: Buat laporan analisis dengan Quarto (HTML/PDF) dari data latihan atau data Anda sendiri, memuat pembersihan data, tabel deskriptif, satu analisis asosiasi, dan interpretasi."></textarea></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <h3 style="margin-top:0">Presensi per sesi</h3>
+        <p class="muted small" style="margin-top:0">Isi <b>kode hadir</b> untuk membuka presensi sebuah sesi, bacakan kodenya saat sesi berlangsung, lalu kosongkan untuk menutupnya. Peserta memasukkan kode di tab <b>Jadwal & Zoom</b>. Kehadiran per peserta dapat dikoreksi dari tombol Detail.</p>
+        <div class="att-codes" id="attCodes"></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
+        <button class="btn btn-primary" type="button" id="setSave">💾 Simpan pengaturan</button><div id="setMsg" style="flex:1;min-width:240px"></div>
+      </div>
+    </div>
+
     <div id="evalView" class="hidden">
       <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px">
         <div><h2 style="margin:0">Laporan Evaluasi Pelatihan</h2><div class="small muted" id="evMeta"></div></div>
@@ -109,10 +138,10 @@
   </dialog>
 
   <div id="footer"></div>
-  <script src="assets/config.js?v=35"></script>
-  <script src="assets/api.js?v=12"></script>
+  <script src="assets/config.js?v=36"></script>
+  <script src="assets/api.js?v=13"></script>
   <script src="assets/common.js?v=27"></script>
   <script src="materi/catalog.js?v=22"></script>
-  <script src="assets/admin.js?v=12"></script>
+  <script src="assets/admin.js?v=13"></script>
 </body>
 </html>
